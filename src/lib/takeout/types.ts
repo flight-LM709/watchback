@@ -74,7 +74,7 @@ export interface ProgressInfo {
   /** Work done in the current phase. Use processed/total as a fraction (units: entries for JSON, characters for HTML, percent while unzipping/reading). */
   processed: number;
   total: number;
-  /** Running count of watch events found so far — use it for the "Counting {n} videos…" screen. */
+  /** Running count of watch events found so far — use it for the crunching.counter screen. */
   watchCount: number;
   file?: string;
 }

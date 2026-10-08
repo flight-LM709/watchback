@@ -182,7 +182,7 @@ export function Upload({ onFiles, error }: { onFiles: (files: File[]) => void; e
   );
 }
 
-/** 02b Crunching: spinning cassette, live "Counting {n} videos…", tape bar, rotating lines. */
+/** 02b Crunching: spinning cassette, live crunching.counter, tape bar, rotating lines. */
 export function Crunching({ count, fraction, phase = "parsing" }: { count: number; fraction: number; phase?: ProgressPhase }) {
   const rm = usePrefersReducedMotion();
   const lines = en.crunching.rotating;
@@ -192,7 +192,7 @@ export function Crunching({ count, fraction, phase = "parsing" }: { count: numbe
     return () => clearInterval(t);
   }, [lines.length]);
   const [before, after] = splitAround(en.crunching.counter, "n");
-  // Nothing is counted while the zip is opened/inflated, so say that instead of a frozen "Counting 0 videos…".
+  // Nothing is counted while the zip is opened/inflated, so say that instead of a frozen crunching.counter.
   const preparing = isPreparing(phase, count);
   return (
     <Page className="items-center text-center">
