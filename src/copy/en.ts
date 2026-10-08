@@ -57,6 +57,18 @@ export const en = {
     allTime: "All time",
   },
 
+  // Decorative labels (Paper Mixtape). Keep each to 1-3 words.
+  deco: {
+    takeoutTape: "Liner notes · 6 steps",
+    runnersUp: "Side B · Runners-up",
+    vhsLabel: "T-120",
+    vhsRec: "REC",
+    heatmapArrow: "prime time!",
+    shareStamp: "WATCHBACK",
+    nowPlaying: "Now playing",
+    streakSticker: "No skips",
+  },
+
   slides: {
     totalVideos: {
       headline: "You pressed play on {n} videos.",
