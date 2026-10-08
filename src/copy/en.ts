@@ -157,13 +157,32 @@ export const en = {
         longBoth: "Long‑form won on plays and on time.",
         shortsPlaysLongTime: "Shorts got most of your plays. Long‑form got most of your time.",
         longPlaysShortsTime: "Long‑form got most of your plays. Shorts got most of your time.",
+        // Ties: a side is "even" when the shares round to 50% (plays) or the times round to the same displayed value.
+        tieBoth: "Shorts and long‑form came out even.",
+        tiePlaysShortsTime: "An even split on plays. Shorts got most of your time.",
+        tiePlaysLongTime: "An even split on plays. Long‑form got most of your time.",
+        shortsPlaysTieTime: "Shorts got most of your plays. Time came out even.",
+        longPlaysTieTime: "Long‑form got most of your plays. Time came out even.",
+        // When either side's time is unknown (the em-dash case), compare plays only.
+        shortsPlaysOnly: "Shorts got most of your plays.",
+        longPlaysOnly: "Long‑form got most of your plays.",
+        tiePlaysOnly: "An even split on plays.",
       },
       noShorts: "No Shorts at all. You kept it long‑form.",
       // On-slide one-liner next to the chip (italic 13px). Keep in sync with the detection rule.
       note: "Shorts are videos opened from a Shorts link, or 3 minutes or shorter and vertical or square.",
       chip: "Estimate",
       chipExplainer: "YouTube's export doesn't say which videos were Shorts, so we work it out. A video counts as a Short if you opened it from a Shorts link, or if it's 3 minutes or shorter and vertical or square. We checked a large sample of your history and scaled it up, assuming each video was watched to the end. Deleted or private videos are left out of this split. Treat these as close, not exact. YouTube Music plays aren't included.",
-      aria: "Shorts: about {shortsCount} videos, {shortsTime}. Long‑form: about {longCount} videos, {longTime}.",
+      // Screen-reader summary. Fill each slot with the aria* strings below (never the visible "≈" ones).
+      aria: "Shorts: {shortsCount}, {shortsTime}. Long‑form: {longCount}, {longTime}.",
+      ariaCount: "about {n} videos",
+      ariaCountOne: "about 1 video",
+      ariaHours: "about {hours} hours",
+      ariaHourOne: "about 1 hour",
+      ariaMinutes: "about {minutes} minutes",
+      ariaMinuteOne: "about 1 minute",
+      ariaUnderMinute: "under a minute",
+      ariaTimeUnknown: "watch time unknown",
     },
     // NEW: top creators split into two short lists (top 3 each suggested). Same estimate chip and explainer as shortsVsLong.
     topCreatorsSplit: {
