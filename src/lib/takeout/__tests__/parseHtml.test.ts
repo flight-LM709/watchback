@@ -39,6 +39,15 @@ describe("parseHtmlHistory (search)", () => {
   });
 });
 
+describe("search query comes from the URL, not the link text", () => {
+  it("handles exports where the verb is split differently ('Searched <a>for lofi beats</a>')", () => {
+    const html = fixture("search-history.en.html").replaceAll("Searched for&nbsp;<a href=\"https://www.youtube.com/results?search_query=lofi+beats\">lofi beats</a>", "Searched&nbsp;<a href=\"https://www.youtube.com/results?search_query=lofi+beats\">for lofi beats</a>");
+    expect(html).toContain(">for lofi beats<");
+    const { events } = parseHtmlHistory(html, { role: "search", ...opts });
+    expect(events.map((e) => e.title)).toEqual(["lofi beats", "lofi beats"]);
+  });
+});
+
 describe("parseHtmlHistory (Indonesian)", () => {
   const { events, diagnostics } = parseHtmlHistory(fixture("histori-tontonan.id.html"), { role: "watch", ...opts });
   it("parses Indonesian dates (Agu, Agustus+pukul, Mei/WITA, Okt, Des)", () => {

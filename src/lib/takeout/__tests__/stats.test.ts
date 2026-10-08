@@ -127,6 +127,23 @@ describe("local timezone bucketing", () => {
   });
 });
 
+describe("top creators grouping", () => {
+  it("groups by channel URL (rename-safe, latest name wins) and merges same-name groups", () => {
+    const ev = [
+      watch("2024-01-01T00:00:00Z", { channelName: "Old Name", channelUrl: "https://yt/c/1" }),
+      watch("2024-01-02T00:00:00Z", { channelName: "New Name", channelUrl: "https://yt/c/1" }),
+      watch("2024-01-03T00:00:00Z", { channelName: "Kitchen Lab", channelUrl: "https://yt/c/2" }),
+      watch("2024-01-04T00:00:00Z", { channelName: "Kitchen Lab", channelUrl: "https://yt/c/3" }),
+      watch("2024-01-05T00:00:00Z", { channelName: "Kitchen Lab", channelUrl: "https://yt/c/3" }),
+    ];
+    const s = computeStats(ev, { timeZone: "UTC", range: { type: "allTime" } });
+    expect(s.topCreators).toEqual([
+      { name: "Kitchen Lab", url: "https://yt/c/3", count: 3 },
+      { name: "New Name", url: "https://yt/c/1", count: 2 },
+    ]);
+  });
+});
+
 describe("peakHourBadge", () => {
   const hours = (spec: Record<number, number>) => Array.from({ length: 24 }, (_, h) => spec[h] ?? 0);
 

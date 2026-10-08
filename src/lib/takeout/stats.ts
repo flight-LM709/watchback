@@ -170,6 +170,25 @@ function topEntries<V extends { count: number }>(m: Map<string, V>, n: number, l
     .slice(0, n);
 }
 
+/**
+ * Creators are first grouped by channel URL (stable across renames; the latest name wins),
+ * then groups that end up with the same display name are merged, since the slide can't tell
+ * them apart anyway (and it guards against exports with inconsistent channel URLs).
+ */
+function mergeByName(byUrl: Map<string, CountedName>): Map<string, CountedName> {
+  const out = new Map<string, CountedName>();
+  for (const c of byUrl.values()) {
+    const k = c.name.trim().toLowerCase();
+    const prev = out.get(k);
+    if (!prev) out.set(k, { ...c });
+    else {
+      if (c.count > prev.count) { prev.url = c.url; prev.name = c.name; }
+      prev.count += c.count;
+    }
+  }
+  return out;
+}
+
 export function computeStats(events: TakeoutEvent[], options: StatsOptions = {}): WatchStats {
   const timeZone = options.timeZone ?? runtimeTimeZone();
   const range = options.range ?? { type: "last12Months" };
@@ -324,7 +343,7 @@ export function computeStats(events: TakeoutEvent[], options: StatsOptions = {})
     shortsWatched,
     avgVideosPerDay: rangeDays ? totalVideos / rangeDays : 0,
     avgPlaysPerDay: rangeDays ? totalPlays / rangeDays : 0,
-    topCreators: topEntries(creators, topN, (c) => c.name),
+    topCreators: topEntries(mergeByName(creators), topN, (c) => c.name),
     favoriteVideo,
     topArtists: topEntries(artists, topN, (a) => a.name),
     topSongs: topEntries(songs, topN, (s) => s.title).map((s) => ({ videoId: s.videoId, title: s.title, artist: s.artist, count: s.count })),

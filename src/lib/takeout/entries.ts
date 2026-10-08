@@ -54,8 +54,10 @@ export function classifyEntry(e: RawEntry, ctx: ClassifyContext): ClassifyOutcom
 
   // --- Searches -----------------------------------------------------------
   if (url && isSearchUrl(url)) {
-    const q = e.linkText !== undefined ? cleanText(e.linkText) : extractSearchQuery(url) ?? stripVerb(e.text, ctx.searchAffix);
-    return { kind: "search", product, title: q || extractSearchQuery(url) || "", timestamp, isAd: e.isAd };
+    // The URL's search_query is authoritative; link text / title are fallbacks (some exports
+    // or tools split the verb differently, e.g. link text "for lofi beats").
+    const q = extractSearchQuery(url) || (e.linkText !== undefined ? cleanText(e.linkText) : stripVerb(e.text, ctx.searchAffix));
+    return { kind: "search", product, title: q || "", timestamp, isAd: e.isAd };
   }
 
   const videoId = extractVideoId(url);
