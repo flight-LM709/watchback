@@ -41,3 +41,26 @@ POST /api/durations   { "ids": ["dQw4w9WgXcQ", ...] }    // 1..2000 IDs, each /^
 | `YOUTUBE_API_MOCK` | off | `1` returns deterministic fake durations so you can work locally or run QA without a key |
 | `YOUTUBE_DAILY_UNIT_BUDGET` | `9000` | |
 | `DURATIONS_RATE_LIMIT` / `DURATIONS_RATE_WINDOW_SEC` | `10` / `600` | |
+
+---
+
+# `POST /api/thumb`
+
+This route proxies one video thumbnail so the browser never contacts Google.
+
+```
+POST /api/thumb   { "id": "dQw4w9WgXcQ" }
+200               image/jpeg bytes (1280×720 maxres if it exists, otherwise 480×360 hq; a 16:9 cover crop removes hq's bars)
+400 / 404 / 429 / 504   JSON { "error": ... }, returned fast, never an empty 200
+```
+
+* **The ID goes in the body, not the URL.** Hosting platforms like Vercel record request paths in their logs, so `/api/thumb/{id}` would leave every favorite video's ID in those logs even though our code logs nothing. A POST body doesn't get logged that way.
+* **No user data reaches Google.** The upstream request to `i.ytimg.com` carries only a fixed `Accept` header: no IP, cookies, user agent, or referrer. A test checks this.
+* Timeout is 2.5 s, under the client's 3 s. A removed or unknown video returns 404. Rate limit is 30 requests per 10 minutes per client. Responses are `Cache-Control: private` and `Cross-Origin-Resource-Policy: same-origin`.
+
+Client usage (the blob URL is same-origin, so the share-card export works):
+
+```ts
+const res = await fetch("/api/thumb", { method: "POST", body: JSON.stringify({ id }), signal: AbortSignal.timeout(3000) });
+const src = res.ok ? URL.createObjectURL(await res.blob()) : PLACEHOLDER;
+```
