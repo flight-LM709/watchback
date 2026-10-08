@@ -42,22 +42,24 @@ For Frontend Dev. Direction B, picked by vedrico. Mockups: `B/*.png` (story orde
 | **ShareCard** | Lay it out at **360×640 CSS px** for story and **360×360** for square, and export with `pixelRatio: 3` → **1080×1920** and **1080×1080** PNGs (`html-to-image` or canvas). The in-app preview scales it to 342px wide. Use web fonts only once `document.fonts.ready` resolves. Contents: stripe header, cassette icon + `WATCHBACK` stamp, the period headline from `share.headline`, range + "YouTube + YouTube Music", the Videos tile, the Watch-time tile (or the peak-hour tile, see §6), top 5 creators (square: #1 only), the top song with `Now playing`, and a footer with the URL and the disclaimer. The "Example data" tags exist in mockups only. Buttons sit below the card: `Save story` (secondary) and `Save square` (primary), with a `Start over` text link (44px tall) under them. |
 
 ## 3. Slide order and layout
-Pre-story screens: **00-landing → 01-upload → 02b-crunching**. Story (12 slides when everything is present):
+Pre-story screens: **00-landing → 01-upload → 02b-crunching**. Story (**14 slides** when everything is present. Without Shorts it's 12; see §9):
 
 | # | File | Copy keys | Layout notes |
 |---|---|---|---|
 | 1 | 02-big-number | totalVideos | The lead headline is split around the hero: "You pressed *play* on" (underline under *play*), the VHSLabel hero (100px), then "videos." in italic 32px, right-aligned. The `sub` goes in a mustard sticker. |
 | 2 | 05b-watch-time | watchTime | A tomato "≈" (56px) followed by a tape-counter hero: each digit in a 58×112 paper box with a 96px digit. Then "hours of watching." in italic 32px, the EstimateChip, and `sub` in a mustard sticker. The `-explainer` variant shows the open sheet. |
-| 3 | 03-top-creator | topCreator | Centered, with no runners-up list (they live on slide 4). The headline is split as "Your #1 creator *was*". Below it: a 176px **MonogramSticker** (with tape) inside a hand circle and a 72px star stamp "#1", then the name (32px, 1-line clamp, trailing "."). The hero count (120px tomato) sits in a VHSLabel-style sticker with stripes, rotated −2° with two tapes. Last comes "videos. That's loyalty." (22px italic) with a hand underline. Decorative sparkles, arrow and star fill the margins (`aria-hidden`). |
-| 4 | 06b-top5-creators | topCreators | Headline with an underline under "in heavy rotation". A J-card RankList where the #1 row is mustard. |
-| 5 | 07-favorite-video | favoriteVideo | A polaroid sticker with tape around a **VideoThumb** (see §7). The title is clamped to **2 lines** (Fraunces 19px/700), then the creator in mono 12px with a 1-line ellipsis. The hero reads "watched **23** times." with 120px tomato digits. |
-| 6 | 08-busiest-month | busiestMonth | Headline with the month underlined. Hero count 96px + "videos in one month." Then the BarChart on a graph-paper sticker. |
-| 7 | 04-prime-time | primeTime | "Prime time:" 30px / "Sundays at" 44px/800 / "10 PM." 96px italic tomato inside a hand circle. Then `sub`, the Heatmap, and two stickers: `peakLabel` + count + "videos", and a mustard badge card with the icon + `badgeShare` ("Night owl, 38% of plays"). **This covers the `peak-hour-badge` slide.** Frontend can drop that separate slide. |
-| 8 | 09-streak | bingeStreak + deco.streakSticker | Hero "17" (120px tomato) + "days in a row." on one baseline. `sub` sits below. A month calendar sticker (Mon-first), with streak days in mustard and start/end in tomato with white text. If the streak spans 2 months, show both months stacked and shrink the cells to 30px. A tomato round "No skips" sticker at the bottom-right corner. |
-| 9 | 10-top-searches | topSearches | 5 label-maker tapes with round rank badges. A 1-line clamp with ellipsis inside each tape. The `footer` line with a teal lock sits under them. |
-| 10 | 11-music-total | music | "You played" / 96px teal hero / "songs on YouTube Music." Then "Most of them were by" and a tomato cassette whose label holds the artist (30px/800, 1-line clamp, trailing "."). |
-| 11 | 12-top5-songs | topSongs + deco.nowPlaying | "*Side A:*" in teal italic. #1 in a teal "Now playing" cassette card (title 1-line clamp, then "artist · N plays"), with 2–5 in a J-card RankList. |
-| 12 | 05-share-card | share | ShareCard preview + buttons. Progress bars are full. |
+| 3 | 16-shorts-vs-long | shortsVsLong + deco.shortsTape/longTape | **New.** See §9. Two stacked format cards (Shorts, then Long‑form), each with a ≈ hero count, plays share and ≈ hours. The `subs.*` line and the EstimateChip with the detection note sit below. |
+| 4 | 17-creators-by-format | topCreatorsSplit + deco.shortsTape/longTape | **New.** See §9. Two column stickers: top 3 Shorts creators and top 3 long‑form creators. Each #1 gets a 64px MonogramSticker. |
+| 5 | 03-top-creator | topCreator | Centered, with no runners-up list (they live on slide 6). The headline is split as "Your #1 creator *was*". Below it: a 176px **MonogramSticker** (with tape) inside a hand circle and a 72px star stamp "#1", then the name (32px, 1-line clamp, trailing "."). The hero count (120px tomato) sits in a VHSLabel-style sticker with stripes, rotated −2° with two tapes. Last comes "videos. That's loyalty." (22px italic) with a hand underline. Decorative sparkles, arrow and star fill the margins (`aria-hidden`). |
+| 6 | 06b-top5-creators | topCreators | Headline with an underline under "in heavy rotation". A J-card RankList where the #1 row is mustard. |
+| 7 | 07-favorite-video | favoriteVideo | A polaroid sticker with tape around a **VideoThumb** (see §7). The title is clamped to **2 lines** (Fraunces 19px/700), then the creator in mono 12px with a 1-line ellipsis. The hero reads "watched **23** times." with 120px tomato digits. |
+| 8 | 08-busiest-month | busiestMonth | Headline with the month underlined. Hero count 96px + "videos in one month." Then the BarChart on a graph-paper sticker. |
+| 9 | 04-prime-time | primeTime | "Prime time:" 30px / "Sundays at" 44px/800 / "10 PM." 96px italic tomato inside a hand circle. Then `sub`, the Heatmap, and two stickers: `peakLabel` + count + "videos", and a mustard badge card with the icon + `badgeShare` ("Night owl, 38% of plays"). **This covers the `peak-hour-badge` slide.** Frontend can drop that separate slide. |
+| 10 | 09-streak | bingeStreak + deco.streakSticker | Hero "17" (120px tomato) + "days in a row." on one baseline. `sub` sits below. A month calendar sticker (Mon-first), with streak days in mustard and start/end in tomato with white text. If the streak spans 2 months, show both months stacked and shrink the cells to 30px. A tomato round "No skips" sticker at the bottom-right corner. |
+| 11 | 10-top-searches | topSearches | 5 label-maker tapes with round rank badges. A 1-line clamp with ellipsis inside each tape. The `footer` line with a teal lock sits under them. |
+| 12 | 11-music-total | music | "You played" / 96px teal hero / "songs on YouTube Music." Then "Most of them were by" and a tomato cassette whose label holds the artist (30px/800, 1-line clamp, trailing "."). |
+| 13 | 12-top5-songs | topSongs + deco.nowPlaying | "*Side A:*" in teal italic. #1 in a teal "Now playing" cassette card (title 1-line clamp, then "artist · N plays"), with 2–5 in a J-card RankList. |
+| 14 | 05-share-card | share | ShareCard preview + buttons. Progress bars are full. |
 | – | 13-share-square | share | The 1080×1080 export, with 4 tiles: Videos, Watch time, #1 creator, Top song (title clamped to 2 lines). |
 | – | 14-fallback-share-card | watchTime.unavailableTooltip, primeTime.peakLabel | See §6. |
 | – | 15-period-sheet | period | The pill's open state. |
@@ -89,9 +91,11 @@ All enters are ≤600ms and staggered by 60–80ms per element. The default easi
 - Dates are shown as "Mar 3". The period range uses `Intl` `en-US` "MMM yyyy", in the user's tz.
 
 ## 6. Empty and fallback states
-- **No Music data** (`totalSongs === 0`): skip slides 10–11 (`11-music-total`, `12-top5-songs`). The share card drops the Top-song block and lets the creator list breathe (larger row padding). The square swaps the Top-song tile for the busiest-month tile (`{month}` + `{n} videos`). If watch time is also unavailable, the square's tiles are Videos, Your peak hour, #1 creator, and Busiest month.
+- **No Music data** (`totalSongs === 0`): skip slides 12–13 (`11-music-total`, `12-top5-songs`). The share card drops the Top-song block and lets the creator list breathe (larger row padding). The square swaps the Top-song tile for the busiest-month tile (`{month}` + `{n} videos`). If watch time is also unavailable, the square's tiles are Videos, Your peak hour, #1 creator, and Busiest month.
 - **Durations unavailable** (`/api/durations` 429 or empty): drop slide 2 (watch time). On the share card the watch-time tile becomes `primeTime.peakLabel` with the peak hour (mono 27px) and the day ("Sundays"), plus a 44px ⓘ button that opens a tooltip with `watchTime.unavailableTooltip` (ink bg, paper text, 8px radius, caret toward the ⓘ). The tooltip lives in the app UI only and is never baked into the exported image. Same swap on the square.
-- Slides without enough data are skipped by `planSlides()` (already built). Progress bars reflect the planned count, not a fixed 12.
+- Slides without enough data are skipped by `planSlides()` (already built). Progress bars reflect the planned count, not a fixed 14.
+- **No Shorts detected** (`shortsCount === 0`): skip **both** slides 3 and 4 (`16-shorts-vs-long`, `17-creators-by-format`). `shortsVsLong.noShorts` stays unused in v1 (reserved for a possible one-line mention elsewhere). If Shorts exist but there's no long-form (`longCount === 0`), also skip both. The split is only interesting with two sides.
+- **Durations unavailable**: also skip slides 3–4. Shorts detection needs lengths and orientation from `/api/durations`, except for `/shorts/` links, and a partial split would mislead.
 - Favorite video with count < 2 is skipped (already built).
 
 ## 7. Notes
@@ -110,12 +114,12 @@ All enters are ≤600ms and staggered by 60–80ms per element. The default easi
   - Export: the image **must be same-origin**. A `blob:` URL made from our own `/api/thumb` response is, so `html-to-image` can inline it without tainting the canvas. Never fall back to a cross-origin URL. Keep the object URL alive until the export finishes. If the image failed, the placeholder is what gets exported.
   - Share cards don't show a thumbnail today.
   - Mockup stand-in: `B/img/thumb-example.jpg` is a generated abstract image (`B/gen_thumb.py`), not YouTube content.
-- **Unused deco string**: `deco.runnersUp` ("Side B · Runners-up") is no longer used now that the runners-up list is off slide 3. Copywriter can delete it or keep it for later.
+- **Unused deco string**: `deco.runnersUp` ("Side B · Runners-up") is no longer used now that the runners-up list is off slide 5 (#1 creator). Copywriter can delete it or keep it for later.
 - "Example data" tags are mockup-only.
 - Re-render mockups: `cd design && npm i && cd B && python3 gen_b.py && cd .. && node render.js B`.
 
 ## 8. Monogram avatar
-Takeout has no creator avatars, so in v1 every creator avatar is a **MonogramSticker**: slide 3 (hero) and slide 4 (list). The share cards show no avatars. Reference SVG: `assets/monogram-sticker.svg`.
+Takeout has no creator avatars, so in v1 every creator avatar is a **MonogramSticker**: slide 5 (#1 creator, hero), slide 6 (top 5 list) and slide 4 (top creators by format). The share cards show no avatars. Reference SVG: `assets/monogram-sticker.svg`.
 
 **Initials** (1–2 characters):
 1. `NFKC`-normalize and trim the name, then split on whitespace.
@@ -156,9 +160,44 @@ The ratios are computed with the WCAG 2.x relative-luminance formula from the he
 
 **Anatomy** (viewBox 100): paper-2 rim `r=48` with an ink outline (2px at hero size, ~1.6px at 40px), coloured disc `r=41`, and a die-cut dashed ring `r=44.5` (ink at 30% opacity). The initials are Fraunces 800, centered, `letter-spacing −1.5`, at font-size 38 for 2 characters and 46 for 1 (≈ 0.38/0.46 × diameter). The wrapper has `rotate(tilt)` and a hard shadow `drop-shadow(4px 4px 0 ink)` at hero size, 2px at list size. The hero adds a mustard **TapeStrip** across the top (about 42% of the diameter wide, rotated opposite the tilt).
 
-**Sizes**: **176px** hero (slide 3, with tape, hand circle and the "#1" star stamp), **40px** list rows (slide 4), and **52px** for the #1 row on slide 4. A11y: `role="img"` with `aria-label` = the creator name. The SVG internals are `aria-hidden`.
+**Sizes**: **176px** hero (slide 5, with tape, hand circle and the "#1" star stamp), **40px** list rows (slide 6), **52px** for the #1 row on slide 6, and **64px** for each #1 on slide 4 (by format). A11y: `role="img"` with `aria-label` = the creator name. The SVG internals are `aria-hidden`.
 
 **Later**: real channel avatars may come in a later version through the same proxy (`POST /api/thumb`, or a sibling avatar route), with the same fetch + `AbortSignal.timeout(3000)` + `URL.createObjectURL` flow. The MonogramSticker would stay as the loading and failure fallback, and the image would sit inside the same paper rim, clipped to the disc.
 
 ## Share export: grain
 SVG `feTurbulence` grain renders as a black box in html-to-image, so share cards must not use the SVG filter. Use `assets/grain-tile.png` instead: a 256px seamless noise tile with alpha of 11% or less. Set it as `background-image` on the card root, `background-size: 128px` (so it stays fine at pixelRatio 3), over the `paper` token (`#F3EBDD`). This is a raster, so it exports correctly. On-screen slides can keep the SVG filter or use the same tile.
+
+## 9. Shorts vs long‑form (slides 3–4)
+Copy lives in `src/copy/en.ts` on `copy/en` (draft commit `b834d58`, chip explainer updated in `084a184`). Key paths:
+- `slides.shortsVsLong.headline` · `.shortsLabel` · `.longLabel` · `.count` ("≈ {n} videos") · `.time` ("≈ {hours} hours") · `.timeMinutes` ("≈ {minutes} min", when under 1 hour) · `.share` ("{pct}% of your plays") · `.subs.{shortsBoth|longBoth|shortsPlaysLongTime|longPlaysShortsTime}` · `.noShorts` · `.chip` · `.chipExplainer` · `.aria`
+- `slides.topCreatorsSplit.headline` · `.shortsColumn` · `.longColumn` · `.item` ("≈ {n} videos") · `.sameTop` ("{creator} topped both lists.") · `.emptyShorts` · `.emptyLong`
+- `deco.shortsTape` ("Singles") · `deco.longTape` ("Long play"). These are Caveat 22px/700 ink on a TapeStrip (mustard tape for Shorts, clear tape for long‑form), `aria-hidden`.
+
+**Detection (Backend).** `/api/durations` will return an `isShort` flag per ID. A video is a Short if it was opened from a **`/shorts/` link**, **or** its **duration ≤ 180s and it's vertical** (height > width). The `/shorts/` check can run client-side from the Takeout URL. Counts and hours are estimated from the same 2,000-ID sample and scaled up like watch time (3h cap per play still applies). Deleted/private videos are left out of the split (per `chipExplainer`), so Shorts + long‑form can be slightly less than slide 1's total. Music plays are excluded.
+
+**Slide 3, `16-shorts-vs-long`.**
+- Headline 30px. The second half is in tomato italic with a hand underline.
+- Two stacked **format cards**, full width (342px). Each is a Sticker (paper-2, 2px ink, `shadow-sticker`) tilted −1.2° / +1°.
+  - **Band (30px).** Shorts: tomato with paper-2 label (5.50:1). Long‑form: teal-dark with paper-2 label (10.82:1). Fraunces 16px/700.
+  - **Motif**, overlapping the band's top-right (`aria-hidden`). Shorts get a vertical phone (40×68: ink body, paper screen, mustard tile, no play button). Long‑form gets a 16:9 landscape frame (80×50: teal screen, teal-dark hills, mustard sun).
+  - **Tape label** on the top-left corner: `deco.shortsTape` / `deco.longTape`.
+  - **Hero**: "≈" (mono 48px) + the count at **96px Space Mono**. Shorts is tomato (5.50:1 on paper-2) and long‑form is ink. `count` is split around the hero: "≈" before it and "videos" in italic 22px under it.
+  - **Stats row** under a dashed rule, mono 14px/700: `time` on the left and `share` on the right. Under 1 hour, use `timeMinutes`.
+- Below the cards: the `subs.*` line (italic 18px/600). Pick it by comparing plays and hours (e.g. Shorts win plays and long‑form wins hours → `shortsPlaysLongTime`).
+- Then the **EstimateChip**, which opens a BottomSheet with `shortsVsLong.chipExplainer`. Next to the chip goes a one-sentence detection note in italic 13px ink-2. The mockup uses the second sentence of `chipExplainer` verbatim. Copywriter: if this note stays, it wants its own key (e.g. `shortsVsLong.note`).
+- `aria-label` on the slide region: `shortsVsLong.aria`.
+- At most one hero per card. This slide deliberately has two equal heroes: the split *is* the stat. There's no chart.
+
+**Slide 4, `17-creators-by-format`.**
+- Headline 30px, with "short" in tomato italic and "long." in teal italic.
+- **Two columns** (2 × 163px, 16px gap). Each is a Sticker tilted −1.5° / +1.5°.
+  - **Band**: `shortsColumn` / `longColumn` (Fraunces 15px/700, up to 2 lines, balanced), same colours as slide 3. The tape labels sit on the outer top corners.
+  - **#1**: a 64px **MonogramSticker** (rules in §8, same hash/palette), then the name, centered at 18px/700. In these narrow columns the #1 name may **clamp to 2 lines**. This is the one exception to the 1-line creator rule, so the #1 stays readable at 360px. Then `item` with the number at mono 34px (tomato for Shorts, ink for long‑form), and "videos" in italic below.
+  - **Runners 2–3** (top 3 per side): rank + name (15px/700, **1-line clamp**) with `item` under it in mono 11.5px ink-2. If a side has fewer than 2 creators, show `emptyShorts` / `emptyLong` in italic in place of the runners.
+- If the #1 is the same creator on both sides, add `sameTop` as an italic line under the columns, above the chip.
+- EstimateChip (same explainer as slide 3) below the columns.
+- No 96px hero here. It's a list slide like slide 6.
+
+**Motion.** The cards/columns use the standard `rise` with an 80ms stagger. The tape labels "slap" in after their card. Counts roll up (≤600ms). Reduced motion: fade only, final numbers shown.
+
+**Hit areas.** The EstimateChip has a 44px hit area. Nothing else on these slides is interactive.

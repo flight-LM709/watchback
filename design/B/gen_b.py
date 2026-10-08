@@ -88,7 +88,7 @@ MONO_SVG = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" widt
 open('../assets/monogram-sticker.svg', 'w').write(MONO_SVG)
 
 # ---------------------------------------------------------------- page chrome
-TOTAL = 12  # story slides when every slide is present
+TOTAL = 14  # story slides when every slide is present (12 without the two Shorts slides)
 def prog(n):
     return '<div class="progress">' + ''.join('<span class="on"></span>' if i < n-1 else ('<span class="half"></span>' if i == n-1 else '<span></span>') for i in range(TOTAL)) + '</div>'
 def prog_full(): return '<div class="progress">' + '<span class="on"></span>'*TOTAL + '</div>'
@@ -214,7 +214,7 @@ page('02b-crunching', CASS_CSS + '''
 <div class="doodle" style="right:30px;top:120px">{spark(26, MUSTARD)}</div>
 <div class="doodle" style="left:30px;top:300px">{spark(18, TOMATO)}</div>
 <div class="art">{cassette(260, '<b>Watchback</b>')}</div>
-<div class="cnt" role="status"><div class="l">Counting</div><div class="hero-n">8<span class="cm">,</span>312</div><div class="l">videos…</div></div>
+<div class="cnt" role="status"><div class="l">Reading</div><div class="hero-n">8<span class="cm">,</span>312</div><div class="l">history entries…</div></div>
 <div class="track" aria-hidden="true"><i></i></div>
 <div class="rot">Rewinding the tape…<div class="dots" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i><i></i></div></div>
 ''')
@@ -293,6 +293,108 @@ def wt_body(sheet=False):
 page('05b-watch-time', WT_CSS, wt_body())
 page('05b-watch-time-explainer', WT_CSS, wt_body(True))
 
+# ================================================================ 16 Shorts vs long-form (new) - copy: slides.shortsVsLong, deco.shortsTape/longTape
+PHONE = '<svg aria-hidden="true" width="40" height="68" viewBox="0 0 44 74"><rect x="1.5" y="1.5" width="41" height="71" rx="8" fill="#1F1B16"/><rect x="5" y="9" width="34" height="52" rx="3" fill="#FBF6EC"/><rect x="9" y="14" width="26" height="22" rx="2" fill="#E2A72E"/><rect x="9" y="41" width="20" height="4" rx="2" fill="#1F1B16"/><rect x="9" y="49" width="14" height="4" rx="2" fill="#4A4238"/><path d="M33 52 l3 -4 l3 4" fill="none" stroke="#B33A24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><rect x="17" y="65" width="10" height="3" rx="1.5" fill="#FBF6EC"/></svg>'
+FRAME = '<svg aria-hidden="true" width="80" height="50" viewBox="0 0 86 54"><rect x="1.5" y="1.5" width="83" height="51" rx="5" fill="#1F1B16"/><rect x="6" y="6" width="74" height="38" rx="2" fill="#1E6B66"/><circle cx="58" cy="22" r="7" fill="#E2A72E"/><path d="M6 44 L24 28 L36 36 L50 24 L80 42 L80 44 Z" fill="#123F3C"/><rect x="30" y="47" width="26" height="3" rx="1.5" fill="#4A4238"/></svg>'
+TAPE_LABEL_CSS = """
+.tl{position:absolute;z-index:6;padding:1px 12px 3px;font-family:var(--hand);font-size:22px;font-weight:700;line-height:1.1;color:var(--ink);white-space:nowrap;box-shadow:var(--sh-tape)}
+.tl.m{background:var(--tape-mustard)}
+.tl.c{background:var(--tape-clear);border:1px solid rgba(31,27,22,.08)}
+"""
+page('16-shorts-vs-long', TAPE_LABEL_CSS + """
+h1{position:absolute;top:108px;left:24px;right:24px;font-size:30px;font-weight:600;letter-spacing:-.02em;line-height:1.12}
+h1 em{position:relative;display:inline-block;font-style:italic;color:var(--tomato)}
+h1 em .u{position:absolute;left:0;right:0;bottom:-8px}
+.fc{position:absolute;left:24px;right:24px;padding:0 16px 12px}
+.fc.s{top:212px;transform:rotate(-1.2deg)}
+.fc.l{top:452px;transform:rotate(1deg)}
+.band{margin:0 -16px;height:30px;display:flex;align-items:center;padding:0 14px;border-bottom:2px solid var(--ink);color:var(--paper2);font-size:16px;font-weight:700;letter-spacing:-.01em}
+.fc.s .band{background:var(--tomato)}
+.fc.l .band{background:var(--teal-dark)}
+.motif{position:absolute;z-index:5}
+.fc.s .motif{right:20px;top:-18px;transform:rotate(8deg)}
+.fc.l .motif{right:14px;top:-14px;transform:rotate(-6deg)}
+.hr{display:flex;align-items:flex-end;gap:6px;margin-top:8px}
+.hr .ap{font-family:var(--mono);font-weight:700;font-size:48px;line-height:1;padding-bottom:12px}
+.fc.s .hr{color:var(--tomato)}
+.unit{font-size:22px;font-style:italic;font-weight:600;margin-top:-2px}
+.stats{display:flex;justify-content:space-between;align-items:baseline;margin-top:8px;padding-top:8px;border-top:1px dashed var(--rule);font-family:var(--mono);font-size:14px;font-weight:700;white-space:nowrap}
+.sub{position:absolute;top:688px;left:24px;right:24px;font-size:18px;font-style:italic;font-weight:600;line-height:1.3}
+.chiprow{position:absolute;top:744px;left:24px;right:24px;display:flex;align-items:center;gap:10px;min-height:44px}
+.chiprow .est{font-size:11px;padding:5px 9px;gap:5px;border-width:2px;box-shadow:2px 2px 0 var(--tomato);flex:none}
+.chiprow .n{font-size:13px;font-style:italic;line-height:1.35;color:var(--ink2)}
+""", prog(3) + TOP + PERIOD + f"""
+<h1>Quick scrolls vs. <em>long watches.<span class="u">{underline()}</span></em></h1>
+<div class="sticker fc s">
+<span class="tl m" style="left:-12px;top:-28px;transform:rotate(-5deg)" aria-hidden="true">Singles</span>
+<div class="band">Shorts</div>
+<div class="motif">{PHONE}</div>
+<div class="hr" aria-label="about 8,620 videos"><span class="ap">≈</span><span class="hero-n">8<span class="cm">,</span>620</span></div>
+<div class="unit">videos</div>
+<div class="stats"><span>≈ 84 hours</span><span>69% of your plays</span></div>
+</div>
+<div class="sticker fc l">
+<span class="tl c" style="left:-10px;top:-27px;transform:rotate(3deg)" aria-hidden="true">Long play</span>
+<div class="band">Long‑form</div>
+<div class="motif">{FRAME}</div>
+<div class="hr" aria-label="about 3,860 videos"><span class="ap">≈</span><span class="hero-n">3<span class="cm">,</span>860</span></div>
+<div class="unit">videos</div>
+<div class="stats"><span>≈ 1,836 hours</span><span>31% of your plays</span></div>
+</div>
+<p class="sub">Shorts got most of your plays. Long‑form got most of your time.</p>
+<div class="chiprow"><span class="est">{INFO}Estimate</span><span class="n">A video counts as a Short if you opened it from a Shorts link, or if it’s 3 minutes or shorter and vertical.</span></div>
+""" + EX('br'))
+
+# ================================================================ 17 top creators split (new) - copy: slides.topCreatorsSplit
+fmt_cols = [
+  ('s', 'Top Shorts creators', 'Singles', 'm', [('Sample Shorts Studio', '476'), ('Tiny Sample Clips', '391'), ('★ Example Gaming Channel', '302')]),
+  ('l', 'Top long‑form creators', 'Long play', 'c', [('Creator Name A', '1,150'), ('The Very Long Sample Channel Name That Keeps Going', '790'), ('見本チャンネル', '521')]),
+]
+def fmt_col(c, label, tape, tc, rows):
+    (n1, v1), rest = rows[0], rows[1:]
+    rot = -6 if c == 's' else 5
+    return f"""<div class="sticker cc {c}"><span class="tl {tc}" style="{'left' if c=='s' else 'right'}:-10px;top:-28px;transform:rotate({rot}deg)" aria-hidden="true">{tape}</span>
+<div class="band">{label}</div>
+<div class="mg">{monogram(n1, 64)}</div>
+<div class="nm">{n1}</div>
+<div class="ct">≈ <b>{v1}</b><span class="vu">videos</span></div>
+<div class="rn">{''.join(f'<div class="r"><span class="k">{i+2:02d}</span><div class="m"><div class="t">{t}</div><div class="v">≈ {v} videos</div></div></div>' for i, (t, v) in enumerate(rest))}</div>
+</div>"""
+page('17-creators-by-format', TAPE_LABEL_CSS + """
+h1{position:absolute;top:108px;left:24px;right:24px;font-size:30px;font-weight:600;letter-spacing:-.02em;line-height:1.12}
+h1 .s{color:var(--tomato);font-style:italic}
+h1 .l{color:var(--teal);font-style:italic}
+.cols{position:absolute;top:236px;left:24px;right:24px;display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.cc{padding:0 12px 4px;text-align:center;min-width:0}
+.cc.s{transform:rotate(-1.5deg)}
+.cc.l{transform:rotate(1.5deg)}
+.band{margin:0 -12px;min-height:46px;padding:4px 10px;display:flex;align-items:center;justify-content:center;border-bottom:2px solid var(--ink);color:var(--paper2);font-size:15px;font-weight:700;line-height:1.15;text-wrap:balance}
+.cc.s .band{background:var(--tomato)}
+.cc.l .band{background:var(--teal-dark)}
+.mg{margin-top:16px;height:68px}
+.nm{font-size:18px;font-weight:700;line-height:1.18;margin-top:10px;min-height:42px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;text-wrap:balance}
+.nm .k{font-family:var(--mono);font-size:12px;color:var(--tomato)}
+.ct{font-family:var(--mono);font-size:22px;font-weight:700;margin-top:6px;white-space:nowrap}
+.ct b{font-size:34px;letter-spacing:-.06em}
+.ct .vu{display:block;font-family:var(--serif);font-size:16px;font-style:italic;font-weight:600;margin-top:2px}
+.cc.s .ct b{color:var(--tomato)}
+.rn{margin-top:12px;border-top:1.5px solid var(--ink);text-align:left}
+.r{display:flex;gap:7px;align-items:baseline;padding:7px 0;border-bottom:1px dashed var(--rule)}
+.r:last-child{border:0}
+.r .k{flex:none;font-family:var(--mono);font-size:11px;font-weight:700;color:var(--tomato)}
+.r .m{flex:1;min-width:0}
+.r .t{font-size:15px;font-weight:700;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.r .v{font-family:var(--mono);font-size:11.5px;font-weight:700;color:var(--ink2);margin-top:1px}
+.chiprow{position:absolute;top:664px;left:24px;display:flex;align-items:center;min-height:44px}
+.chiprow .est{font-size:11px;padding:5px 9px;gap:5px;border-width:2px;box-shadow:2px 2px 0 var(--tomato)}
+""", prog(4) + TOP + PERIOD + f"""
+<div class="doodle" style="right:40px;bottom:92px">{star(30)}</div>
+<div class="doodle" style="left:150px;bottom:70px">{spark(18, TOMATO)}</div>
+<h1>Your top creators, <span class="s">short</span> and <span class="l">long.</span></h1>
+<div class="cols">{''.join(fmt_col(*c) for c in fmt_cols)}</div>
+<div class="chiprow"><span class="est">{INFO}Estimate</span></div>
+""" + EX('bl'))
+
 # ================================================================ 03 top creator (runners-up removed: they live on 06b)
 AVATAR = '<svg aria-hidden="true" viewBox="0 0 120 130" style="width:72%;height:auto"><circle cx="60" cy="46" r="28" fill="#F3EBDD" opacity=".85"/><path d="M8 132c4-34 26-52 52-52s48 18 52 52z" fill="#F3EBDD" opacity=".85"/></svg>'
 page('03-top-creator', '''
@@ -310,7 +412,7 @@ page('03-top-creator', '''
 .count{color:var(--tomato);font-size:var(--fs-hero-xl);margin-top:10px}
 .line{font-size:22px;font-style:italic;font-weight:600;margin-top:22px}
 .line .u{display:block;width:150px;margin:4px auto 0}
-''', prog(3) + TOP + PERIOD + f'''
+''', prog(5) + TOP + PERIOD + f'''
 <div class="doodle" style="left:30px;top:200px">{spark(30, MUSTARD)}</div>
 <div class="doodle" style="right:40px;top:356px">{spark(18, TOMATO)}</div>
 <div class="doodle" style="left:34px;top:418px;transform:rotate(-30deg)">{arrow(34)}</div>
@@ -355,7 +457,7 @@ h1 em .u{position:absolute;left:0;right:0;bottom:-8px}
 .r.first .t{font-size:21px}
 .r.first .a{width:52px;height:52px}
 .foot{position:absolute;top:640px;right:40px;font-family:var(--hand);font-size:26px;color:var(--tomato);transform:rotate(-4deg)}
-''', prog(4) + TOP + PERIOD + f'''
+''', prog(6) + TOP + PERIOD + f'''
 <div class="doodle" style="right:22px;top:110px">{spark(26, MUSTARD)}</div>
 <h1>Your top 5 creators, <em>in heavy rotation<span class="u">{underline()}</span></em></h1>
 <div class="sticker jc">
@@ -385,7 +487,7 @@ h1 em{font-style:italic;color:var(--tomato)}
 .rw{position:absolute;top:668px;left:24px;display:flex;gap:6px}
 .rw i{display:block;width:22px;height:22px;border-radius:50%;border:2px solid var(--ink);background:var(--paper2)}
 .rw i.on{background:var(--mustard)}
-''', prog(5) + TOP + PERIOD + f'''
+''', prog(7) + TOP + PERIOD + f'''
 <h1>You couldn’t stop <em>rewatching</em> this one.</h1>
 <div class="sticker pol">
 <span class="tape" style="left:50%;top:-12px;transform:translateX(-50%) rotate(-3deg)"></span>
@@ -420,7 +522,7 @@ h1 em .u{position:absolute;left:0;right:0;bottom:-8px}
 .axis{display:flex;justify-content:space-between;margin-top:26px;font-family:var(--mono);font-size:10.5px;font-weight:700;color:var(--ink2)}
 .ring{position:absolute;z-index:5}
 .note{position:absolute;font-family:var(--hand);font-size:24px;color:var(--tomato);transform:rotate(-6deg);z-index:5}
-''', prog(6) + TOP + PERIOD + f'''
+''', prog(8) + TOP + PERIOD + f'''
 <div class="doodle" style="right:24px;top:200px">{star(40)}</div>
 <h1><em>March<span class="u">{underline()}</span></em> was your biggest month.</h1>
 <div class="n"><div class="hero-n">1<span class="cm">,</span>486</div><div class="x">videos in one month.</div></div>
@@ -454,7 +556,7 @@ h1 .hr{position:relative;display:inline-block;font-size:96px;font-weight:800;let
 .st em{display:block;font-size:14px;font-style:italic;color:var(--ink2)}
 .st.badge{flex:1.4;background:var(--mustard);transform:rotate(1.5deg)}
 .st.badge .bt{display:flex;align-items:center;gap:8px;font-size:20px;font-weight:700;line-height:1.15;margin-top:4px}
-''', prog(7) + TOP + PERIOD + f'''
+''', prog(9) + TOP + PERIOD + f'''
 <div class="doodle" style="right:22px;top:118px">{spark(34, MUSTARD)}</div>
 <div class="wrap">
 <h1>Prime time:<span class="d">Sundays at</span><span class="hr">10 PM.{circle(16,14,14,8)}</span></h1>
@@ -501,7 +603,7 @@ page('09-streak', '''
 .g i.a{background:var(--tomato);color:#fff}
 .stk{position:absolute;top:650px;right:34px;width:92px;height:92px;z-index:6;transform:rotate(10deg);border-radius:50%;background:var(--tomato);border:2px solid var(--ink);box-shadow:var(--sh-chip);display:grid;place-items:center}
 .stk span{font-family:var(--hand);font-size:30px;font-weight:700;color:#fff;line-height:.85;text-align:center}
-''', prog(8) + TOP + PERIOD + f'''
+''', prog(10) + TOP + PERIOD + f'''
 <div class="n"><span class="hero-n">17</span><span class="h">days in a row.</span></div>
 <p class="sub">Your longest streak, from Mar 3 to Mar 19.</p>
 <div class="stk" aria-hidden="true"><span>No<br>skips</span></div>
@@ -526,7 +628,7 @@ h1 em .u{position:absolute;left:0;right:0;bottom:-8px}
 .dy .lab{min-width:0;background:var(--ink);color:var(--paper2);font-family:var(--mono);font-size:15px;font-weight:700;letter-spacing:.02em;text-transform:uppercase;padding:11px 14px;border-radius:3px;box-shadow:3px 3px 0 rgba(31,27,22,.25);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background-image:linear-gradient(rgba(255,255,255,.07) 50%,transparent 50%)}
 .dy.first .lab{background-color:var(--tomato);font-size:16px;padding:14px 14px}
 .foot{position:absolute;top:600px;left:24px;right:24px;font-size:18px;font-style:italic;line-height:1.35;display:flex;gap:10px;align-items:flex-start}
-''', prog(9) + TOP + PERIOD + f'''
+''', prog(11) + TOP + PERIOD + f'''
 <div class="doodle" style="right:26px;top:150px">{spark(26, MUSTARD)}</div>
 <h1>You <em>searched<span class="u">{underline()}</span></em> for these the most.</h1>
 <div class="list">{''.join(f'<div class="dy{" first" if i==0 else ""}" style="transform:rotate({rot[i]}deg)"><span class="k">{i+1:02d}</span><span class="lab">{s}</span></div>' for i, s in enumerate(searches))}</div>
@@ -545,7 +647,7 @@ page('11-music-total', CASS_CSS + '''
 .art .clab .sm{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--ink2)}
 .art .clab b{font-size:30px;font-weight:800;letter-spacing:-.02em;line-height:1.1;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden;max-width:250px}
 .art .clab .ul{width:150px;margin-top:2px}
-''', prog(10) + TOP + PERIOD + f'''
+''', prog(12) + TOP + PERIOD + f'''
 <div class="doodle" style="right:26px;top:140px">{star(40)}</div>
 <div class="wrap">
 <div class="l">You played</div>
@@ -579,7 +681,7 @@ h1 em{font-style:italic;color:var(--teal)}
 .r .t{font-size:17px;font-weight:700;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .r .a{font-size:14px;font-style:italic;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .r .v{flex:none;font-family:var(--mono);font-size:12.5px;font-weight:700;text-align:right}
-''', prog(11) + TOP + PERIOD + f'''
+''', prog(13) + TOP + PERIOD + f'''
 <h1><em>Side A:</em> your top 5 songs, on repeat.</h1>
 <div class="np"><div class="mini"><i></i><i></i></div><div class="m"><small>Now playing</small><b>{songs[0][0]}</b><em>{songs[0][1]} · {songs[0][2]} plays</em></div></div>
 <div class="sticker jc">
@@ -741,10 +843,11 @@ page('15-period-sheet', '''
 ORDER = [
  ('00-landing', 'Landing'), ('01-upload', 'Upload'), ('02b-crunching', 'Crunching'),
  ('02-big-number', '1 · Total videos'), ('05b-watch-time', '2 · Watch time'), ('05b-watch-time-explainer', '2 · Estimate explainer (sheet)'),
- ('03-top-creator', '3 · #1 creator'), ('06b-top5-creators', '4 · Top 5 creators'), ('07-favorite-video', '5 · Favorite video'),
- ('08-busiest-month', '6 · Busiest month'), ('04-prime-time', '7 · Prime time + badge'), ('09-streak', '8 · Streak'),
- ('10-top-searches', '9 · Top searches'), ('11-music-total', '10 · Music total + top artist'), ('12-top5-songs', '11 · Top 5 songs'),
- ('05-share-card', '12 · Share (story 9:16)'), ('13-share-square', 'Share image · square 1080×1080'),
+ ('16-shorts-vs-long', '3 · Shorts vs long-form (new)'), ('17-creators-by-format', '4 · Top creators, short and long (new)'),
+ ('03-top-creator', '5 · #1 creator'), ('06b-top5-creators', '6 · Top 5 creators'), ('07-favorite-video', '7 · Favorite video'),
+ ('08-busiest-month', '8 · Busiest month'), ('04-prime-time', '9 · Prime time + badge'), ('09-streak', '10 · Streak'),
+ ('10-top-searches', '11 · Top searches'), ('11-music-total', '12 · Music total + top artist'), ('12-top5-songs', '13 · Top 5 songs'),
+ ('05-share-card', '14 · Share (story 9:16)'), ('13-share-square', 'Share image · square 1080×1080'),
  ('14-fallback-share-card', 'Fallback · watch time unavailable'), ('15-period-sheet', 'Period pill · open'),
 ]
 assert set(k for k, _ in ORDER) == set(pages), set(pages) ^ set(k for k, _ in ORDER)
