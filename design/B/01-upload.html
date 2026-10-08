@@ -1,0 +1,51 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=390"><link rel="stylesheet" href="style.css"><style>
+.hero{padding-top:62px}
+.logo{display:flex;align-items:flex-end;gap:10px}
+.logo h2{font-size:44px;font-weight:800;font-style:italic;letter-spacing:-.03em;line-height:1}
+.logo .wn{font-family:var(--mono);font-size:10.5px;color:var(--ink2);margin-bottom:6px}
+.ul{width:200px;margin-top:2px}
+.sub{font-size:16px;line-height:1.4;margin-top:10px;color:var(--ink)}
+.sub i{color:var(--teal);font-weight:600}
+.jcard{margin-top:22px;padding:12px 14px 6px;transform:rotate(-.6deg)}
+.jh{display:flex;justify-content:space-between;align-items:center;font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;border-bottom:1.5px solid var(--ink);padding-bottom:7px}
+.jh span:last-child{color:var(--tomato)}
+.tr{display:flex;gap:10px;padding:8px 0;border-bottom:1px dashed rgba(31,27,22,.35)}
+.tr:last-child{border:0}
+.tr .n{font-family:var(--mono);font-weight:700;font-size:13px;color:var(--tomato);padding-top:2px}
+.tr b{display:block;font-size:15.5px;font-weight:600;line-height:1.25}
+.tr small{display:block;font-size:13px;color:var(--ink2);font-style:italic;margin-top:1px}
+.cass{position:relative;margin-top:26px;height:214px;border-radius:16px;background:var(--teal);border:2px solid var(--ink);box-shadow:4px 4px 0 var(--ink);padding:12px}
+.cass .lab{height:136px;border-radius:8px;background:var(--paper2);border:2px dashed var(--ink);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 16px;background-image:repeating-linear-gradient(transparent 0 23px,rgba(30,107,102,.16) 23px 24px)}
+.cass .lab h1{font-size:28px;font-weight:700;letter-spacing:-.02em;line-height:1.05;text-wrap:balance}
+.cass .lab small{font-size:15px;font-style:italic;margin-top:6px;color:var(--ink)}
+.cass .lab small u{text-decoration-color:var(--tomato);text-decoration-thickness:2px;text-underline-offset:3px}
+.win{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);width:170px;height:44px;border-radius:22px;background:#123F3C;border:2px solid var(--ink);display:flex;align-items:center;justify-content:space-between;padding:0 10px}
+.reel{width:30px;height:30px;border-radius:50%;background:var(--paper2);border:2px solid var(--ink);display:grid;place-items:center}
+.reel i{width:10px;height:10px;border-radius:50%;background:var(--ink);box-shadow:0 0 0 3px var(--paper2),0 0 0 4.5px var(--ink)}
+.win .band{flex:1;height:14px;margin:0 6px;background:#3B2A1E;border-radius:7px}
+.screw{position:absolute;width:8px;height:8px;border-radius:50%;background:#123F3C;border:1.5px solid var(--ink);bottom:12px}
+.arrow{position:absolute;right:14px;bottom:20px;font-family:var(--mono);font-size:10px;font-weight:700;color:#fff;letter-spacing:.06em}
+.badge{display:inline-flex;align-items:center;gap:8px;margin:26px 0 0 4px;background:var(--tomato);color:#fff;font-size:15px;font-weight:600;padding:9px 16px;border:2px solid var(--ink);border-radius:99px;transform:rotate(-2deg);box-shadow:3px 3px 0 var(--ink)}
+.disclaimer{position:absolute;bottom:18px;left:0;right:0}
+</style></head><body><div class="screen">
+<span class="example tr">Example data</span>
+<div class="hero">
+<div class="logo"><h2>Watchback</h2><span class="wn">(working name)</span></div>
+<div class="ul"><svg viewBox="0 0 200 14" preserveAspectRatio="none" style="display:block;width:100%;height:12px"><path d="M3 9 C 40 3, 80 13, 120 6 S 178 4, 197 9" stroke="#B33A24" stroke-width="3.5" fill="none" stroke-linecap="round" vector-effect="non-scaling-stroke"/></svg></div>
+<p class="sub">Your year on <i>YouTube + YouTube Music</i>, played back like an old mixtape. Built from your Google Takeout file.</p>
+<div class="sticker jcard">
+<div class="jh"><span>Get your Takeout file</span><span>Side A · 3 tracks</span></div>
+<div class="tr"><span class="n">01</span><div><b>Open takeout.google.com</b><small>Sign in with the account you watch on.</small></div></div>
+<div class="tr"><span class="n">02</span><div><b>Pick “YouTube and YouTube Music”</b><small>Deselect everything else, export as .zip.</small></div></div>
+<div class="tr"><span class="n">03</span><div><b>Download the .zip from the email</b><small>Usually arrives within a few minutes.</small></div></div>
+</div>
+<div class="cass">
+<div class="lab"><h1>Drop your Takeout .zip here</h1><small>or <u>tap to choose a file</u></small></div>
+<span class="screw" style="left:14px"></span><span class="screw" style="right:14px;display:none"></span>
+<div class="win"><div class="reel"><i></i></div><div class="band"></div><div class="reel"><i></i></div></div>
+<span class="arrow">.ZIP ▲</span>
+</div>
+<div class="badge"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>Your file never leaves your device</div>
+</div>
+<div class="disclaimer">Not affiliated with YouTube or Google.</div>
+</div></body></html>

@@ -1,0 +1,60 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=390"><link rel="stylesheet" href="style.css">
+<style>
+:root{--g1:#B98BFF;--g2:#FF2E93}
+.cardwrap{position:absolute;top:44px;left:24px;width:342px;height:608px;border-radius:28px;padding:2px;background:linear-gradient(160deg,#B98BFF,#FF2E93 40%,#FF9A3D 70%,#B8FF3C)}
+.card{position:relative;width:100%;height:100%;border-radius:26px;background:#0E0E15;overflow:hidden;padding:22px 22px 0}
+.card .blob{filter:blur(50px)}
+.head{display:flex;justify-content:space-between;align-items:center}
+.logo{display:flex;align-items:center;gap:8px;font-weight:700;font-size:18px;letter-spacing:-.02em}
+.yr{font-size:12px;font-weight:700;letter-spacing:.14em;color:#0B0B10;background:#B8FF3C;padding:4px 9px;border-radius:99px}
+.hl{text-wrap:balance;font-size:28px;font-weight:700;letter-spacing:-.03em;margin-top:12px;line-height:1.05}
+.tag{font-size:12px;color:#C4C4CE;margin-top:4px}
+.nums{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.n{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:12px}
+.n small{display:block;font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#C4C4CE}
+.n b{display:block;font-size:30px;font-weight:700;letter-spacing:-.04em;margin-top:4px;line-height:1;white-space:nowrap}
+.n .u{font-size:12px;color:#D4D4DC;margin-top:4px;display:flex;align-items:center;gap:6px}
+.n .est{color:#FFB37A;font-size:9px;padding:2px 6px}
+.sec{margin-top:12px;font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#C4C4CE}
+ol{list-style:none;margin-top:6px}
+ol li{display:flex;align-items:center;gap:10px;padding:5px 0;font-size:15px;font-weight:600;border-bottom:1px solid rgba(255,255,255,.07)}
+ol li:last-child{border:0}
+ol li i{font-style:normal;width:22px;font-weight:700;font-size:16px}
+ol li span{margin-left:auto;font-size:13px;color:#C4C4CE;font-weight:500;font-variant-numeric:tabular-nums}
+.song{margin-top:8px;display:flex;align-items:center;gap:12px;background:linear-gradient(100deg,rgba(185,139,255,.18),rgba(255,46,147,.18));border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:10px}
+.disc{flex:none;width:46px;height:46px;border-radius:50%;background:radial-gradient(circle,#0E0E15 0 5px,#FF2E93 6px 9px,#1A1A24 10px 100%);box-shadow:inset 0 0 0 1px rgba(255,255,255,.15)}
+.song b{display:block;font-size:16px;font-weight:700}
+.song small{display:block;font-size:13px;color:#D4D4DC}
+.song em{margin-left:auto;font-style:normal;font-size:12px;color:#C4C4CE;text-align:right;line-height:1.2}
+.foot{position:absolute;left:0;right:0;bottom:0;padding:9px 22px 8px;display:flex;flex-wrap:wrap;row-gap:3px;justify-content:space-between;align-items:center;background:rgba(255,255,255,.05);border-top:1px solid rgba(255,255,255,.08);font-size:12px;color:#C4C4CE;font-weight:600}
+.btns{position:absolute;left:24px;right:24px;bottom:56px;display:flex;gap:10px}
+.btn{flex:1;height:52px;border-radius:99px;display:grid;place-items:center;font-weight:700;font-size:16px}
+.btn.p{background:#fff;color:#0B0B10}.btn.s{border:1.5px solid rgba(255,255,255,.35)}
+</style></head><body><div class="screen">
+<div class="progress"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span></div>
+<div class="cardwrap"><div class="card">
+<div class="blob" style="width:200px;height:200px;background:#7C3AED;top:-70px;right:-70px;opacity:.55"></div>
+<div class="blob" style="width:180px;height:180px;background:#DB2777;bottom:20px;left:-90px;opacity:.35"></div>
+<div class="content">
+<div class="head"><div class="logo"><div class="mark"><svg width="12" height="12" viewBox="0 0 12 12"><path d="M6 1v10L0 6zM12 1v10L6 6z" fill="#0B0B10"/></svg></div>Watchback</div><span class="yr">RECAP</span></div>
+<div class="hl">That was your last 12 months</div><div class="tag">Oct 2025 – Oct 2026 · YouTube + YouTube Music</div>
+<div class="nums">
+<div class="n"><small>Videos</small><b class="grad-text">12,480</b><div class="u">≈ 34 a day</div></div>
+<div class="n"><small>Watch time</small><b style="color:#FFB37A">≈ 1,920</b><div class="u">hours <span class="est">estimate</span></div></div>
+</div>
+<div class="sec">Top creators</div>
+<ol>
+<li><i class="grad-text">1</i>Creator Name A<span>1,204</span></li>
+<li><i>2</i>Sample Channel B<span>812</span></li>
+<li><i>3</i>Creator Name C<span>655</span></li>
+<li><i>4</i>Sample Channel D<span>540</span></li>
+<li><i>5</i>Creator Name E<span>498</span></li>
+</ol>
+<div class="sec">Top song</div>
+<div class="song"><div class="disc"></div><div><b>Song Title Example</b><small>Artist Name A</small></div><em>318<br>plays</em></div>
+</div>
+<div class="foot"><span>watchback.example.app</span><span>Example data</span><span class="disclaimer" style="width:100%;text-align:left;font-weight:500">Not affiliated with YouTube or Google.</span></div>
+</div></div>
+<div class="btns"><div class="btn s">Save image</div><div class="btn p">Share</div></div>
+<span class="example br">Example data</span>
+</div></body></html>
