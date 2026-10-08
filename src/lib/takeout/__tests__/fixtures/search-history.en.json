@@ -1,0 +1,50 @@
+[
+ {
+  "header": "YouTube",
+  "title": "Searched for lofi beats",
+  "titleUrl": "https://www.youtube.com/results?search_query=lofi+beats",
+  "time": "2024-03-09T10:00:00Z",
+  "products": [
+   "YouTube"
+  ],
+  "activityControls": [
+   "YouTube search history"
+  ]
+ },
+ {
+  "header": "YouTube",
+  "title": "Searched for Lofi Beats",
+  "titleUrl": "https://www.youtube.com/results?search_query=Lofi+Beats",
+  "time": "2024-03-08T10:00:00Z",
+  "products": [
+   "YouTube"
+  ],
+  "activityControls": [
+   "YouTube search history"
+  ]
+ },
+ {
+  "header": "YouTube",
+  "title": "Searched for resep nasi goreng",
+  "titleUrl": "https://www.youtube.com/results?search_query=resep+nasi+goreng",
+  "time": "2024-03-07T10:00:00Z",
+  "products": [
+   "YouTube"
+  ],
+  "activityControls": [
+   "YouTube search history"
+  ]
+ },
+ {
+  "header": "YouTube",
+  "title": "Searched for c++ & rust",
+  "titleUrl": "https://www.youtube.com/results?search_query=c%2B%2B+%26+rust",
+  "time": "2024-03-06T10:00:00Z",
+  "products": [
+   "YouTube"
+  ],
+  "activityControls": [
+   "YouTube search history"
+  ]
+ }
+]

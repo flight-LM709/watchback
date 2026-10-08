@@ -1,0 +1,114 @@
+[
+ {
+  "header": "YouTube",
+  "title": "Menonton Belajar TypeScript",
+  "titleUrl": "https://www.youtube.com/watch?v=IDVIDEO0001",
+  "subtitles": [
+   {
+    "name": "Kelas Koding",
+    "url": "https://www.youtube.com/channel/UCkelas"
+   }
+  ],
+  "time": "2024-08-12T14:00:00.000Z",
+  "products": [
+   "YouTube"
+  ],
+  "activityControls": [
+   "YouTube watch history"
+  ]
+ },
+ {
+  "header": "YouTube",
+  "title": "Menonton Belajar TypeScript",
+  "titleUrl": "https://www.youtube.com/watch?v=IDVIDEO0001",
+  "subtitles": [
+   {
+    "name": "Kelas Koding",
+    "url": "https://www.youtube.com/channel/UCkelas"
+   }
+  ],
+  "time": "2024-08-11T14:00:00.000Z",
+  "products": [
+   "YouTube"
+  ],
+  "activityControls": [
+   "YouTube watch history"
+  ]
+ },
+ {
+  "header": "YouTube Music",
+  "title": "Menonton Separuh Aku",
+  "titleUrl": "https://music.youtube.com/watch?v=IDMUSIC0001",
+  "subtitles": [
+   {
+    "name": "NOAH - Topic",
+    "url": "https://www.youtube.com/channel/UCnoah"
+   }
+  ],
+  "time": "2024-08-10T14:00:00.000Z",
+  "products": [
+   "YouTube"
+  ],
+  "activityControls": [
+   "YouTube watch history"
+  ]
+ },
+ {
+  "header": "YouTube",
+  "title": "Menonton Promo spesial",
+  "titleUrl": "https://www.youtube.com/watch?v=IDADVERT001",
+  "subtitles": [
+   {
+    "name": "Toko",
+    "url": "https://www.youtube.com/channel/UCtoko"
+   }
+  ],
+  "time": "2024-08-09T14:00:00.000Z",
+  "products": [
+   "YouTube"
+  ],
+  "details": [
+   {
+    "name": "Dari Google Ads"
+   }
+  ],
+  "activityControls": [
+   "YouTube watch history"
+  ]
+ },
+ {
+  "header": "YouTube",
+  "title": "Menonton video yang telah dihapus",
+  "time": "2024-08-08T14:00:00.000Z",
+  "products": [
+   "YouTube"
+  ],
+  "activityControls": [
+   "YouTube watch history"
+  ]
+ },
+ {
+  "header": "YouTube Music",
+  "title": "Mengunjungi YouTube Music",
+  "titleUrl": "https://music.youtube.com/",
+  "time": "2024-08-07T14:00:00.000Z",
+  "products": [
+   "YouTube"
+  ],
+  "activityControls": [
+   "YouTube watch history"
+  ]
+ },
+ {
+  "header": "YouTube",
+  "title": "Menelusuri kucing lucu",
+  "titleUrl": "https://www.youtube.com/results?search_query=kucing+lucu",
+  "time": "2024-08-06T14:00:00.000Z",
+  "products": [
+   "YouTube"
+  ],
+  "activityControls": [
+   "YouTube watch history"
+  ]
+ }
+]

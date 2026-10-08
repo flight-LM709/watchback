@@ -1,0 +1,216 @@
+[
+ {
+  "header": "YouTube",
+  "title": "Watched Cat compilation 2024",
+  "titleUrl": "https://www.youtube.com/watch?v=AAAAAAAAAA1",
+  "subtitles": [
+   {
+    "name": "Cat Channel",
+    "url": "https://www.youtube.com/channel/UCcat"
+   }
+  ],
+  "time": "2024-03-10T12:00:00.000Z",
+  "products": [
+   "YouTube"
+  ],
+  "activityControls": [
+   "YouTube watch history"
+  ]
+ },
+ {
+  "header": "YouTube Music",
+  "title": "Watched Bohemian Rhapsody",
+  "titleUrl": "https://music.youtube.com/watch?v=MUSIC000001",
+  "subtitles": [
+   {
+    "name": "Queen - Topic",
+    "url": "https://www.youtube.com/channel/UCqueen"
+   }
+  ],
+  "time": "2024-03-09T13:00:00.000Z",
+  "products": [
+   "YouTube"
+  ],
+  "activityControls": [
+   "YouTube watch history"
+  ]
+ },
+ {
+  "header": "YouTube Music",
+  "title": "Watched Bohemian Rhapsody",
+  "titleUrl": "https://music.youtube.com/watch?v=MUSIC000001",
+  "subtitles": [
+   {
+    "name": "Queen - Topic",
+    "url": "https://www.youtube.com/channel/UCqueen"
+   }
+  ],
+  "time": "2024-03-08T13:00:00.000Z",
+  "products": [
+   "YouTube"
+  ],
+  "activityControls": [
+   "YouTube watch history"
+  ]
+ },
+ {
+  "header": "YouTube Music",
+  "title": "Watched Don't Stop Me Now",
+  "titleUrl": "https://music.youtube.com/watch?v=MUSIC000002",
+  "subtitles": [
+   {
+    "name": "Queen - Topic",
+    "url": "https://www.youtube.com/channel/UCqueen"
+   }
+  ],
+  "time": "2024-03-08T12:00:00.000Z",
+  "products": [
+   "YouTube"
+  ],
+  "activityControls": [
+   "YouTube watch history"
+  ]
+ },
+ {
+  "header": "YouTube Music",
+  "title": "Visited YouTube Music",
+  "titleUrl": "https://music.youtube.com/",
+  "time": "2024-03-08T11:59:00.000Z",
+  "products": [
+   "YouTube"
+  ],
+  "activityControls": [
+   "YouTube watch history"
+  ]
+ },
+ {
+  "header": "YouTube",
+  "title": "Watched Buy our stuff!",
+  "titleUrl": "https://www.youtube.com/watch?v=ADADADADAD1",
+  "subtitles": [
+   {
+    "name": "Some Brand",
+    "url": "https://www.youtube.com/channel/UCbrand"
+   }
+  ],
+  "time": "2024-03-07T10:00:00.000Z",
+  "products": [
+   "YouTube"
+  ],
+  "details": [
+   {
+    "name": "From Google Ads"
+   }
+  ],
+  "activityControls": [
+   "YouTube watch history"
+  ]
+ },
+ {
+  "header": "YouTube",
+  "title": "Watched a video that has been removed",
+  "time": "2024-03-06T10:00:00.000Z",
+  "products": [
+   "YouTube"
+  ],
+  "activityControls": [
+   "YouTube watch history"
+  ]
+ },
+ {
+  "header": "YouTube",
+  "title": "Watched https://www.youtube.com/watch?v=PRIVATE0001",
+  "titleUrl": "https://www.youtube.com/watch?v=PRIVATE0001",
+  "time": "2024-03-05T10:00:00.000Z",
+  "products": [
+   "YouTube"
+  ],
+  "activityControls": [
+   "YouTube watch history"
+  ]
+ },
+ {
+  "header": "YouTube",
+  "title": "Watched Funny short #shorts",
+  "titleUrl": "https://www.youtube.com/shorts/SHORTS00001",
+  "subtitles": [
+   {
+    "name": "Cat Channel",
+    "url": "https://www.youtube.com/channel/UCcat"
+   }
+  ],
+  "time": "2024-03-04T10:00:00.000Z",
+  "products": [
+   "YouTube"
+  ],
+  "activityControls": [
+   "YouTube watch history"
+  ]
+ },
+ {
+  "header": "YouTube",
+  "title": "Watched Cat compilation 2024",
+  "titleUrl": "https://www.youtube.com/watch?v=AAAAAAAAAA1",
+  "subtitles": [
+   {
+    "name": "Cat Channel",
+    "url": "https://www.youtube.com/channel/UCcat"
+   }
+  ],
+  "time": "2024-03-03T10:00:00.000Z",
+  "products": [
+   "YouTube"
+  ],
+  "activityControls": [
+   "YouTube watch history"
+  ]
+ },
+ {
+  "header": "YouTube",
+  "title": "Watched Cooking pasta",
+  "titleUrl": "https://www.youtube.com/watch?v=BBBBBBBBBB2",
+  "subtitles": [
+   {
+    "name": "Chef Ana",
+    "url": "https://www.youtube.com/channel/UCchef"
+   }
+  ],
+  "time": "2024-03-02T10:00:00.000Z",
+  "products": [
+   "YouTube"
+  ],
+  "activityControls": [
+   "YouTube watch history"
+  ]
+ },
+ {
+  "header": "YouTube",
+  "title": "Watched No channel video",
+  "titleUrl": "https://www.youtube.com/watch?v=CCCCCCCCCC3",
+  "time": "2024-03-01T10:00:00.000Z",
+  "products": [
+   "YouTube"
+  ],
+  "activityControls": [
+   "YouTube watch history"
+  ]
+ },
+ {
+  "header": "YouTube",
+  "title": "Watched Late night video",
+  "titleUrl": "https://www.youtube.com/watch?v=DDDDDDDDDD4",
+  "subtitles": [
+   {
+    "name": "Night Owl TV",
+    "url": "https://www.youtube.com/channel/UCnight"
+   }
+  ],
+  "time": "2024-01-05T15:30:00.000Z",
+  "products": [
+   "YouTube"
+  ],
+  "activityControls": [
+   "YouTube watch history"
+  ]
+ }
+]
