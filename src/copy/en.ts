@@ -112,6 +112,8 @@ export const en = {
     shareStamp: "WATCHBACK",
     nowPlaying: "Now playing",
     streakSticker: "No skips",
+    shortsTape: "Singles", // Shorts side of the split slides
+    longTape: "Long play", // long-form side
   },
 
   slides: {
@@ -134,6 +136,37 @@ export const en = {
     topCreators: {
       headline: "Your top 5 creators, in heavy rotation",
       item: "{n} videos",
+    },
+    // NEW: Shorts vs long-form. Counts and times are estimates (classified from the looked-up sample, scaled up).
+    // Hyphens in "long‑form" are U+2011 so it never splits across lines. Pick ONE sub from subs by who wins plays vs time.
+    shortsVsLong: {
+      headline: "Quick scrolls vs. long watches.",
+      shortsLabel: "Shorts",
+      longLabel: "Long‑form",
+      count: "≈ {n} videos",
+      time: "≈ {hours} hours",
+      timeMinutes: "≈ {minutes} min", // when the total is under 1 hour
+      share: "{pct}% of your plays",
+      subs: {
+        shortsBoth: "Shorts won on plays and on time.",
+        longBoth: "Long‑form won on plays and on time.",
+        shortsPlaysLongTime: "Shorts got most of your plays. Long‑form got most of your time.",
+        longPlaysShortsTime: "Long‑form got most of your plays. Shorts got most of your time.",
+      },
+      noShorts: "No Shorts at all. You kept it long‑form.",
+      chip: "Estimate",
+      chipExplainer: "YouTube's export doesn't say which videos were Shorts, so we work it out. A video counts as a Short if you opened it from a Shorts link, or if it's 3 minutes or shorter and vertical. We checked a large sample of your history and scaled it up, assuming each video was watched to the end. Treat these as close, not exact. YouTube Music plays aren't included.",
+      aria: "Shorts: about {shortsCount} videos, {shortsTime}. Long‑form: about {longCount} videos, {longTime}.",
+    },
+    // NEW: top creators split into two short lists (top 3 each suggested). Same estimate chip and explainer as shortsVsLong.
+    topCreatorsSplit: {
+      headline: "Your top creators, short and long.",
+      shortsColumn: "Top Shorts creators",
+      longColumn: "Top long‑form creators",
+      item: "≈ {n} videos",
+      sameTop: "{creator} topped both lists.", // optional line when #1 is the same on both sides
+      emptyShorts: "Not enough Shorts to rank.",
+      emptyLong: "Not enough long‑form to rank.",
     },
     favoriteVideo: {
       headline: "You couldn't stop rewatching this one.",
