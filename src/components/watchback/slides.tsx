@@ -616,9 +616,9 @@ function PhoneMotif({ className = "" }: { className?: string }) {
     </svg>
   );
 }
-function ScreenMotif({ className = "" }: { className?: string }) {
+function ScreenMotif({ className = "", ...rest }: { className?: string; "data-testid"?: string }) {
   return (
-    <svg aria-hidden="true" width="80" height="50" viewBox="0 0 86 54" className={className}>
+    <svg aria-hidden="true" width="80" height="50" viewBox="0 0 86 54" className={className} {...rest}>
       <rect x="1.5" y="1.5" width="83" height="51" rx="5" fill="#1F1B16" />
       <rect x="6" y="6" width="74" height="38" rx="2" fill="#1E6B66" />
       <circle cx="58" cy="22" r="7" fill="#E2A72E" />
@@ -646,7 +646,7 @@ function FormatCard({ format, side, className = "" }: { format: "shorts" | "long
         <p className={`-mx-3.5 flex h-[30px] items-center border-b-2 border-ink px-3.5 font-serif text-[16px] font-bold tracking-[-0.01em] text-paper-2 ${shorts ? "bg-tomato" : "bg-teal-dark"}`}>
           <NoBreakHyphens text={shorts ? SV.shortsLabel : SV.longLabel} />
         </p>
-        {shorts ? <PhoneMotif className="absolute -top-[18px] right-5 rotate-[8deg]" /> : <ScreenMotif className="absolute -top-3.5 right-3.5 -rotate-6" />}
+        {shorts ? <PhoneMotif className="absolute -top-[22px] right-5 rotate-[8deg]" /> : <ScreenMotif className="absolute -top-3.5 right-3.5 -rotate-6" />}
         <div aria-hidden="true" className={`mt-2 flex items-end gap-1.5 short:mt-0.5 ${shorts ? "text-tomato" : "text-ink"}`}>
           <span className="pb-3 font-mono text-[48px] font-bold leading-none">≈</span>
           <HeroNumber value={side.count} size={96} maxWidth={FORMAT_HERO_MAX} captionClassName="text-ink-2" />
@@ -696,8 +696,12 @@ function ShortsVsLong({ ctx }: { ctx: SlideContext }) {
         <div className="relative mt-12" data-testid="no-shorts">
           <TapeLabel text={en.deco.longTape} variant="clear" angle={3} className="-left-2 -top-7" />
           <Sticker rotate={1} className="px-4 pb-5 pt-6">
-            <ScreenMotif className="absolute -top-3.5 right-3.5 -rotate-6" />
+            <ScreenMotif className="absolute -top-3.5 right-3.5 -rotate-6" data-testid="no-shorts-icon" />
             <p className="font-serif text-[26px] font-semibold italic leading-snug [text-wrap:balance]">
+              {/* Reserve the TV's footprint at the inline end (80px wide at right 14px, minus the 16px padding,
+                  + rotation and an 8px gap) for as deep as it reaches into the text (bottom ≈ 40px vs text top
+                  24px), so the line(s) beside it wrap earlier while the icon stays on the card's corner. */}
+              <span aria-hidden="true" className="float-end ms-1 h-6 w-[86px]" data-testid="icon-reserve" />
               <NoBreakHyphens text={SV.noShorts} />
             </p>
           </Sticker>
