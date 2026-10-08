@@ -1,0 +1,40 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=390"><link rel="stylesheet" href="style.css">
+<style>
+:root{--g1:#B8FF3C;--g2:#22D3EE}
+.wrap{padding-top:112px;text-align:center}
+.h{font-size:28px;font-weight:600;letter-spacing:-.02em}
+.av{position:relative;margin:16px auto 0;width:150px;height:150px;border-radius:50%;padding:5px;background:conic-gradient(from 200deg,var(--g1),var(--g2),var(--g1))}
+.av-in{width:100%;height:100%;border-radius:50%;background:#1A1A24;display:grid;place-items:center;border:4px solid #0B0B10;position:relative;overflow:hidden}
+.av-in svg{position:absolute;bottom:-6px}
+.rank{position:absolute;right:-4px;bottom:4px;width:52px;height:52px;border-radius:50%;background:#B8FF3C;color:#0B0B10;font-weight:700;font-size:22px;display:grid;place-items:center;border:4px solid #0B0B10;transform:rotate(-8deg)}
+.name{font-size:32px;font-weight:700;letter-spacing:-.03em;margin-top:12px}
+.count{margin-top:2px;font-size:18px;color:#D4D4DC;font-weight:500}
+.count b{display:block;font-size:76px;line-height:1;font-weight:700;letter-spacing:-.05em}
+.list{margin-top:18px;text-align:left;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:6px 16px}
+.row{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.08)}
+.row:last-child{border-bottom:0}
+.row .n{width:26px;font-weight:700;font-size:15px;color:#B8FF3C}
+.row .a{width:32px;height:32px;border-radius:50%;background:#262633;display:grid;place-items:center;font-size:13px;font-weight:700;color:#D4D4DC}
+.row .t{flex:1;font-weight:600;font-size:15px}
+.row .v{font-weight:600;font-size:14px;color:#C4C4CE;font-variant-numeric:tabular-nums}
+.bar{height:4px;border-radius:4px;background:linear-gradient(90deg,var(--g1),var(--g2));margin-top:5px}
+</style></head><body><div class="screen">
+<div class="blob" style="width:300px;height:300px;background:#65A30D;top:40px;right:-150px;opacity:.45"></div>
+<div class="blob" style="width:260px;height:260px;background:#0891B2;top:300px;left:-150px;opacity:.5"></div>
+<div class="progress"><span class="on"></span><span class="on"></span><span class="on"></span><span class="half"></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+<div class="topbar"><div class="brand"><div class="mark"><svg width="12" height="12" viewBox="0 0 12 12"><path d="M6 1v10L0 6zM12 1v10L6 6z" fill="#0B0B10"/></svg></div>Watchback</div><span style="font-size:20px;color:#C4C4CE">✕</span></div>
+<div class="period">Oct 2025 – Oct 2026 <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4.5l3 3 3-3"/></svg></div>
+<div class="wrap content">
+<div class="h">Your #1 creator was</div>
+<div class="av"><div class="av-in"><svg width="100" height="110" viewBox="0 0 120 130"><circle cx="60" cy="44" r="28" fill="#3A3A4A"/><path d="M8 130c4-34 26-52 52-52s48 18 52 52z" fill="#3A3A4A"/></svg></div><div class="rank">#1</div></div>
+<div class="name">Creator Name A</div>
+<div class="count"><b class="grad-text">1,204</b>videos. That's loyalty.</div>
+<div class="list">
+<div class="row"><span class="n">#2</span><span class="a">B</span><div class="t">Sample Channel B<div class="bar" style="width:67%"></div></div><span class="v">812</span></div>
+<div class="row"><span class="n">#3</span><span class="a">C</span><div class="t">Creator Name C<div class="bar" style="width:54%"></div></div><span class="v">655</span></div>
+<div class="row"><span class="n">#4</span><span class="a">D</span><div class="t">Sample Channel D<div class="bar" style="width:45%"></div></div><span class="v">540</span></div>
+<div class="row"><span class="n">#5</span><span class="a">E</span><div class="t">Creator Name E<div class="bar" style="width:41%"></div></div><span class="v">498</span></div>
+</div>
+</div>
+<span class="example bl">Example data</span>
+</div></body></html>
