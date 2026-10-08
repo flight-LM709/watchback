@@ -76,5 +76,6 @@ const wt = estimateWatchTime(durations, stats.playCountsById, sample); // { seco
 * **At or under 2,000 unique IDs**: every ID is sent, `scale = 1`, and the result is exact apart from null durations.
 * **Over 2,000**: we send the top 1,000 most-played IDs (counted exactly) plus a uniform random sample of 1,000 from the rest (seedable via `seed`). The rest is extrapolated: `sampledSeconds × restPlays / (plays of sampled IDs that returned a duration)`.
 * Null durations among the top IDs are filled in at the top group's average seconds per play. If a whole group has no durations, it borrows the other group's average.
+* Each play counts as `min(duration, 10800s)`.
 * `coverage` is the share of plays whose duration was actually looked up. On a synthetic 40k-ID history the estimate came within about 0.3–2.6% of the true total across 5 seeds.
-* Every play counts as watched to the end, so 10-hour livestreams can inflate the total. A per-play cap would be a product decision; none is applied right now.
+* Every play counts as watched to the end, **capped at 3 hours per play** (`MAX_SECONDS_PER_PLAY = 10800`). So a 10-hour livestream watched once counts as 3h, and the cap also applies inside the sampled and averaged math.

@@ -42,7 +42,7 @@ export interface WatchTimeEstimate {
   isEstimate: true;
   /** Share of all plays (0..1) whose duration was looked up and returned. The rest is extrapolated. */
   coverage: number;
-  /** The exactly known part: Σ duration × plays over IDs that came back with a duration. */
+  /** The exactly known part: Σ min(duration, 3h) × plays over IDs that came back with a duration. */
   exactSeconds: number;
 }
 
@@ -102,10 +102,15 @@ export function buildDurationSample(stats: StatsLike, options: DurationSampleOpt
   };
 }
 
+/** Each play counts for at most 3 hours, so 10h livestreams don't blow up the total. */
+export const MAX_SECONDS_PER_PLAY = 10800;
+
 const validDuration = (d: unknown): d is number => typeof d === "number" && Number.isFinite(d) && d >= 0;
+const capped = (d: number) => Math.min(d, MAX_SECONDS_PER_PLAY);
 
 /**
  * Combine the endpoint's durations with local play counts.
+ * Every play counts min(duration, MAX_SECONDS_PER_PLAY), everywhere (exact, sampled and averages).
  * - Top IDs: exact duration × plays. Top IDs that came back null (private/removed) are
  *   filled in at the average seconds-per-play of the top IDs that did come back.
  * - Remaining IDs: sampled seconds × (restPlays / sampled plays that came back with a duration).
@@ -122,12 +127,12 @@ export function estimateWatchTime(
   let topKnownSec = 0, topKnownPlays = 0;
   for (const id of sample.topIds) {
     const d = durations[id];
-    if (validDuration(d)) { topKnownSec += d * p(id); topKnownPlays += p(id); }
+    if (validDuration(d)) { topKnownSec += capped(d) * p(id); topKnownPlays += p(id); }
   }
   let sampKnownSec = 0, sampKnownPlays = 0;
   for (const id of sample.sampleIds) {
     const d = durations[id];
-    if (validDuration(d)) { sampKnownSec += d * p(id); sampKnownPlays += p(id); }
+    if (validDuration(d)) { sampKnownSec += capped(d) * p(id); sampKnownPlays += p(id); }
   }
 
   const knownPlays = topKnownPlays + sampKnownPlays;

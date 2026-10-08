@@ -9,6 +9,7 @@ export { runtimeTimeZone } from "./tz";
 export {
   buildDurationSample,
   estimateWatchTime,
+  MAX_SECONDS_PER_PLAY,
   type DurationSample,
   type DurationSampleOptions,
   type DurationsResponse,

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildDurationSample, estimateWatchTime, mulberry32 } from "../watchTime";
+import { buildDurationSample, estimateWatchTime, MAX_SECONDS_PER_PLAY, mulberry32 } from "../watchTime";
 
 /** Build a stats-like object: ids sorted by plays desc, like computeStats does. */
 function makeStats(n: number, playsFor: (i: number) => number) {
@@ -61,6 +61,24 @@ describe("estimateWatchTime", () => {
     const s = buildDurationSample(stats);
     expect(estimateWatchTime({}, stats.playCountsById, s)).toBeNull();
     expect(estimateWatchTime(Object.fromEntries(s.ids.map((id) => [id, null])), stats.playCountsById, s)).toBeNull();
+  });
+
+  it("caps each play at 3 hours (a 10h livestream played once counts 3h)", () => {
+    expect(MAX_SECONDS_PER_PLAY).toBe(10800);
+    const stats = makeStats(2, (i) => (i === 0 ? 2 : 1));
+    const s = buildDurationSample(stats);
+    const [song, stream] = s.topIds; // song: 2 plays, stream: 1 play
+    const est = estimateWatchTime({ [song]: 200, [stream]: 36000 }, stats.playCountsById, s)!;
+    expect(est.seconds).toBe(2 * 200 + 10800);
+    expect(est.exactSeconds).toBe(2 * 200 + 10800);
+  });
+
+  it("the cap also applies to the sampled / averaged math", () => {
+    const stats = makeStats(10, () => 1);
+    const s = buildDurationSample(stats, { cap: 4, seed: 3 }); // 2 top + 2 sampled of 8 rest
+    const durations = Object.fromEntries(s.ids.map((id) => [id, 36000])); // all 10h
+    const est = estimateWatchTime(durations, stats.playCountsById, s)!;
+    expect(est.seconds).toBe(10 * 10800); // 10 plays, each capped at 3h
   });
 
   it("fills null top durations at the top group's average seconds per play", () => {
