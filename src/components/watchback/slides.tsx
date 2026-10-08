@@ -766,8 +766,9 @@ function CreatorColumn({ format, side }: { format: "shorts" | "long"; side: Shor
               </span>
             </p>
             <div className="mt-3 border-t-[1.5px] border-ink text-left">
-              {side.showEmptyState ? (
-                <p className="py-2 font-serif text-[14px] italic leading-snug text-ink-2" data-testid="split-empty"><NoBreakHyphens text={shorts ? TC.emptyShorts : TC.emptyLong} /></p>
+              {runners.length === 0 ? (
+                // A #1 but nobody else: `noRunnersUp` (empty* is only for a column with zero creators).
+                <p className="py-2 font-serif text-[14px] italic leading-snug text-ink-2" data-testid="split-no-runners"><NoBreakHyphens text={TC.noRunnersUp} /></p>
               ) : (
                 <ol start={2}>
                   {runners.map((c, i) => (

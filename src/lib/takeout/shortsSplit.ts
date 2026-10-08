@@ -125,7 +125,7 @@ export interface ShortsSplitSide {
   pct: number;
   /** Top creators on this side, ≈ counts (rounded, ≥ 1), most first. `slides.topCreatorsSplit.item` {n}. */
   topCreators: CountedName[];
-  /** Fewer than 2 creators → SPEC §9: show `emptyShorts` / `emptyLong` in place of the runners. */
+  /** Fewer than 2 creators (QA's field). The column shows `emptyShorts` / `emptyLong` with 0 creators, `noRunnersUp` under a lone #1. */
   showEmptyState: boolean;
 }
 
