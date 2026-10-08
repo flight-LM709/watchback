@@ -21,7 +21,7 @@ import { buildDurationSample } from "../watchTime";
 import { parseTakeoutZip } from "../zip";
 
 const DIR = process.env.WATCHBACK_FIXTURES_DIR ?? "/workspace/watchback-fixtures/out";
-const NAMES = ["shorts-mix", "shorts-heavy", "shorts-flip", "shorts-none", "shorts-one", "shorts-sampled"];
+const NAMES = ["shorts-mix", "shorts-heavy", "shorts-flip", "shorts-none", "shorts-one", "shorts-tiny", "shorts-sampled"];
 const HAVE = NAMES.every((n) => existsSync(join(DIR, `${n}.zip`)) && existsSync(join(DIR, `expected-${n}.json`)));
 const TZ = "Asia/Jakarta";
 
@@ -97,6 +97,13 @@ describe.skipIf(!HAVE)("QA Shorts fixtures (YOUTUBE_API_MOCK)", () => {
     expect(splitTimeText(s.long.seconds)).toBe("≈ 1 hour");
     expect(itemText(s.long.topCreators.at(-1)!.count)).toBe("≈ 1 video");
     expect(itemText(s.shorts.topCreators[0].count)).toBe("≈ 1 video");
+  });
+
+  it("shorts-tiny: minute lines (Short under a minute, long-form ≈ 1 minute), 1–1 tie goes to long", async () => {
+    const s = (await run("shorts-tiny")).split!;
+    expect(splitTimeText(s.shorts.seconds)).toBe("under a minute");
+    expect(splitTimeText(s.long.seconds)).toBe("≈ 1 minute");
+    expect(s.playsWinner).toBe("long");
   });
 
   it.each([1, 2, 3, 4, 5])("shorts-sampled (5,000 IDs) lands within QA's tolerance, seed %i", async (seed) => {
