@@ -154,6 +154,8 @@ export const en = {
         longPlaysShortsTime: "Long‑form got most of your plays. Shorts got most of your time.",
       },
       noShorts: "No Shorts at all. You kept it long‑form.",
+      // On-slide one-liner next to the chip (italic 13px). Keep in sync with the detection rule.
+      note: "Shorts are videos opened from a Shorts link, or 3 minutes or shorter and vertical.",
       chip: "Estimate",
       chipExplainer: "YouTube's export doesn't say which videos were Shorts, so we work it out. A video counts as a Short if you opened it from a Shorts link, or if it's 3 minutes or shorter and vertical. We checked a large sample of your history and scaled it up, assuming each video was watched to the end. Deleted or private videos are left out of this split. Treat these as close, not exact. YouTube Music plays aren't included.",
       aria: "Shorts: about {shortsCount} videos, {shortsTime}. Long‑form: about {longCount} videos, {longTime}.",
