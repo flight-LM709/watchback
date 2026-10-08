@@ -2,11 +2,14 @@
  * Client for Backend Dev's POST /api/durations (see docs/api-durations.md).
  *
  *   POST /api/durations  { ids: string[] }   // 1..2000 unique IDs, single request
- *   200                  { durations: { [id]: seconds | null } }
+ *   200                  { durations: { [id]: seconds | null }, isShort?: { [id]: true | false | null } }
  *   4xx/5xx              { durations: {}, error: "…" }
  *
  * Any failure (HTTP error, network error, bad JSON, timeout) resolves to `durations: {}`,
  * which makes estimateWatchTime() return null, which drops the watch-time slide.
+ *
+ * `isShort` is optional (older deployments don't send it). A missing or malformed map is
+ * dropped (`isShort` stays undefined), which makes estimateShortsSplit() return null.
  */
 import { VIDEO_ID_PATTERN } from "./normalize";
 import type { WatchStats } from "./stats";
@@ -17,6 +20,9 @@ import {
   type DurationsResponse,
   type WatchTimeEstimate,
 } from "./watchTime";
+
+/** Per-ID Shorts flag from /api/durations. null = private/deleted/shape unreadable. A missing ID = not looked up. */
+export type IsShortResponse = Record<string, boolean | null | undefined>;
 
 /** Must match MAX_IDS in src/lib/durations/handler.ts. */
 export const MAX_DURATION_IDS = 2000;
@@ -32,6 +38,8 @@ export interface FetchDurationsOptions {
 
 export interface FetchDurationsResult {
   durations: DurationsResponse;
+  /** Only present when the server sent a well-formed `isShort` object (new API). */
+  isShort?: IsShortResponse;
   /** HTTP status, when a response arrived. */
   status?: number;
   /** Backend error code (e.g. "rate_limited") or a client-side reason ("network", "timeout", "bad_response"). */
@@ -79,7 +87,22 @@ export async function fetchDurations(ids: string[], opts: FetchDurationsOptions 
     if (!asked.has(id)) continue;
     durations[id] = typeof v === "number" && Number.isFinite(v) && v >= 0 ? v : null;
   }
-  return { durations, status: res.status, ...(errCode ? { error: errCode } : {}) };
+  const isShort = parseIsShort((body as { isShort?: unknown })?.isShort, asked);
+  return { durations, ...(isShort ? { isShort } : {}), status: res.status, ...(errCode ? { error: errCode } : {}) };
+}
+
+/**
+ * Optional `isShort` sibling map. Not an object (missing, null, array, string…) → undefined (old API).
+ * Unknown IDs are dropped; any value other than true/false becomes null (unknown).
+ */
+export function parseIsShort(raw: unknown, asked: ReadonlySet<string>): IsShortResponse | undefined {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return undefined;
+  const out: IsShortResponse = {};
+  for (const [id, v] of Object.entries(raw as Record<string, unknown>)) {
+    if (!asked.has(id)) continue;
+    out[id] = typeof v === "boolean" ? v : null;
+  }
+  return out;
 }
 
 /**

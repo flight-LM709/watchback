@@ -96,4 +96,41 @@ describe("client ↔ /api/durations contract", () => {
     const r = await fetchDurations([id(1), id(2)], { fetchImpl: f });
     expect(r.durations).toEqual({ [id(1)]: 100, [id(2)]: null });
   });
+
+  describe("optional isShort map", () => {
+    it("keeps true/false/null for asked IDs; other values → null; unknown IDs dropped", async () => {
+      const f: FetchLike = async () =>
+        Response.json({
+          durations: { [id(1)]: 30, [id(2)]: 900, [id(3)]: null, [id(4)]: 40 },
+          isShort: { [id(1)]: true, [id(2)]: false, [id(3)]: null, [id(4)]: "yes", [id(9)]: true },
+        });
+      const r = await fetchDurations([id(1), id(2), id(3), id(4)], { fetchImpl: f });
+      expect(r.isShort).toEqual({ [id(1)]: true, [id(2)]: false, [id(3)]: null, [id(4)]: null });
+      expect(r.durations).toEqual({ [id(1)]: 30, [id(2)]: 900, [id(3)]: null, [id(4)]: 40 });
+    });
+
+    it("old API (no isShort) → isShort undefined, durations unchanged", async () => {
+      const f: FetchLike = async () => Response.json({ durations: { [id(1)]: 30 } });
+      const r = await fetchDurations([id(1)], { fetchImpl: f });
+      expect(r).toEqual({ durations: { [id(1)]: 30 }, status: 200 });
+      expect("isShort" in r).toBe(false);
+    });
+
+    it.each([["null", null], ["array", [true]], ["string", "true"], ["number", 1]])(
+      "malformed isShort (%s) is ignored",
+      async (_n, isShort) => {
+        const f: FetchLike = async () => Response.json({ durations: { [id(1)]: 30 }, isShort });
+        const r = await fetchDurations([id(1)], { fetchImpl: f });
+        expect(r.isShort).toBeUndefined();
+        expect(r.durations).toEqual({ [id(1)]: 30 });
+      },
+    );
+
+    it("error responses never carry isShort", async () => {
+      const f: FetchLike = async () => Response.json({ durations: {}, isShort: { [id(1)]: true }, error: "rate_limited" }, { status: 429 });
+      const r = await fetchDurations([id(1)], { fetchImpl: f });
+      expect(r.isShort).toBeUndefined();
+      expect(r.error).toBe("rate_limited");
+    });
+  });
 });
