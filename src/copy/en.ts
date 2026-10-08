@@ -120,7 +120,7 @@ export const en = {
       headline: "≈ {hours} hours of watching.",
       sub: "That's {days} full days.",
       chip: "Estimate",
-      chipExplainer: "We looked up the lengths of your most-played videos plus a random sample of the rest, assumed you watched each one to the end, and scaled that up to your whole history. Very long videos and livestreams count for 3 hours at most. Skips happen, so treat this as a ballpark.",
+      chipExplainer: "We looked up the lengths of your most-played videos plus a random sample of the rest, assumed you watched each one to the end, and scaled that up to your whole history. Very long videos and livestreams count for 3 hours at most. Skips happen, so treat this as a ballpark.",
       unavailableTooltip: "Watch time is taking a break today. Try again tomorrow to see it.",
     },
     topCreator: {
@@ -195,7 +195,7 @@ export const en = {
     },
     music: {
       headline: "You played {n} songs on YouTube Music.",
-      sub: "Most of them were by {artist}.",
+      sub: "Your most-played artist was {artist}.",
     },
     topSongs: {
       headline: "Side A: your top 5 songs, on repeat.",
