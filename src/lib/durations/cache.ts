@@ -1,9 +1,11 @@
+import type { VideoMeta } from "./youtube";
+
 /**
- * Tiny in-memory LRU with TTL. Holds only `videoId -> seconds | null`.
+ * Tiny in-memory LRU with TTL. Holds only `videoId -> { seconds, isShort }`.
  * No user data, no request metadata, never written to disk.
  */
 export class DurationCache {
-  private map = new Map<string, { value: number | null; expires: number }>();
+  private map = new Map<string, { value: VideoMeta; expires: number }>();
 
   constructor(
     private maxEntries = 50_000,
@@ -12,8 +14,8 @@ export class DurationCache {
     private now: () => number = Date.now,
   ) {}
 
-  /** Returns undefined on miss, otherwise the cached value (which may be null). */
-  get(id: string): number | null | undefined {
+  /** Returns undefined on miss, otherwise the cached value (whose fields may be null). */
+  get(id: string): VideoMeta | undefined {
     const hit = this.map.get(id);
     if (!hit) return undefined;
     if (hit.expires <= this.now()) {
@@ -26,11 +28,11 @@ export class DurationCache {
     return hit.value;
   }
 
-  set(id: string, value: number | null): void {
+  set(id: string, value: VideoMeta): void {
     this.map.delete(id);
     this.map.set(id, {
       value,
-      expires: this.now() + (value === null ? this.nullTtlMs : this.ttlMs),
+      expires: this.now() + (value.seconds === null ? this.nullTtlMs : this.ttlMs),
     });
     while (this.map.size > this.maxEntries) {
       const oldest = this.map.keys().next().value;
