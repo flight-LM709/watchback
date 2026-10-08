@@ -13,8 +13,12 @@
  * where the plays are the YouTube non-/shorts/-URL plays (the only ones that need the API), and
  * "looked up" means the ID came back in the `isShort` map at all. Unlike watch time, a sampled
  * null stays in the denominator, so the unknown share of the sample is extrapolated as unknown
- * instead of being filled in. Counts and creator counts use the same weights, so each side's
- * creators add up to its total.
+ * instead of being filled in.
+ * Creator counts: exact parts (top IDs, /shorts/ URL plays) as is; each creator's non-top plays are
+ * scaled by THAT creator's own looked-up Short/long share (per-creator ratio estimator; a creator with
+ * nothing looked up borrows the overall sample share). On QA's 5,000-ID fixture this picks the true #1
+ * far more often than one global weight (44 vs 29 of 60 seed×side runs). So a side's creator counts
+ * need not add up exactly to its total.
  * Watch time per side: every play counts min(duration, 3h); that side's plays with no duration
  * (e.g. /shorts/ plays of IDs not looked up) are filled at that side's own average.
  */
@@ -131,33 +135,49 @@ export function estimateShortsSplit(
   const sampled = new Set(sample.sampleIds);
   const lookedUp = (id: string) => has(isShort, id);
 
-  // Ratio-estimator weight for the non-top group (plays that need the API: non-/shorts/ URL).
+  // Ratio-estimator weight for the non-top group (plays that need the API: non-/shorts/ URL),
+  // overall and per creator.
   let restOther = 0, lookedUpOther = 0;
+  const perChannel = new Map<string, { rest: number; lookedUp: number; shorts: number; long: number }>();
+  const chan = (k: string) => {
+    let c = perChannel.get(k);
+    if (!c) perChannel.set(k, (c = { rest: 0, lookedUp: 0, shorts: 0, long: 0 }));
+    return c;
+  };
   for (const r of stats.videoPlays) {
     if (top.has(r.videoId)) continue;
     const other = r.plays - r.shortsUrlPlays;
+    const looked = sampled.has(r.videoId) && lookedUp(r.videoId);
     restOther += other;
-    if (sampled.has(r.videoId) && lookedUp(r.videoId)) lookedUpOther += other;
+    if (looked) lookedUpOther += other;
+    if (r.channel !== undefined) {
+      const c = chan(r.channel);
+      c.rest += other;
+      if (looked) c.lookedUp += other;
+    }
   }
   const restWeight = lookedUpOther > 0 ? restOther / lookedUpOther : 0;
+  const sampledSide: Record<SplitSideKey, number> = { shorts: 0, long: 0 };
 
   const side: Record<SplitSideKey, Acc> = { shorts: acc(), long: acc() };
   let apiClassified = false;
   let directPlays = 0;
 
-  const add = (s: Acc, id: string, channel: string | undefined, plays: number, weight: number) => {
+  const credit = (s: Acc, channel: string, n: number) => {
+    const c = s.creators.get(channel);
+    if (c) c.count += n;
+    else {
+      const info = stats.channels[channel];
+      s.creators.set(channel, { name: info?.name ?? channel, ...(info?.url ? { url: info.url } : {}), count: n });
+    }
+  };
+  /** `exact`: also credit the creator now (top IDs, /shorts/ URL plays); sampled plays credit creators below. */
+  const add = (s: Acc, id: string, channel: string | undefined, plays: number, weight: number, exact: boolean) => {
     const w = plays * weight;
     s.plays += w;
     const d = durations[id];
     if (validDuration(d)) { s.knownPlays += w; s.knownSec += w * Math.min(d, MAX_SECONDS_PER_PLAY); }
-    if (channel !== undefined) {
-      const c = s.creators.get(channel);
-      if (c) c.count += w;
-      else {
-        const info = stats.channels[channel];
-        s.creators.set(channel, { name: info?.name ?? channel, ...(info?.url ? { url: info.url } : {}), count: w });
-      }
-    }
+    if (exact && channel !== undefined) credit(s, channel, w);
   };
 
   for (const r of stats.videoPlays) {
@@ -172,14 +192,26 @@ export function estimateShortsSplit(
     // /shorts/ URL plays are known locally for every ID → exact (weight 1).
     if (r.shortsUrlPlays > 0) {
       const f = classifyShortsPlay({ shortsUrl: true, apiIsShort, durationSec });
-      if (f !== "unknown") { add(side[f], id, r.channel, r.shortsUrlPlays, 1); directPlays += r.shortsUrlPlays; }
+      if (f !== "unknown") { add(side[f], id, r.channel, r.shortsUrlPlays, 1, true); directPlays += r.shortsUrlPlays; }
     }
     const other = r.plays - r.shortsUrlPlays;
     if (other <= 0 || !inSample) continue;
     const f = classifyShortsPlay({ shortsUrl: false, apiIsShort, durationSec });
     if (f === "unknown") continue;
-    add(side[f], id, r.channel, other, isTop ? 1 : restWeight);
+    add(side[f], id, r.channel, other, isTop ? 1 : restWeight, isTop);
     directPlays += other;
+    if (!isTop) {
+      sampledSide[f] += other;
+      if (r.channel !== undefined) chan(r.channel)[f] += other;
+    }
+  }
+  // Per-creator ratio estimator for the non-top plays.
+  for (const [k, c] of perChannel) {
+    if (c.rest <= 0) continue;
+    for (const f of ["shorts", "long"] as const) {
+      const n = c.lookedUp > 0 ? (c.rest * c[f]) / c.lookedUp : lookedUpOther > 0 ? (c.rest * sampledSide[f]) / lookedUpOther : 0;
+      if (n > 0) credit(side[f], k, n);
+    }
   }
 
   if (!apiClassified) return null;
