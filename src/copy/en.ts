@@ -15,7 +15,7 @@ export const en = {
   },
 
   privacy: {
-    body: "Your Takeout file is read right here in your browser and never uploaded. The only thing that leaves your device is a list of video IDs. We use them to look up video lengths for your watch-time estimate and to load thumbnails, both through our own server, so Google never sees who's asking. No account, no tracking, nothing saved. Close the tab and it's gone.",
+    body: "Your Takeout file is read in your browser and never uploaded. Only video IDs leave your device, to look up video lengths and load thumbnails through our own server, so Google never sees who's asking. No account, no tracking, nothing saved. Close the tab and it's gone.",
   },
 
   upload: {
