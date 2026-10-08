@@ -7,7 +7,7 @@ import { makeDemoEvents } from "@/app/demo/demo-data";
 import { computeStats, type WatchStats } from "@/lib/takeout/stats";
 import { contrastViolations } from "@/test-utils/contrast";
 import type { SlideKind } from "@/components/story/slides";
-import { BadgeSticker, SlideView, itemText, splitTimeText, type SlideContext } from "../slides";
+import { BadgeSticker, SlideView, itemText, shortsAria, slideHeadline, splitTimeAria, splitTimeText, type SlideContext } from "../slides";
 import { PEAK_HOUR_WINDOWS } from "@/lib/takeout/stats";
 import type { ShortsSplitEstimate } from "@/lib/takeout/shortsSplit";
 
@@ -159,7 +159,7 @@ describe("Shorts slides (SPEC §9)", () => {
     long: { count: 3860, seconds: 1836 * 3600, pct: 31, topCreators: [c("Delta", 1150)], showEmptyState: true },
     noShorts: false,
     slides: { shortsVsLong: true, creatorsByFormat: true },
-    playsWinner: "shorts", timeWinner: "long", sub: "shortsPlaysLongTime", sameTopCreator: null, unknownPlays: 0, coverage: 1,
+    playsWinner: "shorts", playsTie: false, timeWinner: "long", timeTie: false, sub: "shortsPlaysLongTime", sameTopCreator: null, unknownPlays: 0, coverage: 1,
     ...patch,
   });
 
@@ -232,6 +232,64 @@ describe("Shorts slides (SPEC §9)", () => {
     expect(within(l).getByTestId("split-empty").textContent).toBe(en.slides.topCreatorsSplit.emptyLong.replaceAll("\u2011", "-"));
     expect(l.textContent).toContain("Top long-form creators");
     expect(screen.getByTestId("same-top").textContent).toBe("Alpha topped both lists.");
+    expect(contrastViolations(root)).toEqual([]);
+  });
+
+  it("aria: spoken count/time forms in the filled template, never the visible ≈ strings; same rounding and singulars", () => {
+    const S1 = { count: 1, seconds: 26, pct: 50, topCreators: [], showEmptyState: true };
+    expect(shortsAria({ shorts: S1, long: { ...S1, seconds: 65 } })).toBe("Shorts: about 1 video, under a minute. Long\u2011form: about 1 video, about 1 minute.");
+    expect(shortsAria(split())).toBe("Shorts: about 8,620 videos, about 84 hours. Long\u2011form: about 3,860 videos, about 1,836 hours.");
+    expect(shortsAria(split({ shorts: { ...S1, count: 1.4, seconds: 59.6 * 60 }, long: { ...S1, count: 2, seconds: 160 } })))
+      .toBe("Shorts: about 1 video, about 1 hour. Long\u2011form: about 2 videos, about 3 minutes.");
+    expect(shortsAria(split({ shorts: { ...S1, count: 5, seconds: null } }))).toContain("Shorts: about 5 videos, watch time unknown.");
+    const t = splitTimeAria;
+    expect([t(null), t(1), t(30), t(90), t(59 * 60 + 30), t(5400)]).toEqual(["watch time unknown", "under a minute", "about 1 minute", "about 2 minutes", "about 1 hour", "about 2 hours"]);
+    for (let sec = 0; sec < 20000; sec += 13) expect(t(sec)).not.toContain("≈");
+    // the slide's accessible name: headline + the filled aria, plain hyphens
+    const ctx = { shortsSplit: split() } as unknown as SlideContext;
+    expect(slideHeadline("shorts-vs-long", ctx)).toBe("Quick scrolls vs. long watches. Shorts: about 8,620 videos, about 84 hours. Long-form: about 3,860 videos, about 1,836 hours.");
+  });
+
+  it.each([
+    ["tieBoth", "Shorts and long-form came out even."],
+    ["tiePlaysLongTime", "An even split on plays. Long-form got most of your time."],
+    ["shortsPlaysOnly", "Shorts got most of your plays."],
+    ["tiePlaysOnly", "An even split on plays."],
+  ] as const)("16: renders the %s sub", (sub, text) => {
+    show("shorts-vs-long", {}, { shortsSplit: split({ sub }) });
+    expect(screen.getByTestId("shorts-sub").textContent).toBe(text);
+  });
+
+  it("16: unknown time → em dash in mono ink-2 where the time goes; count, share and footer row stay", () => {
+    const root = show("shorts-vs-long", {}, { shortsSplit: split({ shorts: { count: 8620, seconds: null, pct: 69, topCreators: [], showEmptyState: true }, timeWinner: null, sub: "shortsPlaysOnly" }) });
+    const card = screen.getByTestId("format-card-shorts");
+    const dash = within(card).getByTestId("time-unknown");
+    expect(dash.textContent).toBe("—");
+    expect(dash.className).toContain("text-ink-2");
+    expect(dash.parentElement!.className).toContain("font-mono");
+    expect(dash.parentElement!.textContent).toContain("69% of your plays");
+    expect(card.textContent).toContain("8,620");
+    expect(card.textContent).not.toContain("≈ 0");
+    expect(within(screen.getByTestId("format-card-long")).queryByTestId("time-unknown")).toBeNull();
+    expect(screen.getByTestId("shorts-sub").textContent).toBe("Shorts got most of your plays.");
+    expect(contrastViolations(root)).toEqual([]);
+  });
+
+  it("17: a column with zero creators keeps its sticker and header; the empty line is centered, no monogram, no rule", () => {
+    const root = show("creators-by-format", {}, { shortsSplit: split({ shorts: { count: 40, seconds: 3600, pct: 10, topCreators: [], showEmptyState: true } }) });
+    const col = screen.getByTestId("creator-column-shorts");
+    expect(col.textContent).toContain("Top Shorts creators");
+    expect(within(col).queryByTestId("split-top-name")).toBeNull();
+    expect(col.querySelector('[role="img"]')).toBeNull();
+    const empty = within(col).getByTestId("split-empty");
+    expect(empty.textContent).toBe(en.slides.topCreatorsSplit.emptyShorts.replaceAll("\u2011", "-"));
+    const box = empty.parentElement!;
+    expect(box.className).toMatch(/flex-1/);
+    expect(box.className).toMatch(/items-center/);
+    expect(box.className).toMatch(/justify-center/);
+    expect(col.querySelector(".border-t-\\[1\\.5px\\]")).toBeNull();
+    // the other column is unchanged
+    expect(within(screen.getByTestId("creator-column-long")).getByTestId("split-top-name").textContent).toBe("Delta");
     expect(contrastViolations(root)).toEqual([]);
   });
 });

@@ -6,7 +6,7 @@ import type { SlideKind } from "@/components/story/slides";
 import { en } from "@/copy/en";
 import { badgeDetail, badgeName, badgeShareLine, fill, fillNodes, peakValue, primeTimeHeadline, type PeriodVariant } from "@/copy/format";
 import type { PeakHourBadge, PeakHourBadgeResult, WatchStats } from "@/lib/takeout/stats";
-import type { ShortsSplitEstimate, ShortsSplitSide } from "@/lib/takeout/shortsSplit";
+import { splitTimeDisplay, type ShortsSplitEstimate, type ShortsSplitSide } from "@/lib/takeout/shortsSplit";
 import type { WatchTimeEstimate } from "@/lib/takeout/watchTime";
 import { BarChart, Cassette, Heatmap, StreakCalendar, chartMonths, streakMonths } from "./charts";
 import { hourLabel, monthName, num, perDay, shortDate, songDisplayTitle, splitAround, tzLabel } from "./fmt";
@@ -37,20 +37,47 @@ const SV = S.shortsVsLong;
 const TC = S.topCreatorsSplit;
 
 /**
- * Time line for one side of the split (Project Lead's rule, both sides). Rounds to whole minutes first:
- *   null or 0 s → null (no line; zero Shorts is covered by `noShorts`) · < 30 s → "under a minute" ·
- *   1 min → "≈ 1 minute" · 2–59 min → "≈ {minutes} minutes" · ≥ 59.5 min → hours, rounded
- *   ("≈ 1 hour" when that rounds to 1, so 59.6 min never reads "≈ 60 minutes" and nothing reads "≈ 0 hours").
+ * Visible time line for one side of the split, from splitTimeDisplay() (Project Lead's rule, both sides):
+ *   unknown (null) or 0 s → null (the card shows an em dash for unknown, nothing for 0) · "under a minute" ·
+ *   "≈ 1 minute" · "≈ {minutes} minutes" · "≈ 1 hour" · "≈ {hours} hours" (59.6 min → "≈ 1 hour", never "≈ 0 hours").
  */
 export function splitTimeText(seconds: number | null): string | null {
-  if (seconds === null || !Number.isFinite(seconds) || seconds <= 0) return null;
-  const minutes = Math.round(seconds / 60);
-  if (minutes === 0) return SV.timeUnderMinute;
-  if (minutes === 1) return SV.timeOneMinute;
-  if (minutes < 60) return fill(SV.timeMinutes, { minutes });
-  const hours = Math.round(seconds / 3600);
-  return hours === 1 ? SV.timeOne : fill(SV.time, { hours: num(hours) });
+  const d = splitTimeDisplay(seconds);
+  switch (d.unit) {
+    case "unknown":
+    case "none":
+      return null;
+    case "under":
+      return SV.timeUnderMinute;
+    case "minutes":
+      return d.n === 1 ? SV.timeOneMinute : fill(SV.timeMinutes, { minutes: d.n });
+    case "hours":
+      return d.n === 1 ? SV.timeOne : fill(SV.time, { hours: num(d.n) });
+  }
 }
+
+/**
+ * Spoken time for the screen-reader summary (`aria*` keys, never the visible "≈" strings), same rounding.
+ * 0 s (a side with no plays) reads "about 0 minutes" so the sentence stays complete.
+ */
+export function splitTimeAria(seconds: number | null): string {
+  const d = splitTimeDisplay(seconds);
+  switch (d.unit) {
+    case "unknown":
+      return SV.ariaTimeUnknown;
+    case "none":
+      return fill(SV.ariaMinutes, { minutes: 0 });
+    case "under":
+      return SV.ariaUnderMinute;
+    case "minutes":
+      return d.n === 1 ? SV.ariaMinuteOne : fill(SV.ariaMinutes, { minutes: d.n });
+    case "hours":
+      return d.n === 1 ? SV.ariaHourOne : fill(SV.ariaHours, { hours: num(d.n) });
+  }
+}
+
+/** Spoken count: "about 1 video" when the DISPLAYED (rounded) count is 1, else "about {n} videos". */
+export const splitCountAria = (n: number) => (Math.round(n) === 1 ? SV.ariaCountOne : fill(SV.ariaCount, { n: num(n) }));
 
 /** Text after the number in a "≈ {n} videos" template, singular when the DISPLAYED (rounded) count is 1. */
 function unitAfter(n: number, many: string, one: string): string {
@@ -60,10 +87,14 @@ function unitAfter(n: number, many: string, one: string): string {
 /** "≈ 391 videos" / "≈ 1 video". */
 export const itemText = (n: number) => (Math.round(n) === 1 ? TC.itemOne : fill(TC.item, { n: num(n) }));
 
-/** shortsVsLong.aria with both sides filled ("about 1,234 videos, ≈ 12 hours"). */
-export function shortsAria(split: ShortsSplitEstimate): string {
-  const t = (side: ShortsSplitSide) => splitTimeText(side.seconds)?.replace(/^≈\s*/, "") ?? "";
-  return fill(SV.aria, { shortsCount: num(split.shorts.count), shortsTime: t(split.shorts), longCount: num(split.long.count), longTime: t(split.long) });
+/** shortsVsLong.aria filled with the spoken forms ("Shorts: about 1 video, under a minute. Long‑form: …"). */
+export function shortsAria(split: Pick<ShortsSplitEstimate, "shorts" | "long">): string {
+  return fill(SV.aria, {
+    shortsCount: splitCountAria(split.shorts.count),
+    shortsTime: splitTimeAria(split.shorts.seconds),
+    longCount: splitCountAria(split.long.count),
+    longTime: splitTimeAria(split.long.seconds),
+  });
 }
 
 /** Accessible name per slide (also the headline for screen readers). */
@@ -622,7 +653,7 @@ function FormatCard({ format, side, className = "" }: { format: "shorts" | "long
         </div>
         <p aria-hidden="true" className="-mt-0.5 font-serif text-[22px] font-semibold italic short:-mt-2 short:leading-tight">{unit}</p>
         <p aria-hidden="true" className="mt-2 flex items-baseline justify-between gap-2 whitespace-nowrap border-t border-dashed border-rule pt-2 font-mono text-[14px] font-bold short:mt-1 short:pt-1">
-          <span>{time ?? ""}</span>
+          {side.seconds === null ? <span className="text-ink-2" data-testid="time-unknown">—</span> : <span>{time ?? ""}</span>}
           <span>{fill(SV.share, { pct: side.pct })}</span>
         </p>
       </Sticker>
@@ -715,7 +746,12 @@ function CreatorColumn({ format, side }: { format: "shorts" | "long"; side: Shor
         <p className={`-mx-3 flex min-h-[46px] items-center justify-center border-b-2 border-ink px-2.5 py-1 font-serif text-[15px] font-bold leading-[1.15] text-paper-2 [text-wrap:balance] ${shorts ? "bg-tomato" : "bg-teal-dark"}`}>
           <span><NoBreakHyphens text={shorts ? TC.shortsColumn : TC.longColumn} /></span>
         </p>
-        {top ? (
+        {!top ? (
+          // Designer: no creators → keep the sticker and header; the empty line sits centered where the #1 block goes.
+          <div className="flex flex-1 items-center justify-center px-1 py-6">
+            <p className="font-serif text-[15px] italic leading-snug text-ink-2 [text-wrap:balance]" data-testid="split-empty"><NoBreakHyphens text={shorts ? TC.emptyShorts : TC.emptyLong} /></p>
+          </div>
+        ) : (
           <>
             <span className="mt-4 flex justify-center" aria-hidden="true">
               <MonogramSticker name={top.name} size={64} />
@@ -729,25 +765,25 @@ function CreatorColumn({ format, side }: { format: "shorts" | "long"; side: Shor
                 <span className="mt-0.5 block font-serif text-[16px] font-semibold italic">{unitAfter(top.count, TC.item, TC.itemOne)}</span>
               </span>
             </p>
+            <div className="mt-3 border-t-[1.5px] border-ink text-left">
+              {side.showEmptyState ? (
+                <p className="py-2 font-serif text-[14px] italic leading-snug text-ink-2" data-testid="split-empty"><NoBreakHyphens text={shorts ? TC.emptyShorts : TC.emptyLong} /></p>
+              ) : (
+                <ol start={2}>
+                  {runners.map((c, i) => (
+                    <li key={c.url ?? c.name} className="flex items-baseline gap-[7px] border-b border-dashed border-rule py-[7px] last:border-b-0">
+                      <span className="shrink-0 font-mono text-[11px] font-bold text-tomato">{String(i + 2).padStart(2, "0")}</span>
+                      <span className="min-w-0 flex-1">
+                        <span className="clamp-name font-serif text-[15px] font-bold leading-[1.2]">{c.name}</span>
+                        <span className="mt-px block font-mono text-[11.5px] font-bold text-ink-2">{itemText(c.count)}</span>
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </div>
           </>
-        ) : null}
-        <div className="mt-3 border-t-[1.5px] border-ink text-left">
-          {side.showEmptyState ? (
-            <p className="py-2 font-serif text-[14px] italic leading-snug text-ink-2" data-testid="split-empty"><NoBreakHyphens text={shorts ? TC.emptyShorts : TC.emptyLong} /></p>
-          ) : (
-            <ol start={2}>
-              {runners.map((c, i) => (
-                <li key={c.url ?? c.name} className="flex items-baseline gap-[7px] border-b border-dashed border-rule py-[7px] last:border-b-0">
-                  <span className="shrink-0 font-mono text-[11px] font-bold text-tomato">{String(i + 2).padStart(2, "0")}</span>
-                  <span className="min-w-0 flex-1">
-                    <span className="clamp-name font-serif text-[15px] font-bold leading-[1.2]">{c.name}</span>
-                    <span className="mt-px block font-mono text-[11.5px] font-bold text-ink-2">{itemText(c.count)}</span>
-                  </span>
-                </li>
-              ))}
-            </ol>
-          )}
-        </div>
+        )}
       </Sticker>
     </div>
   );
