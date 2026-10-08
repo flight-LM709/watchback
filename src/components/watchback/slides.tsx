@@ -8,7 +8,7 @@ import { badgeDetail, badgeName, badgeShareLine, fill, fillNodes, peakValue, pri
 import type { PeakHourBadge, PeakHourBadgeResult, WatchStats } from "@/lib/takeout/stats";
 import type { WatchTimeEstimate } from "@/lib/takeout/watchTime";
 import { BarChart, Cassette, Heatmap, StreakCalendar, chartMonths, streakMonths } from "./charts";
-import { hourLabel, monthName, num, perDay, shortDate, splitAround, tzLabel } from "./fmt";
+import { hourLabel, monthName, num, perDay, shortDate, songDisplayTitle, splitAround, tzLabel } from "./fmt";
 import type { ThumbState } from "./useThumbnailCache";
 import { VideoThumb } from "./VideoThumb";
 
@@ -338,6 +338,7 @@ function PrimeTime({ ctx }: { ctx: SlideContext }) {
   const peak = s.peak!;
   const badge = s.peakHourBadge!;
   const hour = hourLabel(peak.hour);
+  const [hourNum, hourAmPm = ""] = hour.split("\u00a0");
   const days = S.primeTime.daysPlural[peak.day];
   // "Prime time: {days} at {hour}." -> "Prime time:" / "{days} at" / "{hour}."
   const [line1] = splitAround(S.primeTime.headline, "days");
@@ -350,7 +351,11 @@ function PrimeTime({ ctx }: { ctx: SlideContext }) {
         <p className="font-serif text-[30px] font-semibold tracking-[-0.02em]">{line1.trim()}</p>
         <p className="mt-1 font-serif text-[44px] font-extrabold tracking-[-0.03em]">{line2.trim()}</p>
         <p data-hero-px={96} className="relative mt-2 inline-block whitespace-nowrap px-2 font-serif text-[96px] font-bold italic leading-[0.95] tracking-[-0.05em] text-tomato">
-          {hour}
+          {/* hourLabel() gives "6\u00a0PM"; Fraunces' space is ~0.15em, which the -0.05em tracking and the
+              italic overhang squeeze to a hairline at 96px, so the no-break space gets an explicit width. */}
+          {hourNum}
+          <span className="inline-block w-[0.26em] tracking-normal" data-testid="hour-space">{"\u00a0"}</span>
+          {hourAmPm}
           {afterHour}
           <HandCircle className="-inset-x-4 -inset-y-3" />
         </p>
@@ -479,7 +484,7 @@ function TopSongs({ ctx }: { ctx: SlideContext }) {
           </span>
           <span className="min-w-0 flex-1">
             <span className="block font-mono text-[10px] font-bold uppercase tracking-[0.08em]">{en.deco.nowPlaying}</span>
-            <span className="clamp-name font-serif text-[20px] font-bold">{top.title}</span>
+            <span className="clamp-name font-serif text-[20px] font-bold">{songDisplayTitle(top.title, top.artist)}</span>
             <span className="clamp-name font-serif text-[14px] italic">
               {top.artist ? `${top.artist} · ` : ""}
               {fill(en.shareCard.plays, { n: num(top.count) })}
@@ -494,7 +499,7 @@ function TopSongs({ ctx }: { ctx: SlideContext }) {
               <li key={t.videoId ?? t.title} className="flex items-center gap-3 border-b border-dashed border-rule px-3.5 py-2.5 last:border-b-0">
                 <span className="w-6 shrink-0 font-mono text-[13px] font-bold text-tomato">{String(i + 2).padStart(2, "0")}</span>
                 <span className="min-w-0 flex-1">
-                  <span className="clamp-name font-serif text-[16px] font-semibold">{t.title}</span>
+                  <span className="clamp-name font-serif text-[16px] font-semibold">{songDisplayTitle(t.title, t.artist)}</span>
                   {t.artist && <span className="clamp-name font-serif text-[13px] italic text-ink-2">{t.artist}</span>}
                 </span>
                 <span className="shrink-0 font-mono text-[12px] font-bold">{fill(en.shareCard.plays, { n: num(t.count) })}</span>

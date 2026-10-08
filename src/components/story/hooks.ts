@@ -30,6 +30,23 @@ export function usePrefersReducedMotion(): boolean {
   );
 }
 
+const COARSE_QUERY = "(pointer: coarse), (hover: none)";
+function subscribePointer(cb: () => void) {
+  if (typeof window === "undefined" || !window.matchMedia) return () => {};
+  const mq = window.matchMedia(COARSE_QUERY);
+  mq.addEventListener?.("change", cb);
+  return () => mq.removeEventListener?.("change", cb);
+}
+export type PointerKind = "coarse" | "fine";
+/** "coarse" on touch devices (coarse pointer or no hover), "fine" otherwise; null until hydrated. */
+export function usePointerKind(): PointerKind | null {
+  return useSyncExternalStore(
+    subscribePointer,
+    () => (typeof window !== "undefined" && !!window.matchMedia && window.matchMedia(COARSE_QUERY).matches ? "coarse" : "fine"),
+    () => null,
+  );
+}
+
 /**
  * Holds the selected period and re-runs computeStats on the already-parsed events.
  * Changing the period never re-parses and never remounts the story.

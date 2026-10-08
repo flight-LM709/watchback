@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
 import { en } from "@/copy/en";
 import { fill, type PlayerCopy } from "@/copy/format";
-import { usePrefersReducedMotion } from "./hooks";
+import { usePointerKind, usePrefersReducedMotion } from "./hooks";
 
 export interface StorySlide {
   /** Stable id. The player tracks the current slide by id, so the list can change underneath it. */
@@ -65,6 +65,7 @@ export function StoryPlayer({
   closeLabel = en.periodSheet.close,
 }: StoryPlayerProps) {
   const reducedMotion = usePrefersReducedMotion();
+  const pointer = usePointerKind();
   const [pos, setPos] = useState<{ id: string | undefined; index: number }>({ id: slides[0]?.id, index: 0 });
   const [holding, setHolding] = useState(false);
   const [userPaused, setUserPaused] = useState(false);
@@ -227,23 +228,25 @@ export function StoryPlayer({
         {current?.content}
       </div>
 
-      {/* Bottom hint (mono 11px ink-2): gesture + keyboard hints on the first run; "Tap to continue" replaces
-          the gesture hint whenever reduced motion stops auto-advance. */}
+      {/* Bottom hint (mono 11px ink-2), one at a time. Slide 1 on the first run: the gesture hint on touch
+          devices (coarse pointer / no hover), the keyboard hint on fine pointers, never both. "Tap to continue"
+          replaces the gesture hint whenever reduced motion stops auto-advance. */}
       {(() => {
         const tapPrompt = autoAdvance && !timed && !ended && index < slides.length - 1;
         const firstRun = index === 0 && !interacted;
         if (!tapPrompt && !firstRun) return null;
+        if (firstRun && pointer === null) return null; // not hydrated yet: don't guess
+        const tap = <p className="font-bold text-ink" data-testid="tap-to-continue">{copy.tapToContinue}</p>;
+        let hint: ReactNode;
+        if (!firstRun) hint = tap;
+        else if (pointer === "fine") hint = <p data-testid="keyboard-hint">{copy.keyboardHint}</p>;
+        else hint = tapPrompt ? tap : <p data-testid="gesture-hint">{copy.firstSlideHint}</p>;
         return (
           <div
             className="pointer-events-none absolute inset-x-0 bottom-8 z-20 mx-auto flex max-w-[280px] flex-col items-center gap-1 px-6 text-center font-mono text-[11px] leading-snug text-(--story-muted) [text-wrap:balance]"
             data-testid="story-hints"
           >
-            {tapPrompt ? (
-              <p className="font-bold text-ink" data-testid="tap-to-continue">{copy.tapToContinue}</p>
-            ) : (
-              <p>{copy.firstSlideHint}</p>
-            )}
-            {firstRun && <p className="pointer-coarse:hidden">{copy.keyboardHint}</p>}
+            {hint}
           </div>
         );
       })()}

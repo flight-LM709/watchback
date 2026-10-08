@@ -1,5 +1,6 @@
 /** Locale formatting for slide data (numbers, dates, hours). Words come from en.ts; these are data. */
 import { fill } from "@/copy/format";
+import { artistFromChannel } from "@/lib/takeout/normalize";
 
 export const num = (n: number) => Math.round(n).toLocaleString("en-US");
 export const perDay = (n: number) => (n >= 10 ? num(n) : n.toFixed(1));
@@ -54,4 +55,20 @@ export function splitAround(template: string, key: string, vars: Record<string, 
   const i = template.indexOf(token);
   if (i < 0) return [fill(template, vars), ""];
   return [fill(template.slice(0, i), vars), fill(template.slice(i + token.length), vars)];
+}
+
+const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&");
+
+/**
+ * Song title for display: drop a leading "{artist} - ", "{artist} – " or "{artist} — " (case-insensitive,
+ * spaces required around the dash). The artist is compared after normalize.ts strips " - Topic", so a raw
+ * channel "NOAH - Topic" still matches "NOAH - Lagu 8". If nothing would remain, the title is kept as is.
+ */
+export function songDisplayTitle(title: string, artist?: string | null): string {
+  const a = artistFromChannel(artist ?? undefined)?.trim();
+  if (!a) return title;
+  const m = title.trim().match(new RegExp(`^${escapeRe(a)}\\s+[-\u2013\u2014]\\s+`, "iu"));
+  if (!m) return title;
+  const rest = title.trim().slice(m[0].length).trim();
+  return rest || title;
 }

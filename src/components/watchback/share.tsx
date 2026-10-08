@@ -6,7 +6,7 @@ import { en } from "@/copy/en";
 import { fill, fillNodes, peakValue, siteLabel, type PeriodVariant } from "@/copy/format";
 import type { WatchStats } from "@/lib/takeout/stats";
 import type { WatchTimeEstimate } from "@/lib/takeout/watchTime";
-import { hourLabel, monthName, num, perDay, splitAround } from "./fmt";
+import { hourLabel, monthName, num, perDay, songDisplayTitle, splitAround } from "./fmt";
 import { shareYear } from "./slides";
 
 /** Share-image layouts in CSS px (SPEC §2 ShareCard), exported at pixelRatio 3 → 1080×1920 / 1080×1080. */
@@ -201,7 +201,7 @@ export const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(function Sha
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block font-mono text-[8px] font-bold uppercase tracking-[0.1em]">{en.deco.nowPlaying}</span>
-                  <span className="clamp-name font-serif text-[15px] font-bold leading-tight">{song.title}</span>
+                  <span className="clamp-name font-serif text-[15px] font-bold leading-tight">{songDisplayTitle(song.title, song.artist)}</span>
                   {song.artist && <span className="clamp-name font-serif text-[11.5px] italic">{song.artist}</span>}
                 </span>
                 <span className="shrink-0 text-right font-mono text-[10px]">{fill(C.plays, { n: num(song.count) })}</span>
@@ -223,7 +223,7 @@ export const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(function Sha
           {hasMusic && song ? (
             <Tile tone="teal">
               <Label>{C.topSong}</Label>
-              <p className="clamp-title mt-1 font-serif text-[13.5px] font-bold leading-tight">{song.title}</p>
+              <p className="clamp-title mt-1 font-serif text-[13.5px] font-bold leading-tight">{songDisplayTitle(song.title, song.artist)}</p>
               {song.artist && <p className="clamp-name font-serif text-[10.5px] italic">{song.artist}</p>}
             </Tile>
           ) : s.busiestMonth ? (

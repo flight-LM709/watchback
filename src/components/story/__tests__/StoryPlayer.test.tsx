@@ -17,10 +17,14 @@ function tap(el: HTMLElement, x: number) {
   fireEvent.pointerUp(el, { clientX: x, button: 0 });
 }
 const setReducedMotion = (v: boolean) => (window as unknown as { __setReducedMotion: (v: boolean) => void }).__setReducedMotion(v);
+const setCoarsePointer = (v: boolean) => (window as unknown as { __setCoarsePointer: (v: boolean) => void }).__setCoarsePointer(v);
+const GESTURE = "Tap right for next, left to go back. Hold to pause.";
+const KEYS = "Use ← and → to move, space to pause.";
 
 beforeEach(() => {
   vi.useFakeTimers();
   setReducedMotion(false);
+  setCoarsePointer(false);
 });
 afterEach(() => {
   cleanup();
@@ -122,15 +126,15 @@ describe("StoryPlayer", () => {
     setReducedMotion(true);
     render(<StoryPlayer slides={slides(3)} />);
     expect(screen.getByText("Slide 1 of 3")).toBeTruthy(); // ariaProgress
-    // SPEC §5: "Tap to continue" replaces the gesture hint when reduced motion stops auto-advance.
-    expect(screen.queryByText("Tap right for next, left to go back. Hold to pause.")).toBeNull();
-    expect(screen.getByText("Use ← and → to move, space to pause.")).toBeTruthy();
-    expect(screen.getByTestId("tap-to-continue").textContent).toBe("Tap to continue");
+    // fine pointer, slide 1: only the keyboard hint (one hint at a time)
+    expect(screen.queryByText(GESTURE)).toBeNull();
+    expect(screen.getByText(KEYS)).toBeTruthy();
+    expect(screen.queryByTestId("tap-to-continue")).toBeNull();
     // SR buttons
     fireEvent.click(screen.getByRole("button", { name: "Next slide" }));
     expect(screen.getByText("Slide content 1")).toBeTruthy();
-    expect(screen.queryByText("Use ← and → to move, space to pause.")).toBeNull(); // first-run hints go away after the first interaction
-    expect(screen.getByTestId("tap-to-continue")).toBeTruthy(); // the reduced-motion prompt stays
+    expect(screen.queryByText(KEYS)).toBeNull(); // first-run hint goes away after the first interaction
+    expect(screen.getByTestId("tap-to-continue").textContent).toBe("Tap to continue"); // the reduced-motion prompt
     fireEvent.click(screen.getByRole("button", { name: "Previous slide" }));
     expect(screen.getByText("Slide content 0")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Pause" }));
@@ -143,13 +147,32 @@ describe("StoryPlayer", () => {
     expect(screen.queryByTestId("tap-to-continue")).toBeNull();
   });
 
-  it("first run with auto-advance: gesture + keyboard hints, no tap-to-continue", () => {
-    render(<StoryPlayer slides={slides(3)} />);
-    expect(screen.queryByTestId("tap-to-continue")).toBeNull();
-    expect(screen.getByText("Tap right for next, left to go back. Hold to pause.")).toBeTruthy();
-    expect(screen.getByText("Use ← and → to move, space to pause.")).toBeTruthy();
-    fireEvent.keyDown(region(), { key: "ArrowRight" });
-    expect(screen.queryByTestId("story-hints")).toBeNull();
+  describe("slide 1 shows exactly one hint", () => {
+    const hints = () => screen.getByTestId("story-hints").children;
+    it("fine pointer (mouse/trackpad): keyboard hint only", () => {
+      render(<StoryPlayer slides={slides(3)} />);
+      expect(hints()).toHaveLength(1);
+      expect(screen.getByTestId("keyboard-hint").textContent).toBe(KEYS);
+      expect(screen.queryByText(GESTURE)).toBeNull();
+      fireEvent.keyDown(region(), { key: "ArrowRight" });
+      expect(screen.queryByTestId("story-hints")).toBeNull();
+    });
+    it("touch (pointer: coarse / hover: none): gesture hint only", () => {
+      setCoarsePointer(true);
+      render(<StoryPlayer slides={slides(3)} />);
+      expect(hints()).toHaveLength(1);
+      expect(screen.getByTestId("gesture-hint").textContent).toBe(GESTURE);
+      expect(screen.queryByText(KEYS)).toBeNull();
+    });
+    it("touch + reduced motion: 'Tap to continue' replaces the gesture hint, still one hint", () => {
+      setCoarsePointer(true);
+      setReducedMotion(true);
+      render(<StoryPlayer slides={slides(3)} />);
+      expect(hints()).toHaveLength(1);
+      expect(screen.getByTestId("tap-to-continue")).toBeTruthy();
+      expect(screen.queryByText(GESTURE)).toBeNull();
+      expect(screen.queryByText(KEYS)).toBeNull();
+    });
   });
 
   it("left third goes back, right two thirds go forward (SPEC §2)", () => {

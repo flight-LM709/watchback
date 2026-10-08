@@ -98,4 +98,14 @@ describe("share images", () => {
     expect(card.textContent).toContain(fill(en.slides.topCreators.item, { n: 12 }));
     expect(card.textContent).not.toMatch(/Sundays/);
   });
+
+  it("top song on both cards drops a leading '{artist} - '", () => {
+    const patched = { ...stats, topSongs: [{ videoId: "x", title: "NOAH – Lagu 8", artist: "NOAH", count: 17 }] };
+    render(<ShareSlide stats={patched} watchTime={wt} period="last12" periodLabel="p" host="" />);
+    for (const v of ["story", "square"]) {
+      const card = document.querySelector<HTMLElement>(`[data-share-card="${v}"]`)!;
+      expect(card.textContent).toContain("Lagu 8");
+      expect(card.textContent).not.toContain("NOAH – Lagu 8");
+    }
+  });
 });

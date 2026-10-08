@@ -125,3 +125,27 @@ describe("streak sticker", () => {
   });
 });
 
+describe("song titles and the prime-time hour", () => {
+  it("Side A strips a leading '{artist} - ' (artist after ' - Topic' is removed)", () => {
+    const root = show("top-songs", {
+      topSongs: [
+        { videoId: "a", title: "NOAH - Lagu 8", artist: "NOAH", count: 9 },
+        { videoId: "b", title: "noah — Separuh Aku", artist: "NOAH", count: 5 },
+        { videoId: "c", title: "Tulus", artist: "Tulus", count: 3 },
+      ],
+    });
+    expect(root.textContent).toContain("Lagu 8");
+    expect(root.textContent).not.toContain("NOAH - Lagu 8");
+    expect(root.textContent).toContain("Separuh Aku");
+    expect(root.textContent).not.toMatch(/noah —/i);
+    expect(root.textContent).toContain("Tulus"); // title == artist: kept
+  });
+  it("hero hour keeps the U+00A0 and gives it an explicit width", () => {
+    show("prime-time", { peak: { day: 0, hour: 18, count: 8 } });
+    const sp = screen.getByTestId("hour-space");
+    expect(sp.textContent).toBe("\u00a0");
+    expect(sp.className).toContain("w-[0.26em]");
+    expect(sp.parentElement!.textContent!.startsWith("6\u00a0PM.")).toBe(true);
+  });
+});
+
