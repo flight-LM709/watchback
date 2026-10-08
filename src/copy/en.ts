@@ -38,8 +38,10 @@ export const en = {
   crunching: {
     counter: "Counting {n} videos…",
     rotating: [
+      "Rewinding the tape…",
       "Finding your 3 AM rabbit holes…",
       "Tallying rewatches…",
+      "Labeling the cassettes…",
       "Trying not to judge…",
     ],
   },
@@ -72,7 +74,7 @@ export const en = {
       sub: "{n} videos. That's loyalty.",
     },
     topCreators: {
-      headline: "Your top 5 creators",
+      headline: "Your top 5 creators, in heavy rotation",
       item: "{n} videos",
     },
     favoriteVideo: {
@@ -115,7 +117,7 @@ export const en = {
       sub: "Most of them were by {artist}.",
     },
     topSongs: {
-      headline: "Your top 5 songs (on repeat).",
+      headline: "Side A: your top 5 songs, on repeat.",
     },
     share: {
       headline: {
