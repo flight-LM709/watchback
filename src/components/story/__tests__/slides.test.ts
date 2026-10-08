@@ -13,7 +13,7 @@ const side = (count: number) => ({ count, seconds: count * 60, pct: 50, topCreat
 const split = (shorts: number): ShortsSplitEstimate => ({
   isEstimate: true, shorts: side(shorts), long: side(10), noShorts: shorts === 0,
   slides: { shortsVsLong: true, creatorsByFormat: shorts > 0 },
-  playsWinner: "long", timeWinner: "long", sub: shorts ? "longBoth" : null, sameTopCreator: null, unknownPlays: 0, coverage: 1,
+  playsWinner: "long", playsTie: false, timeWinner: "long", timeTie: false, sub: shorts ? "longBoth" : null, sameTopCreator: null, unknownPlays: 0, coverage: 1,
 });
 
 describe("planSlides", () => {

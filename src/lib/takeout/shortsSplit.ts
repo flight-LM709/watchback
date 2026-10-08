@@ -50,7 +50,71 @@ export function classifyShortsPlay({ shortsUrl, apiIsShort }: ShortsPlayInput): 
   if (apiIsShort === false) return "long";
   return "unknown";
 }
-export type ShortsVsLongSub = "shortsBoth" | "longBoth" | "shortsPlaysLongTime" | "longPlaysShortsTime";
+export type ShortsVsLongSub =
+  | "shortsBoth" | "longBoth" | "shortsPlaysLongTime" | "longPlaysShortsTime"
+  | "tieBoth" | "tiePlaysShortsTime" | "tiePlaysLongTime" | "shortsPlaysTieTime" | "longPlaysTieTime"
+  | "shortsPlaysOnly" | "longPlaysOnly" | "tiePlaysOnly";
+
+/**
+ * The DISPLAYED form of one side's time (Project Lead's rule; the visible and screen-reader lines
+ * both render from this, and time ties compare it). Rounds to whole minutes first:
+ *   null → "unknown" (em dash) · ≤ 0 → "none" (no line) · 0 min → "under" (under a minute) ·
+ *   1–59 min → minutes · ≥ 59.5 min → hours, rounded (so 59.6 min is "1 hour", never "60 minutes" or "0 hours").
+ */
+export type SplitTimeDisplay =
+  | { unit: "unknown" }
+  | { unit: "none" }
+  | { unit: "under" }
+  | { unit: "minutes"; n: number }
+  | { unit: "hours"; n: number };
+
+export function splitTimeDisplay(seconds: number | null): SplitTimeDisplay {
+  if (seconds === null || !Number.isFinite(seconds)) return { unit: "unknown" };
+  if (seconds <= 0) return { unit: "none" };
+  const minutes = Math.round(seconds / 60);
+  if (minutes === 0) return { unit: "under" };
+  if (minutes < 60) return { unit: "minutes", n: minutes };
+  return { unit: "hours", n: Math.round(seconds / 3600) };
+}
+
+const sameDisplay = (a: SplitTimeDisplay, b: SplitTimeDisplay) =>
+  a.unit === b.unit && ("n" in a ? a.n : 0) === ("n" in b ? b.n : 0);
+
+export interface ShortsVerdict {
+  /** Who won on plays; ties → "long" (kept for QA's expected files; see playsTie). */
+  playsWinner: SplitSideKey;
+  /** Displayed shares both round to 50%. */
+  playsTie: boolean;
+  /** Who won on time; ties → "long"; null when either side's time is unknown. */
+  timeWinner: SplitSideKey | null;
+  /** Both sides show the same rounded time (same unit and number). False when a time is unknown. */
+  timeTie: boolean;
+  /** `slides.shortsVsLong.subs` key; null with zero Shorts. Plays-only subs when either time is unknown. */
+  sub: ShortsVsLongSub | null;
+}
+
+/** Sub line from the DISPLAYED values (shares, rounded times), so a tie is a tie the user can see. */
+export function shortsVerdict(
+  shorts: Pick<ShortsSplitSide, "pct" | "seconds">,
+  long: Pick<ShortsSplitSide, "pct" | "seconds">,
+  noShorts: boolean,
+): ShortsVerdict {
+  const playsTie = shorts.pct === 50 && long.pct === 50;
+  const playsWinner: SplitSideKey = shorts.pct > long.pct ? "shorts" : "long";
+  const st = splitTimeDisplay(shorts.seconds), lt = splitTimeDisplay(long.seconds);
+  const timeKnown = st.unit !== "unknown" && lt.unit !== "unknown";
+  const timeTie = timeKnown && sameDisplay(st, lt);
+  const timeWinner: SplitSideKey | null = !timeKnown ? null : (shorts.seconds ?? 0) > (long.seconds ?? 0) && !timeTie ? "shorts" : "long";
+  const p = playsTie ? "tie" : playsWinner;
+  let sub: ShortsVsLongSub | null = null;
+  if (noShorts) sub = null;
+  else if (!timeKnown) sub = p === "tie" ? "tiePlaysOnly" : p === "shorts" ? "shortsPlaysOnly" : "longPlaysOnly";
+  else if (timeTie) sub = p === "tie" ? "tieBoth" : p === "shorts" ? "shortsPlaysTieTime" : "longPlaysTieTime";
+  else if (p === "tie") sub = timeWinner === "shorts" ? "tiePlaysShortsTime" : "tiePlaysLongTime";
+  else if (p === "shorts") sub = timeWinner === "shorts" ? "shortsBoth" : "shortsPlaysLongTime";
+  else sub = timeWinner === "long" ? "longBoth" : "longPlaysShortsTime";
+  return { playsWinner, playsTie, timeWinner, timeTie, sub };
+}
 
 export interface ShortsSplitSide {
   /** ≈ plays (rounded). SPEC §9 shortsCount / longCount; `slides.shortsVsLong.count` {n}. */
@@ -73,11 +137,15 @@ export interface ShortsSplitEstimate {
   noShorts: boolean;
   /** Which of the two slides to plan (Project Lead's skip rules). Same as shortsSlides(this). */
   slides: ShortsSlidesPlan;
-  /** Who won on plays (ties → "long"). */
+  /** Who won on plays (ties → "long"; see playsTie). */
   playsWinner: SplitSideKey;
-  /** Who won on time (ties → "long"); null when either side's time is unknown. */
+  /** Displayed shares both 50%. */
+  playsTie: boolean;
+  /** Who won on time (ties → "long"; see timeTie); null when either side's time is unknown. */
   timeWinner: SplitSideKey | null;
-  /** Which `slides.shortsVsLong.subs` line to show; null with noShorts or an unknown time side. */
+  /** Both sides show the same rounded time. */
+  timeTie: boolean;
+  /** Which `slides.shortsVsLong.subs` line to show (shortsVerdict); null with noShorts. */
   sub: ShortsVsLongSub | null;
   /** Display name when the #1 creator is the same on both lists → `slides.topCreatorsSplit.sameTop`. */
   sameTopCreator: string | null;
@@ -237,15 +305,7 @@ export function estimateShortsSplit(
   const shorts = mkSide(side.shorts, shortsPlays, shortsPct);
   const long = mkSide(side.long, Math.round(L), 100 - shortsPct);
 
-  const playsWinner: SplitSideKey = S > L ? "shorts" : "long";
-  const timeWinner: SplitSideKey | null =
-    shorts.seconds === null || long.seconds === null ? null : shorts.seconds > long.seconds ? "shorts" : "long";
-  const sub: ShortsVsLongSub | null =
-    noShorts || !timeWinner
-      ? null
-      : playsWinner === "shorts"
-        ? timeWinner === "shorts" ? "shortsBoth" : "shortsPlaysLongTime"
-        : timeWinner === "long" ? "longBoth" : "longPlaysShortsTime";
+  const { playsWinner, playsTie, timeWinner, timeTie, sub } = shortsVerdict(shorts, long, noShorts);
 
   const s0 = shorts.topCreators[0], l0 = long.topCreators[0];
   const sameTopCreator = s0 && l0 && s0.name.trim().toLowerCase() === l0.name.trim().toLowerCase() ? l0.name : null;
@@ -257,7 +317,9 @@ export function estimateShortsSplit(
     noShorts,
     slides: shortsSlides({ noShorts }),
     playsWinner,
+    playsTie,
     timeWinner,
+    timeTie,
     sub,
     sameTopCreator,
     unknownPlays: Math.max(0, Math.round(stats.totalVideos - S - L)),

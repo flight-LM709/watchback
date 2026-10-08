@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { classifyShortsPlay, estimateShortsSplit, shortsSlides } from "../shortsSplit";
+import { classifyShortsPlay, estimateShortsSplit, shortsSlides, shortsVerdict, splitTimeDisplay } from "../shortsSplit";
 import { computeStats } from "../stats";
 import type { TakeoutEvent } from "../types";
 import { buildDurationSample, mulberry32, type DurationSample } from "../watchTime";
@@ -122,10 +122,10 @@ describe("estimateShortsSplit", () => {
     expect(r.sameTopCreator).toBe("Alpha");
     expect(r.shorts.showEmptyState).toBe(false);
     expect(r.slides).toEqual({ shortsVsLong: true, creatorsByFormat: true });
-    // no Shorts duration known → Shorts time unknown → no sub
+    // no Shorts duration known → Shorts time unknown → plays-only sub (7 vs 16 plays → long-form)
     expect(r.shorts.seconds).toBeNull();
     expect(r.timeWinner).toBeNull();
-    expect(r.sub).toBeNull();
+    expect(r.sub).toBe("longPlaysOnly");
   });
 
   it("YouTube Music plays are excluded, even for an ID the API calls a Short", () => {
@@ -175,3 +175,52 @@ describe("estimateShortsSplit", () => {
     expect(classifyShortsPlay({ shortsUrl: false, apiIsShort: undefined })).toBe("unknown");
   });
 });
+
+describe("shortsVerdict: every sub, from DISPLAYED shares and times", () => {
+  const H = 3600, M = 60;
+  const v = (sp: number, ss: number | null, ls: number | null) => shortsVerdict({ pct: sp, seconds: ss }, { pct: 100 - sp, seconds: ls }, false).sub;
+  it.each([
+    // [shorts %, shorts s, long s, sub]
+    [70, 10 * H, 2 * H, "shortsBoth"],
+    [30, 2 * H, 10 * H, "longBoth"],
+    [70, 2 * H, 10 * H, "shortsPlaysLongTime"],
+    [30, 10 * H, 2 * H, "longPlaysShortsTime"],
+    [50, 5 * H, 5 * H, "tieBoth"],
+    [50, 10 * H, 2 * H, "tiePlaysShortsTime"],
+    [50, 21, 64, "tiePlaysLongTime"], // shorts-tiny: under a minute vs ≈ 1 minute
+    [70, 3 * H + 10 * M, 2 * H + 50 * M, "shortsPlaysTieTime"], // both "≈ 3 hours" though seconds differ
+    [30, 12 * M + 10, 11 * M + 40, "longPlaysTieTime"], // both "≈ 12 minutes"
+    [70, null, 2 * H, "shortsPlaysOnly"],
+    [30, 2 * H, null, "longPlaysOnly"],
+    [50, null, null, "tiePlaysOnly"],
+    [50, 10, 25, "tieBoth"], // both "under a minute"
+  ] as const)("%i%% · %s s vs %s s → %s", (sp, ss, ls, sub) => {
+    expect(v(sp, ss, ls)).toBe(sub);
+  });
+  it("time tie needs the same unit AND number; plays tie needs both shares at 50%", () => {
+    expect(v(70, 59 * M + 40, 60 * M + 20)).toBe("shortsPlaysTieTime"); // both promote to "≈ 1 hour"
+    expect(v(70, 59 * M + 20, 59 * M + 40)).toBe("shortsPlaysLongTime"); // "≈ 59 minutes" vs "≈ 1 hour"
+    expect(v(70, 45, 75)).toBe("shortsPlaysTieTime"); // 45 s and 75 s both show "≈ 1 minute"
+    expect(v(70, 29, 31)).toBe("shortsPlaysLongTime"); // "under a minute" vs "≈ 1 minute"
+    expect(shortsVerdict({ pct: 51, seconds: 1 }, { pct: 49, seconds: 1 }, false).playsTie).toBe(false);
+    const t = shortsVerdict({ pct: 50, seconds: 21 }, { pct: 50, seconds: 64 }, false);
+    expect(t).toEqual({ playsWinner: "long", playsTie: true, timeWinner: "long", timeTie: false, sub: "tiePlaysLongTime" });
+    expect(shortsVerdict({ pct: 0, seconds: 0 }, { pct: 100, seconds: 50 }, true).sub).toBeNull();
+  });
+  it("splitTimeDisplay: unknown, none, under, minutes, hours (59.5 min promoted)", () => {
+    expect(splitTimeDisplay(null)).toEqual({ unit: "unknown" });
+    expect(splitTimeDisplay(0)).toEqual({ unit: "none" });
+    expect(splitTimeDisplay(29)).toEqual({ unit: "under" });
+    expect(splitTimeDisplay(30)).toEqual({ unit: "minutes", n: 1 });
+    expect(splitTimeDisplay(59 * 60 + 29)).toEqual({ unit: "minutes", n: 59 });
+    expect(splitTimeDisplay(59 * 60 + 30)).toEqual({ unit: "hours", n: 1 });
+  });
+  it("end to end: a side with plays but no known duration → seconds null, plays-only sub", () => {
+    // Shorts only via /shorts/ links on IDs that weren't looked up (no duration); long-form looked up.
+    const s = stats([...plays(6, id("S"), { isShort: true }), ...plays(4, id("L"))]);
+    const r = estimateShortsSplit(s, { [id("L")]: false }, { [id("L")]: 600 }, { topIds: [id("L")], sampleIds: [] })!;
+    expect(r.shorts).toMatchObject({ count: 6, seconds: null, pct: 60 });
+    expect([r.timeWinner, r.timeTie, r.sub]).toEqual([null, false, "shortsPlaysOnly"]);
+  });
+});
+
