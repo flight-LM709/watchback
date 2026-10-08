@@ -11,6 +11,9 @@ export type DurationsDeps = {
   mock?: boolean;
   cache?: DurationCache;
   limiter?: RateLimiter;
+  /** Skip the per-client limiter, for local test passes. Only honoured in mock mode
+   *  (never with a real key); defaults to DURATIONS_RATE_LIMIT=off. */
+  skipRateLimit?: boolean;
   budget?: QuotaBudget;
   fetchImpl?: FetchLike;
   concurrency?: number;
@@ -46,9 +49,11 @@ export function createDurationsHandler(deps: DurationsDeps = {}) {
   const limiter = deps.limiter ?? new RateLimiter();
   const budget = deps.budget ?? new QuotaBudget();
   const concurrency = deps.concurrency ?? 8;
+  const skipRateLimit =
+    !!deps.mock && (deps.skipRateLimit ?? process.env.DURATIONS_RATE_LIMIT === "off");
 
   return async function POST(req: Request): Promise<Response> {
-    const retry = limiter.check(clientKey(req));
+    const retry = skipRateLimit ? 0 : limiter.check(clientKey(req));
     if (retry > 0) return fail(429, "rate_limited", { "retry-after": String(retry) });
 
     const raw = await req.text();

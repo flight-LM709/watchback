@@ -53,6 +53,7 @@ The client should also treat any play whose history link is `/shorts/…` as a S
 | --- | --- | --- |
 | `YOUTUBE_API_KEY` | (none) | YouTube Data API v3 key, server-side only. Restrict it to that API. |
 | `YOUTUBE_API_MOCK` | off | `1` returns deterministic fake durations and `isShort` flags (a mix of true/false/null) so you can work locally or run QA without a key or spending quota |
+| `DURATIONS_RATE_LIMIT` | on | `off` skips the per-client 10-per-10-minutes limit, **only when `YOUTUBE_API_MOCK=1`**, so repeated local QA passes don't hit 429. Ignored with a real key. |
 | `YOUTUBE_DAILY_UNIT_BUDGET` | `9000` | |
 | `DURATIONS_RATE_LIMIT` / `DURATIONS_RATE_WINDOW_SEC` | `10` / `600` | |
 

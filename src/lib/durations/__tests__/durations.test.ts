@@ -222,6 +222,19 @@ describe("POST /api/durations", () => {
     expect((await res.json()).durations).toEqual({});
   });
 
+  it("can skip the rate limit in mock mode only", async () => {
+    const mocked = createDurationsHandler({ mock: true, skipRateLimit: true, limiter: new RateLimiter(1, 60_000) });
+    for (let n = 0; n < 12; n++) expect((await mocked(post({ ids: [id(1)] }))).status).toBe(200);
+    const real = createDurationsHandler({
+      apiKey: "k",
+      fetchImpl: ytFetch(() => "PT1S"),
+      skipRateLimit: true,
+      limiter: new RateLimiter(1, 60_000),
+    });
+    expect((await real(post({ ids: [id(1)] }))).status).toBe(200);
+    expect((await real(post({ ids: [id(1)] }))).status).toBe(429);
+  });
+
   it("returns 429 with empty durations when the daily budget is spent", async () => {
     const POST = createDurationsHandler({ apiKey: "k", fetchImpl: ytFetch(() => "PT1S"), budget: new QuotaBudget(1) });
     const res = await POST(post({ ids: Array.from({ length: 51 }, (_, i) => id(i)) }));
