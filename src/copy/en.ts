@@ -57,6 +57,19 @@ export const en = {
     allTime: "All time",
   },
 
+  // Story player hints and accessible labels
+  player: {
+    tapToContinue: "Tap to continue", // shown when reduced motion stops auto-advance
+    firstSlideHint: "Tap right for next, left to go back. Hold to pause.",
+    keyboardHint: "Use ← and → to move, space to pause.",
+    ariaNext: "Next slide",
+    ariaPrev: "Previous slide",
+    ariaPause: "Pause",
+    ariaPlay: "Play",
+    ariaProgress: "Slide {current} of {total}",
+    periodPillAria: "Change time period, currently {period}",
+  },
+
   // Decorative labels (Paper Mixtape). Keep each to 1-3 words.
   deco: {
     takeoutTape: "Liner notes · 6 steps",
