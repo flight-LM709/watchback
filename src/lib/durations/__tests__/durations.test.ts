@@ -67,6 +67,12 @@ describe("guards", () => {
     expect(r.check("x")).toBe(0);
   });
 
+  it("a limit of 0 blocks the very first request", () => {
+    const r = new RateLimiter(0, 60_000);
+    expect(r.check("x")).toBe(60);
+    expect(r.check("x")).toBe(60);
+  });
+
   it("next Pacific midnight is within 24h and in the future", () => {
     const now = Date.UTC(2026, 9, 8, 11, 0, 0);
     const next = nextPacificMidnight(now);
