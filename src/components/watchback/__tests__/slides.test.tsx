@@ -7,7 +7,7 @@ import { makeDemoEvents } from "@/app/demo/demo-data";
 import { computeStats, type WatchStats } from "@/lib/takeout/stats";
 import { contrastViolations } from "@/test-utils/contrast";
 import type { SlideKind } from "@/components/story/slides";
-import { BadgeSticker, SlideView, type SlideContext } from "../slides";
+import { BadgeSticker, SlideView, itemText, splitTimeText, type SlideContext } from "../slides";
 import { PEAK_HOUR_WINDOWS } from "@/lib/takeout/stats";
 import type { ShortsSplitEstimate } from "@/lib/takeout/shortsSplit";
 
@@ -178,10 +178,40 @@ describe("Shorts slides (SPEC §9)", () => {
     expect(contrastViolations(root)).toEqual([]);
   });
 
-  it("16: under an hour uses timeMinutes; 5-digit counts abbreviate with the exact caption", () => {
+  it("time formatter: minutes under an hour, singulars, under a minute, promotion at 59.5 min, never ≈ 0 hours", () => {
+    const t = splitTimeText;
+    expect([t(null), t(0), t(-5)]).toEqual([null, null, null]);
+    expect(t(1)).toBe("under a minute");
+    expect(t(29)).toBe("under a minute");
+    expect(t(30)).toBe("≈ 1 minute");
+    expect(t(89)).toBe("≈ 1 minute");
+    expect(t(90)).toBe("≈ 2 minutes");
+    expect(t(160)).toBe("≈ 3 minutes");
+    expect(t(59 * 60 + 29)).toBe("≈ 59 minutes");
+    expect(t(59 * 60 + 30)).toBe("≈ 1 hour"); // 59.5 min would round to 60 minutes → promoted
+    expect(t(59.6 * 60)).toBe("≈ 1 hour");
+    expect(t(3613)).toBe("≈ 1 hour");
+    expect(t(1.49 * 3600)).toBe("≈ 1 hour");
+    expect(t(1.5 * 3600)).toBe("≈ 2 hours");
+    expect(t(1836 * 3600)).toBe("≈ 1,836 hours");
+    for (let sec = 1; sec < 20000; sec += 7) expect(t(sec)).not.toMatch(/≈ 0 |≈ 60 minutes/);
+  });
+
+  it("singular forms follow the displayed (rounded) number", () => {
+    expect(itemText(1)).toBe("≈ 1 video");
+    expect(itemText(1.4)).toBe("≈ 1 video");
+    expect(itemText(1.5)).toBe("≈ 2 videos");
+    show("shorts-vs-long", {}, { shortsSplit: split({ shorts: { count: 1, seconds: 160, pct: 25, topCreators: [c("Solo", 1)], showEmptyState: true } }) });
+    const card = screen.getByTestId("format-card-shorts");
+    expect(card.textContent).toContain("video");
+    expect(card.textContent).not.toContain("videos");
+    expect(card.textContent).toContain("≈ 3 minutes");
+  });
+
+  it("16: 5-digit counts abbreviate with the exact caption", () => {
     show("shorts-vs-long", {}, { shortsSplit: split({ shorts: { count: 12412, seconds: 35 * 60, pct: 70, topCreators: [], showEmptyState: true } }) });
     const card = screen.getByTestId("format-card-shorts");
-    expect(card.textContent).toContain("≈ 35 min");
+    expect(card.textContent).toContain("≈ 35 minutes");
     expect(within(card).getByTestId("exact-caption").textContent).toBe("Exactly 12,412");
   });
 

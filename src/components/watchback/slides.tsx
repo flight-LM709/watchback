@@ -36,12 +36,29 @@ export interface SlideContext {
 const SV = S.shortsVsLong;
 const TC = S.topCreatorsSplit;
 
-/** "≈ 84 hours", or "≈ 35 min" under an hour; null when the time is unknown. */
+/**
+ * Time line for one side of the split (Project Lead's rule, both sides). Rounds to whole minutes first:
+ *   null or 0 s → null (no line; zero Shorts is covered by `noShorts`) · < 30 s → "under a minute" ·
+ *   1 min → "≈ 1 minute" · 2–59 min → "≈ {minutes} minutes" · ≥ 59.5 min → hours, rounded
+ *   ("≈ 1 hour" when that rounds to 1, so 59.6 min never reads "≈ 60 minutes" and nothing reads "≈ 0 hours").
+ */
 export function splitTimeText(seconds: number | null): string | null {
-  if (seconds === null) return null;
-  if (seconds < 3600) return fill(SV.timeMinutes, { minutes: num(Math.max(1, seconds / 60)) });
-  return fill(SV.time, { hours: num(seconds / 3600) });
+  if (seconds === null || !Number.isFinite(seconds) || seconds <= 0) return null;
+  const minutes = Math.round(seconds / 60);
+  if (minutes === 0) return SV.timeUnderMinute;
+  if (minutes === 1) return SV.timeOneMinute;
+  if (minutes < 60) return fill(SV.timeMinutes, { minutes });
+  const hours = Math.round(seconds / 3600);
+  return hours === 1 ? SV.timeOne : fill(SV.time, { hours: num(hours) });
 }
+
+/** Text after the number in a "≈ {n} videos" template, singular when the DISPLAYED (rounded) count is 1. */
+function unitAfter(n: number, many: string, one: string): string {
+  if (Math.round(n) === 1) return one.split(/\b1\b/)[1]?.trim() ?? "";
+  return splitAround(many, "n")[1].trim();
+}
+/** "≈ 391 videos" / "≈ 1 video". */
+export const itemText = (n: number) => (Math.round(n) === 1 ? TC.itemOne : fill(TC.item, { n: num(n) }));
 
 /** shortsVsLong.aria with both sides filled ("about 1,234 videos, ≈ 12 hours"). */
 export function shortsAria(split: ShortsSplitEstimate): string {
@@ -589,7 +606,7 @@ const FORMAT_HERO_MAX = 265;
 
 function FormatCard({ format, side, className = "" }: { format: "shorts" | "long"; side: ShortsSplitSide; className?: string }) {
   const shorts = format === "shorts";
-  const [, unit] = splitAround(SV.count, "n");
+  const unit = unitAfter(side.count, SV.count, SV.countOne);
   const time = splitTimeText(side.seconds);
   return (
     <div className={`relative ${className}`} data-testid={`format-card-${format}`}>
@@ -603,7 +620,7 @@ function FormatCard({ format, side, className = "" }: { format: "shorts" | "long
           <span className="pb-3 font-mono text-[48px] font-bold leading-none">≈</span>
           <HeroNumber value={side.count} size={96} maxWidth={FORMAT_HERO_MAX} captionClassName="text-ink-2" />
         </div>
-        <p aria-hidden="true" className="-mt-0.5 font-serif text-[22px] font-semibold italic">{unit.trim()}</p>
+        <p aria-hidden="true" className="-mt-0.5 font-serif text-[22px] font-semibold italic">{unit}</p>
         <p aria-hidden="true" className="mt-2 flex items-baseline justify-between gap-2 whitespace-nowrap border-t border-dashed border-rule pt-2 font-mono text-[14px] font-bold">
           <span>{time ?? ""}</span>
           <span>{fill(SV.share, { pct: side.pct })}</span>
@@ -690,7 +707,7 @@ function shortLongHeadline(text: string): ReactNode {
 function CreatorColumn({ format, side }: { format: "shorts" | "long"; side: ShortsSplitSide }) {
   const shorts = format === "shorts";
   const [top, ...runners] = side.topCreators;
-  const [itemBefore, itemAfter] = splitAround(TC.item, "n");
+  const [itemBefore] = splitAround(TC.item, "n");
   return (
     <div className="relative min-w-0" data-testid={`creator-column-${format}`}>
       <TapeLabel text={shorts ? en.deco.shortsTape : en.deco.longTape} variant={shorts ? "mustard" : "clear"} angle={shorts ? -5 : 4} className={shorts ? "-left-3 -top-7" : "-right-3 -top-7"} />
@@ -706,10 +723,10 @@ function CreatorColumn({ format, side }: { format: "shorts" | "long"; side: Shor
             {/* The one exception to the 1-line creator rule: the #1 may wrap to 2 lines in these narrow columns. */}
             <p className="clamp-title mt-2.5 min-h-[42px] font-serif text-[18px] font-bold leading-[1.18] [text-wrap:balance]" data-testid="split-top-name">{top.name}</p>
             <p className="mt-1.5 whitespace-nowrap font-mono text-[22px] font-bold">
-              <span className="sr-only">{fill(TC.item, { n: num(top.count) })}</span>
+              <span className="sr-only">{itemText(top.count)}</span>
               <span aria-hidden="true">
                 {itemBefore.trim()} <b className={`text-[34px] tracking-[-0.06em] ${shorts ? "text-tomato" : "text-ink"}`}>{num(top.count)}</b>
-                <span className="mt-0.5 block font-serif text-[16px] font-semibold italic">{itemAfter.trim()}</span>
+                <span className="mt-0.5 block font-serif text-[16px] font-semibold italic">{unitAfter(top.count, TC.item, TC.itemOne)}</span>
               </span>
             </p>
           </>
@@ -724,7 +741,7 @@ function CreatorColumn({ format, side }: { format: "shorts" | "long"; side: Shor
                   <span className="shrink-0 font-mono text-[11px] font-bold text-tomato">{String(i + 2).padStart(2, "0")}</span>
                   <span className="min-w-0 flex-1">
                     <span className="clamp-name font-serif text-[15px] font-bold leading-[1.2]">{c.name}</span>
-                    <span className="mt-px block font-mono text-[11.5px] font-bold text-ink-2">{fill(TC.item, { n: num(c.count) })}</span>
+                    <span className="mt-px block font-mono text-[11.5px] font-bold text-ink-2">{itemText(c.count)}</span>
                   </span>
                 </li>
               ))}
