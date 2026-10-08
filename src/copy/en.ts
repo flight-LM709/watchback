@@ -69,6 +69,15 @@ export const en = {
     hours: "hours",
     perDay: "≈ {perDay} a day",
     plays: "{n} plays",
+    // Small source line on the card.
+    sources: "YouTube + YouTube Music",
+    // Footer URL. {host} = the site's host without "www.". Swap for a fixed domain once vedrico picks one.
+    site: "{host}",
+  },
+
+  // Hero numbers that don't fit at 96px get abbreviated (12.4K); this caption sits under them with the exact figure.
+  numbers: {
+    exactCaption: "Exactly {n}",
   },
 
   period: {
@@ -116,6 +125,7 @@ export const en = {
     },
     topCreator: {
       headline: "Your #1 creator was {creator}.",
+      rankSticker: "#1",
       sub: "{n} videos. That's loyalty.",
     },
     topCreators: {
@@ -138,10 +148,14 @@ export const en = {
       sub: "{n} videos in one month.",
     },
     primeTime: {
-      headline: "Prime time: {day}s at {hour}.",
+      // {days} = plural day name from daysPlural below, e.g. "Sundays".
+      headline: "Prime time: {days} at {hour}.",
+      // Indexed like Date.getDay(): 0 = Sunday.
+      daysPlural: ["Sundays", "Mondays", "Tuesdays", "Wednesdays", "Thursdays", "Fridays", "Saturdays"],
       heatmapHeader: "Day × hour · {tz}",
       sub: "That's when you hit play the most.",
-      peakLabel: "Your peak hour",
+      // The peak cell and the badge measure different things, so both labels say so.
+      peakLabel: "Your busiest single hour",
       // One badge per person: the window with the most plays. Windows cover all 24 hours (start inclusive, end exclusive).
       badges: {
         earlyBird: "Early bird", // 5 AM to 9 AM
@@ -151,11 +165,25 @@ export const en = {
         eveningRegular: "Evening regular", // 6 PM to 10 PM
         nightOwl: "Night owl", // 10 PM to 5 AM
       },
-      badgeShare: "{badge}, {pct}% of plays",
+      // {window} comes from badgeWindows for the winning badge.
+      badgeWindows: {
+        earlyBird: "between 5 and 9 AM",
+        coffeeBreak: "between 9 and 11 AM",
+        lunchBreak: "between 11 AM and 2 PM",
+        afternoonDrifter: "between 2 and 6 PM",
+        eveningRegular: "between 6 and 10 PM",
+        nightOwl: "between 10 PM and 5 AM",
+      },
+      // Two-line sticker: badge name on top, detail under it.
+      badgeDetail: "{pct}% of plays {window}",
+      // One-line version (screen readers, anywhere it has to be a single string).
+      badgeShare: "{badge}: {pct}% of plays {window}",
     },
     bingeStreak: {
       headline: "{n} days in a row.",
       sub: "Your longest streak, from {start} to {end}.",
+      // Shown above the calendar, so long streaks still read as long when only the end month is drawn.
+      range: "{start} – {end}",
     },
     topSearches: {
       headline: "You searched for these the most.",
