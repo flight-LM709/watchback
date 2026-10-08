@@ -33,6 +33,60 @@ def circle(l=16, t=14, r=18, b=10, color=TOMATO): return inline('hand-circle', f
 def arrow(size=26, color=TOMATO, style=''): return inline('arrow', f'width:{size}px;height:{size}px;{style}', color)
 CASS = ASSETS['cassette-icon'].replace('xmlns="http://www.w3.org/2000/svg" ', 'aria-hidden="true" ')
 
+
+# ---------------------------------------------------------------- monogram avatar (Takeout has no avatars)
+import unicodedata
+MONO_PALETTE = [  # (background, text) - every pair passes WCAG AA, see SPEC "Monogram avatar"
+    ('#1E6B66', '#FBF6EC'),  # teal / paper-2       5.82
+    ('#B33A24', '#FBF6EC'),  # tomato / paper-2     5.50
+    ('#E2A72E', '#1F1B16'),  # mustard / ink        7.99
+    ('#123F3C', '#FBF6EC'),  # teal-dark / paper-2 10.82
+    ('#EDE3CF', '#1F1B16'),  # paper-dark / ink    13.44
+]
+def _alnum(c): return unicodedata.category(c)[0] in 'LN'
+def _latin_or_digit(c): return unicodedata.category(c)[0] == 'N' or 'LATIN' in unicodedata.name(c, '')
+def initials(name):
+    words = [w for w in (''.join(w[i:] for i in [next((i for i, c in enumerate(w) if _alnum(c)), len(w))]) for w in unicodedata.normalize('NFKC', name).split()) if w]
+    if not words: return '?'
+    first = words[0][0]
+    if not _latin_or_digit(first): return first
+    if len(words) >= 2: return (first + words[1][0]).upper()
+    return ''.join(c for c in words[0] if _alnum(c))[:2].upper()
+def name_hash(name):  # FNV-1a 32-bit over code points of NFKC(trim(lower(name)))
+    h = 2166136261
+    for c in unicodedata.normalize('NFKC', name).strip().lower():
+        h = ((h ^ ord(c)) * 16777619) & 0xffffffff
+    return h
+def monogram(name, size, tape=False, extra_style=''):
+    h = name_hash(name); bg, fg = MONO_PALETTE[h % len(MONO_PALETTE)]
+    tilt = ((h >> 8) % 11) - 5
+    ini = initials(name); fs = 46 if len(ini) == 1 else 38
+    sh = 4 if size >= 96 else 2
+    tp = '<span class="tape" style="left:50%;top:-8px;width:{w}px;height:{hh}px;transform:translateX(-50%) rotate({r}deg)"></span>'.format(w=round(size*.42), hh=round(size*.12), r=-tilt*2-8) if tape else ''
+    return (f'<span class="mono-st" style="position:relative;display:inline-block;flex:none;width:{size}px;height:{size}px;transform:rotate({tilt}deg);filter:drop-shadow({sh}px {sh}px 0 #1F1B16);{extra_style}" role="img" aria-label="{name}">'
+            f'<svg viewBox="0 0 100 100" width="{size}" height="{size}" aria-hidden="true" style="display:block">'
+            f'<circle cx="50" cy="50" r="48" fill="#FBF6EC" stroke="#1F1B16" stroke-width="{2 if size>=96 else 4}" vector-effect="{"non-scaling-stroke" if size>=96 else "none"}"/>'
+            f'<circle cx="50" cy="50" r="41" fill="{bg}"/>'
+            f'<circle cx="50" cy="50" r="44.5" fill="none" stroke="#1F1B16" stroke-opacity=".3" stroke-width="{.8 if size>=96 else 1.6}" stroke-dasharray="{"2 2.5" if size>=96 else "3 4"}"/>'
+            + f'<text x="50" y="51" text-anchor="middle" dominant-baseline="central" font-family="Fraunces, Georgia, serif" font-weight="800" font-size="{fs}" letter-spacing="-1.5" fill="{fg}">{ini}</text>'
+            f'</svg>{tp}</span>')
+MONO_SVG = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="176" height="176">
+  <!-- Watchback monogram sticker (Paper Mixtape). Reference for the <MonogramSticker> component; see SPEC.md "Monogram avatar".
+       Slots: {BG} {FG} come from the palette picked by hashing the creator name; {INITIALS} from the initials rule.
+       Wrapper (CSS, not in this file): rotate(tilt from hash, -5..+5deg), filter: drop-shadow(4px 4px 0 #1F1B16) (2px at 40px),
+       optional TapeStrip across the top (hero size only). Example below shows palette slot 1 (tomato / paper-2) with initials "CN". -->
+  <!-- paper rim (the cut-out sticker edge) -->
+  <circle cx="50" cy="50" r="48" fill="#FBF6EC" stroke="#1F1B16" stroke-width="2" vector-effect="non-scaling-stroke"/>
+  <!-- coloured disc: {BG} -->
+  <circle cx="50" cy="50" r="41" fill="#B33A24"/>
+  <!-- die-cut dashed ring -->
+  <circle cx="50" cy="50" r="44.5" fill="none" stroke="#1F1B16" stroke-opacity=".3" stroke-width=".8" stroke-dasharray="2 2.5"/>
+  <!-- initials: Fraunces 800, font-size 38 for 2 letters / 46 for 1, fill {FG} -->
+  <text x="50" y="51" text-anchor="middle" dominant-baseline="central" font-family="Fraunces, Georgia, serif" font-weight="800" font-size="38" letter-spacing="-1.5" fill="#FBF6EC">CN</text>
+</svg>
+"""
+open('../assets/monogram-sticker.svg', 'w').write(MONO_SVG)
+
 # ---------------------------------------------------------------- page chrome
 TOTAL = 12  # story slides when every slide is present
 def prog(n):
@@ -246,7 +300,6 @@ page('03-top-creator', '''
 .h{font-size:30px;font-weight:600;letter-spacing:-.02em}
 .h em{font-style:italic}
 .avw{position:relative;width:176px;height:176px;margin:26px auto 0}
-.av{width:176px;height:176px;border-radius:50%;background:var(--teal);border:2.5px solid var(--ink);box-shadow:var(--sh-sticker);overflow:hidden;display:flex;align-items:flex-end;justify-content:center}
 .stamp{position:absolute;right:-34px;top:-14px;transform:rotate(12deg);width:72px;height:72px}
 .stamp span{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--mono);font-weight:700;font-size:17px;padding-top:5px}
 .name{font-size:32px;font-weight:700;letter-spacing:-.02em;margin-top:22px;max-width:100%}
@@ -265,7 +318,7 @@ page('03-top-creator', '''
 <div class="wrap">
 <div class="h">Your #1 creator <em>was</em></div>
 <div class="avw">
-<div class="av">{AVATAR}</div>
+{monogram("Creator Name A", 176, tape=True)}
 {circle(16,16,16,14)}
 <div class="stamp">{star(72)}<span>#1</span></div>
 </div>
@@ -280,7 +333,7 @@ page('03-top-creator', '''
 ''' + EX('bl'))
 
 # ================================================================ 06b top 5 creators
-cre5 = [('Creator Name A', 1204), ('The Extremely Long Sample Channel Name That Keeps Going', 812), ('Creator Name C', 655), ('Sample Channel D', 540), ('Creator Name E', 498)]
+cre5 = [('Creator Name A', 1204), ('The Very Long Sample Channel Name That Keeps Going', 812), ('★ Example Gaming Channel', 655), ('見本チャンネル', 540), ('Exampletube', 498)]
 avc = [TEAL, TOMATO, MUSTARD, '#4A4238', TEAL]
 page('06b-top5-creators', '''
 h1{position:absolute;top:112px;left:24px;right:24px;font-size:30px;font-weight:600;letter-spacing:-.02em;line-height:1.12}
@@ -308,7 +361,7 @@ h1 em .u{position:absolute;left:0;right:0;bottom:-8px}
 <div class="sticker jc">
 <span class="tape" style="left:-18px;top:-10px;transform:rotate(-26deg)"></span>
 {STRIPES}
-{''.join(f'<div class="r{" first" if i==0 else ""}"><span class="k">{i+1:02d}</span><span class="a" style="background:{avc[i]}">{AVATAR}</span><div class="m"><div class="t">{t}</div><div class="bm"><div class="bar" style="width:{round(v/cre5[0][1]*62)}%"></div><span class="v">{v:,} videos</span></div></div></div>' for i, (t, v) in enumerate(cre5))}
+{''.join(f'<div class="r{" first" if i==0 else ""}"><span class="k">{i+1:02d}</span>{monogram(t, 52 if i==0 else 40)}<div class="m"><div class="t">{t}</div><div class="bm"><div class="bar" style="width:{round(v/cre5[0][1]*62)}%"></div><span class="v">{v:,} videos</span></div></div></div>' for i, (t, v) in enumerate(cre5))}
 </div>
 <div class="doodle" style="left:30px;bottom:110px">{star(30, TOMATO)}</div>
 ''' + EX('bl'))
@@ -537,7 +590,7 @@ h1 em{font-style:italic;color:var(--teal)}
 ''' + EX('bl'))
 
 # ================================================================ share card (story, 9:16) + fallback
-cre = [('01', 'Creator Name A', '1,204'), ('02', 'Sample Channel B', '812'), ('03', 'Creator Name C', '655'), ('04', 'Sample Channel D', '540'), ('05', 'Creator Name E', '498')]
+cre = [('01', 'Creator Name A', '1,204'), ('02', 'The Very Long Sample Channel Name That Keeps Going', '812'), ('03', '★ Example Gaming Channel', '655'), ('04', '見本チャンネル', '540'), ('05', 'Exampletube', '498')]
 SHARE_CSS = '''
 .card{position:absolute;top:40px;left:24px;width:342px;height:608px;background-color:var(--paper2);background-image:var(--grain-card);border:2px solid var(--ink);box-shadow:var(--sh-card);overflow:hidden}
 .stripes{display:flex;height:12px;border-bottom:2px solid var(--ink)}
