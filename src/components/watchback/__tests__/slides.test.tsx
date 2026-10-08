@@ -151,8 +151,9 @@ describe("song titles and the prime-time hour", () => {
 });
 
 
+const c1 = (name: string, count: number) => ({ name, url: `u:${name}`, count });
 describe("Shorts slides (SPEC §9)", () => {
-  const c = (name: string, count: number) => ({ name, url: `u:${name}`, count });
+  const c = c1;
   const split = (patch: Partial<ShortsSplitEstimate> = {}): ShortsSplitEstimate => ({
     isEstimate: true,
     shorts: { count: 8620, seconds: 84 * 3600, pct: 69, topCreators: [c("Alpha", 476), c("Beta", 391), c("Gamma", 302)], showEmptyState: false },
@@ -222,14 +223,16 @@ describe("Shorts slides (SPEC §9)", () => {
     expect(screen.queryByTestId("shorts-sub")).toBeNull();
   });
 
-  it("17: #1 + runners per column, empty state under 2 creators, sameTop line", () => {
+  it("17: #1 + runners per column, a lone #1 gets noRunnersUp (not the empty line), sameTop line", () => {
     const root = show("creators-by-format", {}, { shortsSplit: split({ sameTopCreator: "Alpha" }) });
     const s = screen.getByTestId("creator-column-shorts");
     expect(within(s).getByTestId("split-top-name").textContent).toBe("Alpha");
     expect(s.querySelectorAll("li")).toHaveLength(2);
     expect(s.textContent).toContain("≈ 391 videos");
     const l = screen.getByTestId("creator-column-long");
-    expect(within(l).getByTestId("split-empty").textContent).toBe(en.slides.topCreatorsSplit.emptyLong.replaceAll("\u2011", "-"));
+    expect(within(l).getByTestId("split-top-name").textContent).toBe("Delta");
+    expect(within(l).getByTestId("split-no-runners").textContent).toBe("No runners-up this time.");
+    expect(within(l).queryByTestId("split-empty")).toBeNull();
     expect(l.textContent).toContain("Top long-form creators");
     expect(screen.getByTestId("same-top").textContent).toBe("Alpha topped both lists.");
     expect(contrastViolations(root)).toEqual([]);
@@ -291,5 +294,58 @@ describe("Shorts slides (SPEC §9)", () => {
     // the other column is unchanged
     expect(within(screen.getByTestId("creator-column-long")).getByTestId("split-top-name").textContent).toBe("Delta");
     expect(contrastViolations(root)).toEqual([]);
+  });
+
+  describe("17: runner-up states per column", () => {
+    const col = (topCreators: { name: string; url: string; count: number }[]) => {
+      show("creators-by-format", {}, { shortsSplit: split({ shorts: { count: 40, seconds: 3600, pct: 10, topCreators, showEmptyState: topCreators.length < 2 } }) });
+      return screen.getByTestId("creator-column-shorts");
+    };
+    it("zero creators → the centered emptyShorts line only (no #1, no noRunnersUp)", () => {
+      const c = col([]);
+      expect(within(c).getByTestId("split-empty").textContent).toBe("Not enough Shorts to rank.");
+      expect(within(c).queryByTestId("split-top-name")).toBeNull();
+      expect(within(c).queryByTestId("split-no-runners")).toBeNull();
+      expect(c.querySelectorAll("li")).toHaveLength(0);
+    });
+    it("only a #1 → #1 block + noRunnersUp; never 'Not enough Shorts to rank.' (screen readers get the same)", () => {
+      const c = col([c1("Solo Short", 1)]);
+      expect(within(c).getByTestId("split-top-name").textContent).toBe("Solo Short");
+      expect(within(c).getByTestId("split-no-runners").textContent).toBe("No runners-up this time.");
+      expect(within(c).queryByTestId("split-empty")).toBeNull();
+      expect(c.textContent).not.toContain("Not enough");
+      expect(c.querySelectorAll("li")).toHaveLength(0);
+      // accessible content of the column: header, #1 name (monogram is aria-hidden) + count, then the runners-up line
+      expect(within(c).queryByRole("img", { name: "Solo Short" })).toBeNull();
+      expect(c.textContent).toContain("≈ 1 video");
+      const order = [...c.querySelectorAll('[data-testid="split-top-name"], [data-testid="split-no-runners"]')].map((e) => e.getAttribute("data-testid"));
+      expect(order).toEqual(["split-top-name", "split-no-runners"]);
+    });
+    it("#1 plus runners-up → numbered rows 02/03, no noRunnersUp or empty line", () => {
+      const c = col([c1("A", 9), c1("B", 5), c1("C", 1)]);
+      const rows = c.querySelectorAll("li");
+      expect(rows).toHaveLength(2);
+      expect(rows[0].textContent).toBe("02B≈ 5 videos");
+      expect(rows[1].textContent).toBe("03C≈ 1 video");
+      expect(within(c).queryByTestId("split-no-runners")).toBeNull();
+      expect(within(c).queryByTestId("split-empty")).toBeNull();
+    });
+    it("#1 plus one runner-up → one row, no noRunnersUp", () => {
+      const c = col([c1("A", 9), c1("B", 5)]);
+      expect(c.querySelectorAll("li")).toHaveLength(1);
+      expect(within(c).queryByTestId("split-no-runners")).toBeNull();
+    });
+  });
+
+  it("16 zero Shorts: the text block reserves the TV's footprint at the inline end, before the text", () => {
+    show("shorts-vs-long", {}, { shortsSplit: split({ noShorts: true, sub: null }) });
+    const box = screen.getByTestId("no-shorts");
+    const reserve = within(box).getByTestId("icon-reserve");
+    expect(reserve.className).toContain("float-end");
+    expect(reserve.className).toMatch(/w-\[86px\]/);
+    expect(reserve.getAttribute("aria-hidden")).toBe("true");
+    expect(reserve.parentElement!.firstElementChild).toBe(reserve); // floats only push lines that come after it
+    expect(reserve.parentElement!.textContent).toBe("No Shorts at all. You kept it long-form.");
+    expect(within(box).getByTestId("no-shorts-icon")).toBeTruthy();
   });
 });
