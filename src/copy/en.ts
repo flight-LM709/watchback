@@ -156,6 +156,9 @@ export const en = {
       sub: "That's when you hit play the most.",
       // The peak cell and the badge measure different things, so both labels say so.
       peakLabel: "Your busiest single hour",
+      // Big value on the peak tile, e.g. "Sun 5 AM". {day} comes from daysShort, ordered like Date.getDay().
+      peakValue: "{day} {hour}",
+      daysShort: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
       // One badge per person: the window with the most plays. Windows cover all 24 hours (start inclusive, end exclusive).
       badges: {
         earlyBird: "Early bird", // 5 AM to 9 AM
