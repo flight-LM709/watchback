@@ -356,8 +356,8 @@ function PrimeTime({ ctx }: { ctx: SlideContext }) {
         </p>
       </div>
       <p className="mt-3 font-serif text-sub italic">{S.primeTime.sub}</p>
-      <Sticker tone="grid" rotate={0.8} className="mt-4 px-3 pb-1 pt-3" style={{ backgroundImage: "linear-gradient(rgb(30 107 102 / .08) 1px, transparent 1px), linear-gradient(90deg, rgb(30 107 102 / .08) 1px, transparent 1px)", backgroundSize: "10px 10px" }}>
-        <TapeStrip className="-right-7 -top-6" width={60} angle={32} />
+      <Sticker tone="grid" rotate={0.8} className="-mx-2 mt-4 px-3 pb-1 pt-3" style={{ backgroundImage: "linear-gradient(rgb(30 107 102 / .08) 1px, transparent 1px), linear-gradient(90deg, rgb(30 107 102 / .08) 1px, transparent 1px)", backgroundSize: "10px 10px" }}>
+        <TapeStrip className="-right-3 -top-6" width={60} angle={32} />
         <Heatmap heatmap={s.heatmap} peak={peak} header={fill(S.primeTime.heatmapHeader, { tz: tzLabel(s.timeZone, s.range.end) })} note={en.deco.heatmapArrow} />
       </Sticker>
       <PrimeTimeTiles peak={peak} badge={badge} className="mt-4" />
