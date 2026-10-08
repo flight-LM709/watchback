@@ -12,7 +12,10 @@ const CREATORS = [
   { name: "Night Owl TV", url: "https://www.youtube.com/channel/UCdemo4" },
   { name: "Cat Channel", url: "https://www.youtube.com/channel/UCdemo5" },
   { name: "Sejarah Singkat", url: "https://www.youtube.com/channel/UCdemo6" },
+  { name: "★ Example Gaming Channel", url: "https://www.youtube.com/channel/UCdemo7" },
+  { name: "見本チャンネル", url: "https://www.youtube.com/channel/UCdemo8" },
 ];
+const SEARCHES = ["lofi beats", "nasi goreng recipe", "how to fold a fitted sheet", "typescript generics explained simply for beginners", "kucing lucu", "sejarah majapahit"];
 const TITLES = [
   "Belajar TypeScript dari Nol sampai Mahir dalam Satu Video Panjang Lengkap dengan Studi Kasus Nyata dan Latihan",
   "Nasi goreng 5 menit",
@@ -44,6 +47,10 @@ export function makeDemoEvents(): TakeoutEvent[] {
     } else {
       const c = Math.floor(rand() * rand() * CREATORS.length);
       const v = Math.floor(rand() * rand() * 400);
+      if (rand() < 0.08) {
+        const q = SEARCHES[Math.floor(rand() * rand() * SEARCHES.length)];
+        events.push({ kind: "search", product: "youtube", title: q, timestamp: new Date(t - 60_000), isAd: false });
+      }
       events.push({
         kind: "watch", product: "youtube", videoId: vid(v), title: v === 0 ? TITLES[0] : `${TITLES[v % TITLES.length]} #${v}`,
         channelName: CREATORS[c].name, channelUrl: CREATORS[c].url, timestamp: ts, isAd: rand() < 0.02,
@@ -62,4 +69,38 @@ export function fakeDurations(ids: string[]): Record<string, number | null> {
     out[id] = h % 23 === 0 ? null : 60 + (h % 1500);
   }
   return out;
+}
+
+/**
+ * Demo thumbnail: a generated abstract 16:9 image (no YouTube content, no network), returned as a
+ * same-origin blob: URL like the real /api/thumb client. Resolves null where OffscreenCanvas is missing.
+ */
+export async function demoThumbnail(videoId: string): Promise<string | null> {
+  if (typeof OffscreenCanvas === "undefined") return null;
+  const c = new OffscreenCanvas(640, 360);
+  const g = c.getContext("2d");
+  if (!g) return null;
+  const sky = g.createLinearGradient(0, 0, 0, 360);
+  sky.addColorStop(0, "#3b2a4e");
+  sky.addColorStop(0.55, "#d9733a");
+  sky.addColorStop(1, "#e2a72e");
+  g.fillStyle = sky;
+  g.fillRect(0, 0, 640, 360);
+  const rand = mulberry32([...videoId].reduce((h, ch) => h * 31 + ch.charCodeAt(0), 7) >>> 0);
+  for (let i = 0; i < 26; i++) {
+    g.fillStyle = `rgba(255, 240, 220, ${0.08 + rand() * 0.18})`;
+    g.beginPath();
+    g.arc(rand() * 640, rand() * 200, 6 + rand() * 18, 0, Math.PI * 2);
+    g.fill();
+  }
+  for (const [y, col] of [[250, "#4a3550"], [290, "#2e2340"], [325, "#1f1830"]] as const) {
+    g.fillStyle = col;
+    g.beginPath();
+    g.moveTo(0, 360);
+    for (let x = 0; x <= 640; x += 40) g.lineTo(x, y - 30 * Math.sin(x / 90 + y) - rand() * 12);
+    g.lineTo(640, 360);
+    g.fill();
+  }
+  const blob = await c.convertToBlob({ type: "image/png" });
+  return URL.createObjectURL(blob);
 }

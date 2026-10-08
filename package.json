@@ -13,6 +13,7 @@
     "test:fixtures": "vitest run src/lib/takeout/__tests__/qa-fixtures.test.ts"
   },
   "dependencies": {
+    "html-to-image": "^1.11.13",
     "jszip": "^3.10.2",
     "next": "16.4.0",
     "react": "19.3.0",

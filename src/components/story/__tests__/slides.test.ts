@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { computeStats } from "@/lib/takeout/stats";
 import type { TakeoutEvent } from "@/lib/takeout/types";
-import { planSlides } from "../slides";
+import { ALL_SLIDES, planSlides } from "../slides";
 
 const w = (iso: string, extra: Partial<TakeoutEvent> = {}): TakeoutEvent => ({
   kind: "watch", product: "youtube", title: "Video", videoId: "AAAAAAAAAAA", channelName: "Chan", channelUrl: "u1",
@@ -30,8 +30,27 @@ describe("planSlides", () => {
   it("keeps the canonical order and supports a subset", () => {
     const s = computeStats(base, { timeZone: "UTC" });
     expect(planSlides(s, { watchTime: est })).toEqual([
-      "total-videos", "watch-time", "top-creator", "top-creators", "favorite-video", "busiest-month", "peak-time", "peak-hour-badge", "streak", "share",
+      "total-videos", "watch-time", "top-creator", "top-creators", "favorite-video", "busiest-month", "prime-time", "streak", "share",
     ]);
-    expect(planSlides(s, { only: ["peak-hour-badge", "top-songs", "total-videos"] })).toEqual(["peak-hour-badge", "total-videos"]);
+    expect(planSlides(s, { only: ["prime-time", "top-songs", "total-videos"] })).toEqual(["prime-time", "total-videos"]);
+  });
+
+  it("is 12 slides when everything is present, with the peak-hour badge on the prime-time slide (no separate badge slide)", () => {
+    expect(ALL_SLIDES).toHaveLength(12);
+    expect(ALL_SLIDES).not.toContain("peak-hour-badge" as never);
+    const music = (iso: string, id: string) => w(iso, { product: "music", channelName: "Queen - Topic", videoId: id, title: "Song" });
+    const full = computeStats(
+      [
+        ...base,
+        w("2024-03-04T05:00:00Z"),
+        { kind: "search", product: "youtube", title: "lofi", timestamp: new Date("2024-03-04T06:00:00Z"), isAd: false },
+        music("2024-03-04T07:00:00Z", "MMMMMMMMMMM"),
+      ],
+      { timeZone: "UTC" },
+    );
+    const plan = planSlides(full, { watchTime: est });
+    expect(plan).toEqual([...ALL_SLIDES]);
+    expect(plan).toHaveLength(12);
+    expect(full.peakHourBadge).not.toBeNull();
   });
 });

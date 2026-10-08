@@ -13,6 +13,8 @@ export interface StorySlide {
   durationMs?: number;
   /** Accessible name, e.g. "Your top 5 creators". */
   label?: string;
+  /** Hide the brand row, ✕ and header on this slide (the share slide uses the full height). */
+  bare?: boolean;
 }
 
 export interface StoryPlayerProps {
@@ -33,6 +35,10 @@ export interface StoryPlayerProps {
   ariaLabel?: string;
   /** Hints and accessible labels. Defaults to Copywriter's en.player. */
   copy?: PlayerCopy;
+  /** Top bar: brand on the left (e.g. cassette icon + app name) and a 44×44 ✕ when onClose is set. */
+  brand?: ReactNode;
+  onClose?: () => void;
+  closeLabel?: string;
 }
 
 const INTERACTIVE = 'button, a, input, select, textarea, [role="listbox"], [role="option"], [data-story-interactive]';
@@ -48,12 +54,15 @@ export function StoryPlayer({
   paused: externalPaused = false,
   autoAdvance = true,
   autoAdvanceWithReducedMotion = false,
-  holdDelayMs = 220,
+  holdDelayMs = 250,
   onIndexChange,
   onEnd,
   className = "",
   ariaLabel = en.appName,
   copy = en.player,
+  brand,
+  onClose,
+  closeLabel = en.periodSheet.close,
 }: StoryPlayerProps) {
   const reducedMotion = usePrefersReducedMotion();
   const [pos, setPos] = useState<{ id: string | undefined; index: number }>({ id: slides[0]?.id, index: 0 });
@@ -133,7 +142,8 @@ export function StoryPlayer({
       return;
     }
     const rect = e.currentTarget.getBoundingClientRect();
-    if (e.clientX - rect.left < rect.width / 2) prev();
+    // SPEC: left third goes back, right two thirds go forward.
+    if (e.clientX - rect.left < rect.width / 3) prev();
     else next();
   };
   const onPointerCancel = () => {
@@ -157,7 +167,7 @@ export function StoryPlayer({
   return (
     <div
       ref={rootRef}
-      className={`story-frame relative isolate flex select-none flex-col overflow-hidden bg-(--story-bg) text-(--story-fg) outline-none ${className}`}
+      className={`story-frame paper relative isolate flex select-none flex-col overflow-hidden bg-(--story-bg) text-(--story-fg) outline-none ${className}`}
       style={{ fontFamily: "var(--story-font)" }}
       role="region"
       aria-roledescription="story"
@@ -173,8 +183,8 @@ export function StoryPlayer({
       onContextMenu={(e) => e.preventDefault()}
       onKeyDown={onKeyDown}
     >
-      {/* Progress bars */}
-      <div className="absolute inset-x-0 top-0 z-20 flex gap-1 px-2 pt-2" aria-hidden="true">
+      {/* Progress bars: one 3px segment per planned slide, 3px gaps, 16px inset (SPEC §2). */}
+      <div className="absolute inset-x-0 top-0 z-20 flex gap-[3px] px-4 pt-[14px]" aria-hidden="true">
         {slides.map((s, i) => (
           <div key={s.id} className="h-[3px] flex-1 overflow-hidden rounded-full bg-(--story-track)" data-testid="story-progress">
             <div
@@ -193,41 +203,65 @@ export function StoryPlayer({
         ))}
       </div>
 
-      {header && <div className="relative z-20 flex justify-center px-3 pt-6">{header}</div>}
-
-      <div className="relative z-10 flex min-h-0 flex-1 flex-col" aria-roledescription="slide" aria-label={current?.label}>
-        {current?.content}
-      </div>
-
-      {/* First-slide hints (gesture everywhere, keyboard only with a fine pointer) */}
-      {index === 0 && !interacted && (
-        <div className="pointer-events-none absolute inset-x-0 bottom-14 z-20 flex flex-col items-center gap-1 px-6 text-center text-xs text-(--story-muted)" data-testid="story-hints">
-          <p>{copy.firstSlideHint}</p>
-          <p className="pointer-coarse:hidden">{copy.keyboardHint}</p>
+      {!current?.bare && (brand || onClose) && (
+        <div className="absolute inset-x-0 top-6 z-20 flex h-11 items-center justify-between pl-6 pr-3">
+          <div className="pointer-events-none">{brand}</div>
+          {onClose && (
+            <button type="button" onClick={onClose} aria-label={closeLabel} className="grid size-11 place-items-center text-ink">
+              <svg viewBox="0 0 24 24" className="size-[18px]" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
+                <path d="M6 6l12 12M18 6L6 18" />
+              </svg>
+            </button>
+          )}
         </div>
       )}
 
-      {/* Reduced motion: no auto-advance, so say how to move on */}
-      {autoAdvance && !timed && !ended && index < slides.length - 1 && (
-        <p className="pointer-events-none absolute inset-x-0 bottom-6 z-20 text-center text-sm font-medium" data-testid="tap-to-continue">
-          {copy.tapToContinue}
-        </p>
-      )}
+      {header && !current?.bare && <div className="absolute left-6 top-[66px] z-20">{header}</div>}
+
+      <div
+        key={current?.id}
+        className={`relative z-10 flex min-h-0 flex-1 flex-col ${current?.bare ? "pt-4" : "pt-[104px]"}`}
+        aria-roledescription="slide"
+        aria-label={current?.label}
+      >
+        {current?.content}
+      </div>
+
+      {/* Bottom hint (mono 11px ink-2): gesture + keyboard hints on the first run; "Tap to continue" replaces
+          the gesture hint whenever reduced motion stops auto-advance. */}
+      {(() => {
+        const tapPrompt = autoAdvance && !timed && !ended && index < slides.length - 1;
+        const firstRun = index === 0 && !interacted;
+        if (!tapPrompt && !firstRun) return null;
+        return (
+          <div
+            className="pointer-events-none absolute inset-x-0 bottom-8 z-20 mx-auto flex max-w-[280px] flex-col items-center gap-1 px-6 text-center font-mono text-[11px] leading-snug text-(--story-muted) [text-wrap:balance]"
+            data-testid="story-hints"
+          >
+            {tapPrompt ? (
+              <p className="font-bold text-ink" data-testid="tap-to-continue">{copy.tapToContinue}</p>
+            ) : (
+              <p>{copy.firstSlideHint}</p>
+            )}
+            {firstRun && <p className="pointer-coarse:hidden">{copy.keyboardHint}</p>}
+          </div>
+        );
+      })()}
 
       {/* Screen-reader / keyboard controls (visually hidden until focused) */}
       <div className="absolute bottom-2 left-1/2 z-30 flex -translate-x-1/2 gap-2">
-        <button type="button" className="sr-only rounded bg-(--story-pill-bg) px-2 py-1 text-xs focus:not-sr-only" aria-label={copy.ariaPrev} onClick={prev}>
+        <button type="button" className="sr-only rounded-pill border-2 border-ink bg-paper-2 px-3 py-2 font-mono text-xs font-bold focus:not-sr-only" aria-label={copy.ariaPrev} onClick={prev}>
           ‹
         </button>
         <button
           type="button"
-          className="sr-only rounded bg-(--story-pill-bg) px-2 py-1 text-xs focus:not-sr-only"
+          className="sr-only rounded-pill border-2 border-ink bg-paper-2 px-3 py-2 font-mono text-xs font-bold focus:not-sr-only"
           aria-label={paused && !ended ? copy.ariaPlay : copy.ariaPause}
           onClick={() => { setInteracted(true); setUserPaused((v) => !v); }}
         >
           {paused && !ended ? "▶" : "❚❚"}
         </button>
-        <button type="button" className="sr-only rounded bg-(--story-pill-bg) px-2 py-1 text-xs focus:not-sr-only" aria-label={copy.ariaNext} onClick={next}>
+        <button type="button" className="sr-only rounded-pill border-2 border-ink bg-paper-2 px-3 py-2 font-mono text-xs font-bold focus:not-sr-only" aria-label={copy.ariaNext} onClick={next}>
           ›
         </button>
       </div>

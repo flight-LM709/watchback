@@ -122,13 +122,15 @@ describe("StoryPlayer", () => {
     setReducedMotion(true);
     render(<StoryPlayer slides={slides(3)} />);
     expect(screen.getByText("Slide 1 of 3")).toBeTruthy(); // ariaProgress
-    expect(screen.getByText("Tap right for next, left to go back. Hold to pause.")).toBeTruthy();
+    // SPEC §5: "Tap to continue" replaces the gesture hint when reduced motion stops auto-advance.
+    expect(screen.queryByText("Tap right for next, left to go back. Hold to pause.")).toBeNull();
     expect(screen.getByText("Use ← and → to move, space to pause.")).toBeTruthy();
     expect(screen.getByTestId("tap-to-continue").textContent).toBe("Tap to continue");
     // SR buttons
     fireEvent.click(screen.getByRole("button", { name: "Next slide" }));
     expect(screen.getByText("Slide content 1")).toBeTruthy();
-    expect(screen.queryByTestId("story-hints")).toBeNull(); // hints go away after first interaction
+    expect(screen.queryByText("Use ← and → to move, space to pause.")).toBeNull(); // first-run hints go away after the first interaction
+    expect(screen.getByTestId("tap-to-continue")).toBeTruthy(); // the reduced-motion prompt stays
     fireEvent.click(screen.getByRole("button", { name: "Previous slide" }));
     expect(screen.getByText("Slide content 0")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Pause" }));
@@ -141,9 +143,37 @@ describe("StoryPlayer", () => {
     expect(screen.queryByTestId("tap-to-continue")).toBeNull();
   });
 
-  it("no tap-to-continue prompt when auto-advance is running", () => {
+  it("first run with auto-advance: gesture + keyboard hints, no tap-to-continue", () => {
     render(<StoryPlayer slides={slides(3)} />);
     expect(screen.queryByTestId("tap-to-continue")).toBeNull();
+    expect(screen.getByText("Tap right for next, left to go back. Hold to pause.")).toBeTruthy();
+    expect(screen.getByText("Use ← and → to move, space to pause.")).toBeTruthy();
+    fireEvent.keyDown(region(), { key: "ArrowRight" });
+    expect(screen.queryByTestId("story-hints")).toBeNull();
+  });
+
+  it("left third goes back, right two thirds go forward (SPEC §2)", () => {
+    render(<StoryPlayer slides={slides(3)} />);
+    const r = region();
+    mockWidth(r, 390);
+    tap(r, 140); // past the first third -> forward
+    expect(screen.getByText("Slide content 1")).toBeTruthy();
+    tap(r, 120); // inside the first third -> back
+    expect(screen.getByText("Slide content 0")).toBeTruthy();
+  });
+
+  it("brand row with a 44px close button; bare slides hide the chrome", () => {
+    const onClose = vi.fn();
+    const s = [{ id: "a", content: <p>A</p> }, { id: "share", content: <p>Share</p>, bare: true }];
+    render(<StoryPlayer slides={s} brand={<span>Brand</span>} onClose={onClose} header={<span>Pill</span>} />);
+    expect(screen.getByText("Brand")).toBeTruthy();
+    expect(screen.getByText("Pill")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    expect(onClose).toHaveBeenCalled();
+    fireEvent.keyDown(region(), { key: "ArrowRight" });
+    expect(screen.getByText("Share")).toBeTruthy();
+    expect(screen.queryByText("Brand")).toBeNull();
+    expect(screen.queryByText("Pill")).toBeNull();
   });
 
   it("accepts a copy override", () => {

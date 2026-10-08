@@ -7,7 +7,7 @@ Stack: Next.js 16 (App Router), TypeScript, Tailwind 4, JSZip, Vitest, pnpm.
 
 ```bash
 pnpm install
-pnpm dev          # / = parser placeholder (drop a Takeout .zip), /demo = story player demo
+pnpm dev          # / = the app (landing → upload → story), /demo = story with synthetic data, /debug = raw parser output
 pnpm test         # vitest run (includes QA fixtures if /workspace/watchback-fixtures/out exists)
 pnpm test:fixtures  # QA fixture suite only (override dir with WATCHBACK_FIXTURES_DIR)
 YOUTUBE_API_MOCK=1 pnpm start   # fake durations for /api/durations without an API key
@@ -68,23 +68,29 @@ pnpm build
 * The winner is the window with the highest **plays per hour** (plays ÷ window length), so the 7-hour night-owl window can't win just by being wide. Ties go to more raw plays, then table order.
 * `pct` is the integer % of all plays that fall in the winning window. The result is null only when there are zero plays.
 
-## Story UI: `src/components/story/`
+## UI: Paper Mixtape (`design/SPEC.md`, `design/tokens.css`)
 
-* **`StoryPlayer`**
-  * Progress bars per slide.
-  * Tap the right or left half for next or previous; press and hold (pointer events, so touch, mouse and pen) to pause.
-  * ←/→ to navigate and Space to pause/resume.
-  * Each slide has its own `durationMs` auto-advance timer, and the remaining time survives pauses. Taps on buttons and links inside slides are ignored.
-  * The current slide is tracked by id, so slides can appear or disappear without restarting the story.
-  * With `prefers-reduced-motion`, there's no auto-advance (unless `autoAdvanceWithReducedMotion` is set) and no progress animation.
-* **`PeriodPill`**
-  * Shows `Mon YYYY – Mon YYYY`, `YYYY`, or `All time`, plus a chevron that opens a picker: last 12 months, available years, all time.
-  * Pair it with `useStoryStats(events)`, which re-runs `computeStats` on the already-parsed events. The story pauses while the picker is open.
-* **`planSlides(stats, { watchTime, only })`** is the conditional slide list. It drops watch-time when `estimateWatchTime` returned null, drops music slides with no YouTube Music plays, and drops other slides that have no data.
-* **Theming:** every color and font comes from CSS variables (`--story-bg`, `--story-fg`, `--story-accent`, `--story-track`, `--story-fill`, `--story-pill-bg`, `--story-menu-*`, `--story-font`, `--story-radius`) in `globals.css`. Re-skin by overriding them.
-* **Frame:** `.story-frame` is a mobile-first 9:16 frame.
-* **Line clamping:** the `clamp-title` (2 lines) and `clamp-name` (1 line) utilities clamp in CSS. Strings are never cut in JS.
-* **`/demo`:** a deterministic synthetic history (2023 has no Music, so picking 2023 drops the music slide) and a checkbox that simulates a failed durations lookup. The slides are placeholder layouts, not designs.
+Designer's tokens are pasted into `src/app/globals.css` (`@theme static` + the plain `:root` vars, fonts via
+`next/font` in `layout.tsx`). Follow the tokens.css contrast list: no tomato text on mustard (ink), text on
+teal / teal-dark / tomato (heat-8) / ink is paper-2, no text in heat-6/7, mustard is never text. A test helper
+(`src/test-utils/contrast.ts`) checks rendered slides, share cards and screens for those pairs.
+
+| Where | What |
+| --- | --- |
+| `src/components/story/` | `StoryPlayer` (progress bars, brand row + ✕, tap left third = back / right two thirds = next, hold ≥250ms to pause, ←/→/Space, SR buttons, aria-live progress, first-run hints, "Tap to continue" under reduced motion; `bare` slides hide the chrome), `PeriodPill` (opens the period **bottom sheet**), `planSlides`, `useStoryStats` |
+| `src/components/paper/` | Sticker, TapeStrip, HandCircle, Underline, VHSLabel, `HeroNumber` (≥ 96px always, roll-up, final value for screen readers), `MonogramSticker`, EstimateChip, `BottomSheet` (role=dialog, aria-modal, focus trap, Esc / ✕ / scrim close, focus returns to the opener), decorative SVGs |
+| `src/components/watchback/` | `WatchbackStory` (the 12 slides + explainer sheet + share slide), `slides.tsx`, `charts.tsx` (heatmap, bar chart, streak calendar, CSS cassette), `share.tsx`, `VideoThumb` + `useThumbnailCache`, `screens.tsx` (landing / upload / crunching), `App.tsx` |
+| `src/lib/monogram/` | `initials()` + FNV-1a palette/tilt hash, exactly SPEC §8 |
+| `src/lib/thumb/client.ts` | `fetchThumbnail(id)` for Backend's `POST /api/thumb` |
+
+* **Story (12 slides when everything is present):** total videos · watch time · #1 creator · top 5 creators · favorite video · busiest month · prime time (heatmap **and** the peak-hour badge; there's no separate badge slide) · streak · top searches · music total · top songs · share. `planSlides` drops what has no data (watch time when durations failed, music slides without Music, etc.), and the progress bars show the planned count.
+* **Favorite video thumbnail:** only via `POST /api/thumb` with `{ id }` (never `i.ytimg.com`), only for valid 11-char IDs, `AbortSignal.timeout(3000)`. Non-2xx (incl. 404 while the route didn't exist), network errors, decode errors and >3 s all keep the hatch placeholder; a response that arrives after the timeout is discarded, so nothing swaps in late. The image fades in over 200ms (no fade with reduced motion); `alt` is the full title. The blob URL is held per video ID at **story level** (`useThumbnailCache`), so it survives the slide unmounting and period switches, and is revoked only when the story unmounts.
+* **Share images:** `ShareCard` lays out at 360×640 and 360×360 CSS px; `renderCardPng` waits for `document.fonts.ready` and exports with `html-to-image` at `pixelRatio: 3` (1080×1920 / 1080×1080). When watch time is unavailable the tile becomes "Your peak hour" with an ⓘ; its tooltip renders outside the card node and the ⓘ carries `data-export-exclude`, so neither is ever in the PNG. The stamp is `en.appName` (uppercased in CSS). The PNG has flat paper-2 instead of grain (feTurbulence doesn't survive the foreignObject render).
+* **Pre-story screens:** landing shows `privacy.body` in full; the upload cassette is the `<label>` for a hidden `.zip` input (drag-over: tomato label border, scale 1.02, reels spin; error: 300ms shake + tomato text with a 2px rule) and shows `upload.cassetteLabel`; crunching shows the live count.
+* **Watch time in the real app:** one `/api/durations` request (≤ 2,000 IDs, sampled from the default period) after parsing; each period's estimate reuses those durations (IDs not looked up are filled from the sampled average).
+* **Motion:** rise/slap/tape/draw-on/bar-grow per SPEC §4, all replaced by short fades or nothing under `prefers-reduced-motion`. Grain is never animated.
+* **Line clamping:** `clamp-title` (2 lines) for video titles, `clamp-name` (1 line, ellipsis) for creator/artist/song/search strings. Strings are never cut in JS.
+* **`/demo`:** deterministic synthetic history (2023 has no Music), a generated stand-in thumbnail (no network), and a checkbox that simulates the durations endpoint failing.
 * **Component tests** use jsdom 26 + Testing Library (opt-in per file via `// @vitest-environment jsdom`). jsdom 27+ needs Node 22.
 
 ### Copy
@@ -95,7 +101,7 @@ All user-facing words come from Copywriter's `src/copy/en.ts` (don't hardcode st
 `StoryPlayer` takes `copy` (defaults to `en.player`): aria-live progress, visually hidden Prev/Pause-Play/Next
 buttons, first-slide gesture + keyboard hints (keyboard hint hidden on coarse pointers), and a "Tap to continue"
 prompt when reduced motion turns off auto-advance. `PeriodPill` gets its `label`/`options` from `useStoryStats`.
-The share-card stamp renders `en.appName` uppercased in CSS (`deco.shareStamp` is unused).
+The share-card stamp renders `en.appName` uppercased in CSS (`deco.shareStamp` and `deco.runnersUp` are unused).
 
 ## Stat definitions
 

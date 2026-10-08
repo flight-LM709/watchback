@@ -1,24 +1,24 @@
 /**
  * Which story slides to show for a given stats object. Pure + testable.
- * Order follows the Copywriter's numbering (landing/upload/crunching are not story slides).
+ * Order and count follow design/SPEC.md §3: 12 slides when everything is present.
+ * The peak-hour badge lives on the prime-time slide (there's no separate badge slide).
  */
 import type { WatchStats } from "@/lib/takeout/stats";
 import type { WatchTimeEstimate } from "@/lib/takeout/watchTime";
 
 export type SlideKind =
-  | "total-videos" // 4
-  | "watch-time" // 5
-  | "top-creator" // 6
-  | "top-creators" // 7
-  | "favorite-video" // 8
-  | "busiest-month" // 9
-  | "peak-time" // 10
-  | "peak-hour-badge"
-  | "streak" // 11
-  | "top-searches" // 12
-  | "music-total" // 13
-  | "top-songs" // 14
-  | "share"; // 15
+  | "total-videos" // 1  02-big-number
+  | "watch-time" // 2  05b-watch-time
+  | "top-creator" // 3  03-top-creator
+  | "top-creators" // 4  06b-top5-creators
+  | "favorite-video" // 5  07-favorite-video
+  | "busiest-month" // 6  08-busiest-month
+  | "prime-time" // 7  04-prime-time (heatmap + peak-hour badge)
+  | "streak" // 8  09-streak
+  | "top-searches" // 9  10-top-searches
+  | "music-total" // 10 11-music-total
+  | "top-songs" // 11 12-top5-songs
+  | "share"; // 12 05-share-card
 
 export const ALL_SLIDES: readonly SlideKind[] = [
   "total-videos",
@@ -27,8 +27,7 @@ export const ALL_SLIDES: readonly SlideKind[] = [
   "top-creators",
   "favorite-video",
   "busiest-month",
-  "peak-time",
-  "peak-hour-badge",
+  "prime-time",
   "streak",
   "top-searches",
   "music-total",
@@ -46,7 +45,7 @@ type PlanStats = Pick<
 export interface PlanOptions {
   /** Result of estimateWatchTime(); null/undefined drops the watch-time slide. */
   watchTime?: WatchTimeEstimate | null;
-  /** Restrict to (and order by) this subset, e.g. for the demo. */
+  /** Restrict to (and order by) this subset. */
   only?: readonly SlideKind[];
 }
 
@@ -58,8 +57,7 @@ export function planSlides(stats: PlanStats, opts: PlanOptions = {}): SlideKind[
     "top-creators": stats.topCreators.length > 1,
     "favorite-video": !!stats.favoriteVideo && stats.favoriteVideo.count >= 2,
     "busiest-month": !!stats.busiestMonth,
-    "peak-time": !!stats.peak,
-    "peak-hour-badge": !!stats.peakHourBadge,
+    "prime-time": !!stats.peak && !!stats.peakHourBadge,
     streak: !!stats.longestStreak && stats.longestStreak.days >= 2,
     "top-searches": stats.topSearches.length > 0,
     "music-total": stats.totalSongs > 0,

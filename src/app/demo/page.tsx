@@ -5,7 +5,7 @@ export const metadata: Metadata = { title: "Watchback: story demo" };
 
 export default function DemoPage() {
   return (
-    <main className="flex min-h-dvh flex-col items-center justify-center bg-neutral-900">
+    <main className="flex min-h-dvh flex-col items-center justify-center bg-paper-dark">
       <DemoStory />
     </main>
   );

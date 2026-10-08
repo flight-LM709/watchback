@@ -25,28 +25,75 @@ describe("formatPeriodLabel", () => {
   });
 });
 
-describe("PeriodPill", () => {
+describe("PeriodPill bottom sheet", () => {
   const options = [
     { range: { type: "last12Months" } as const, label: "Apr 2023 – Mar 2024" },
-    { range: { type: "calendarYear", year: 2024 } as const, label: "2024" },
     { range: { type: "calendarYear", year: 2023 } as const, label: "2023" },
+    { range: { type: "calendarYear", year: 2024 } as const, label: "2024" },
     { range: { type: "allTime" } as const, label: "All time" },
   ];
-  it("opens a picker with last-12-months / years / all time and reports the choice", () => {
+  const setup = () => {
     const onChange = vi.fn();
     const onOpenChange = vi.fn();
     render(<PeriodPill range={{ type: "last12Months" }} label="Apr 2023 – Mar 2024" options={options} onChange={onChange} onOpenChange={onOpenChange} />);
-    // aria label from en.player.periodPillAria
-    const btn = screen.getByRole("button", { name: "Change time period, currently Apr 2023 – Mar 2024" });
-    expect(btn.getAttribute("aria-expanded")).toBe("false");
-    fireEvent.click(btn);
+    const pill = screen.getByRole("button", { name: "Change time period, currently Apr 2023 – Mar 2024" }); // en.player.periodPillAria
+    return { onChange, onOpenChange, pill };
+  };
+
+  it("opens an accessible modal sheet with en.ts periodSheet copy; years newest first", () => {
+    const { pill, onOpenChange } = setup();
+    expect(pill.getAttribute("aria-haspopup")).toBe("dialog");
+    fireEvent.click(pill);
     expect(onOpenChange).toHaveBeenLastCalledWith(true);
-    expect(screen.getAllByRole("option").map((o) => o.textContent)).toEqual(["Apr 2023 – Mar 2024", "2024", "2023", "All time"]);
-    expect(screen.getByRole("option", { name: "Apr 2023 – Mar 2024" }).getAttribute("aria-selected")).toBe("true");
-    fireEvent.click(screen.getByRole("option", { name: "2023" }));
+    const dialog = screen.getByRole("dialog", { name: "Choose a period" });
+    expect(dialog.getAttribute("aria-modal")).toBe("true");
+    expect(screen.getByText("Calendar years")).toBeTruthy();
+    const rows = Array.from(dialog.querySelectorAll("li button")).map((b) => b.textContent);
+    expect(rows).toEqual(["Last 12 monthsApr 2023 – Mar 2024", "2024", "2023", "All time"]);
+    expect(screen.getByRole("button", { name: "Close" })).toBeTruthy();
+    // Selected row is current + focused first
+    const selected = screen.getByRole("button", { name: /Last 12 months/ });
+    expect(selected.getAttribute("aria-current")).toBe("true");
+    expect(document.activeElement).toBe(selected);
+  });
+
+  it("choosing a row reports the range and closes; focus returns to the pill", () => {
+    const { pill, onChange, onOpenChange } = setup();
+    pill.focus();
+    fireEvent.click(pill);
+    fireEvent.click(screen.getByRole("button", { name: "2023" }));
     expect(onChange).toHaveBeenCalledWith({ type: "calendarYear", year: 2023 });
-    expect(screen.queryByRole("listbox")).toBeNull();
+    expect(screen.queryByRole("dialog")).toBeNull();
     expect(onOpenChange).toHaveBeenLastCalledWith(false);
+    expect(document.activeElement).toBe(pill);
+  });
+
+  it("Esc, the ✕ and a scrim tap close it", () => {
+    const { pill } = setup();
+    fireEvent.click(pill);
+    fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
+    expect(screen.queryByRole("dialog")).toBeNull();
+    fireEvent.click(pill);
+    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
+    fireEvent.click(pill);
+    fireEvent.click(screen.getByTestId("sheet-scrim"));
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("traps focus: Tab from the last control wraps to the first, Shift+Tab from the first wraps to the last", () => {
+    const { pill } = setup();
+    fireEvent.click(pill);
+    const dialog = screen.getByRole("dialog");
+    const focusables = Array.from(dialog.querySelectorAll<HTMLElement>("button"));
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+    expect(first.getAttribute("aria-label")).toBe("Close");
+    last.focus();
+    fireEvent.keyDown(last, { key: "Tab" });
+    expect(document.activeElement).toBe(first);
+    fireEvent.keyDown(first, { key: "Tab", shiftKey: true });
+    expect(document.activeElement).toBe(last);
   });
 });
 
@@ -92,7 +139,7 @@ describe("period change re-runs stats without restarting the story", () => {
     expect(screen.getByText("Slide 2 of 3")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: /Apr 2023 – Mar 2024/ }));
     expect(screen.getByRole("region").dataset.paused).toBe("true"); // paused while picking
-    fireEvent.click(screen.getByRole("option", { name: "2023" }));
+    fireEvent.click(screen.getByRole("button", { name: "2023" }));
     expect(screen.getByText("B: 1 videos")).toBeTruthy(); // same slide, new stats
     expect(screen.getByText("Slide 2 of 2")).toBeTruthy(); // music slide dropped (no Music in 2023)
     expect(screen.getByRole("button", { name: /2023/ })).toBeTruthy();
