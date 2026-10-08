@@ -1,0 +1,78 @@
+[
+ [
+  "00-landing",
+  "Landing"
+ ],
+ [
+  "01-upload",
+  "Upload"
+ ],
+ [
+  "02b-crunching",
+  "Crunching"
+ ],
+ [
+  "02-big-number",
+  "1 · Total videos"
+ ],
+ [
+  "05b-watch-time",
+  "2 · Watch time"
+ ],
+ [
+  "05b-watch-time-explainer",
+  "2 · Estimate explainer (sheet)"
+ ],
+ [
+  "03-top-creator",
+  "3 · #1 creator"
+ ],
+ [
+  "06b-top5-creators",
+  "4 · Top 5 creators"
+ ],
+ [
+  "07-favorite-video",
+  "5 · Favorite video"
+ ],
+ [
+  "08-busiest-month",
+  "6 · Busiest month"
+ ],
+ [
+  "04-prime-time",
+  "7 · Prime time + badge"
+ ],
+ [
+  "09-streak",
+  "8 · Streak"
+ ],
+ [
+  "10-top-searches",
+  "9 · Top searches"
+ ],
+ [
+  "11-music-total",
+  "10 · Music total + top artist"
+ ],
+ [
+  "12-top5-songs",
+  "11 · Top 5 songs"
+ ],
+ [
+  "05-share-card",
+  "12 · Share (story 9:16)"
+ ],
+ [
+  "13-share-square",
+  "Share image · square 1080×1080"
+ ],
+ [
+  "14-fallback-share-card",
+  "Fallback · watch time unavailable"
+ ],
+ [
+  "15-period-sheet",
+  "Period pill · open"
+ ]
+]

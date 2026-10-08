@@ -1,0 +1,26 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=390"><link rel="stylesheet" href="style.css"><style>
+.ghost{position:absolute;top:150px;left:24px;right:24px}
+.ghost .l{font-size:30px;font-weight:600}
+.ghost .hero-n{margin-top:40px;font-size:100px}
+.period{z-index:25}
+.period svg{transform:rotate(180deg)}
+.sheet{padding-bottom:30px}
+.sheet h2{font-size:22px;font-weight:700;letter-spacing:-.02em}
+.grp{margin:14px 0 4px}
+.o{display:flex;align-items:center;justify-content:space-between;min-height:52px;padding:6px 14px;border-bottom:1px dashed var(--rule)}
+.o b{display:block;font-size:18px;font-weight:600}
+.o small{display:block;font-family:var(--mono);font-size:11px;font-weight:700;color:var(--ink2);margin-top:1px}
+.o.sel{background:var(--mustard);border:2px solid var(--ink);border-radius:6px;box-shadow:var(--sh-chip)}
+.o.sel b{font-weight:700}
+.o.last{border:0}
+</style></head><body><div class="screen"><div class="progress"><span class="half"></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div><div class="topbar"><div class="brand"><svg aria-hidden="true" width="24" height="16" viewBox="0 0 22 15"><rect x="1" y="1" width="20" height="13" rx="2" fill="#1F1B16"/><rect x="4" y="3.5" width="14" height="5" rx="2.5" fill="#F3EBDD"/><circle cx="7.5" cy="6" r="1.5" fill="#1F1B16"/><circle cx="14.5" cy="6" r="1.5" fill="#1F1B16"/><path d="M6 14l1.5-3h7L16 14" fill="#B33A24"/></svg>Watchback</div><span class="close">✕</span></div><div class="period">Nov 2025 – Oct 2026 <svg aria-hidden="true" width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="#1F1B16" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4.5l3 3 3-3"/></svg></div>
+<div class="ghost" aria-hidden="true"><div class="l">You pressed play on</div><div class="hero-n">12<span class="cm">,</span>480</div></div>
+<div class="scrim"></div>
+<div class="sheet" role="listbox"><div class="handle"></div>
+<h2>Choose a period</h2>
+<div style="margin-top:14px"><div class="o sel" role="option" aria-selected="true"><div><b>Last 12 months</b><small>Nov 2025 – Oct 2026</small></div><span class=ck><svg aria-hidden="true" class="" style="width:26px;height:26px;color:#B33A24;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13 C 6 15, 8 18, 9 20 C 12 13, 16 7, 22 3"/></svg></span></div></div>
+<div class="grp label">Calendar years</div>
+<div class="o" role="option" aria-selected="false"><div><b>2026</b></div></div><div class="o" role="option" aria-selected="false"><div><b>2025</b></div></div><div class="o" role="option" aria-selected="false"><div><b>2024</b></div></div><div class="o" role="option" aria-selected="false"><div><b>2023</b></div></div>
+<div style="margin-top:12px"><div class="o last" role="option" aria-selected="false"><div><b>All time</b></div></div></div>
+</div>
+<span class="example tr">Example data</span></div></body></html>

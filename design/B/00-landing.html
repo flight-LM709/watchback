@@ -1,0 +1,40 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=390"><link rel="stylesheet" href="style.css"><style>
+.cass{position:relative;border-radius:var(--r-cassette);border:2px solid var(--ink);box-shadow:var(--sh-sticker);padding:14px 14px 64px}
+.cass .clab{min-height:96px;border-radius:var(--r-label);background:var(--paper2);border:2px solid var(--ink);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:10px 16px;background-image:repeating-linear-gradient(transparent 0 23px,rgba(30,107,102,.16) 23px 24px)}
+.cass .win{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);width:62%;height:42px;border-radius:21px;background:var(--teal-dark);border:2px solid var(--ink);display:flex;align-items:center;justify-content:space-between;padding:0 8px}
+.cass .reel{width:28px;height:28px;border-radius:50%;background:var(--paper2);border:2px solid var(--ink);display:grid;place-items:center}
+.cass .reel i{width:9px;height:9px;border-radius:50%;background:var(--ink);box-shadow:0 0 0 3px var(--paper2),0 0 0 4.5px var(--ink)}
+.cass .band{flex:1;height:12px;margin:0 6px;background:var(--reel);border-radius:6px}
+.cass .screw{position:absolute;width:8px;height:8px;border-radius:50%;background:var(--teal-dark);border:1.5px solid var(--ink)}
+
+.art{position:absolute;top:80px;left:56px;transform:rotate(-5deg) scale(.88);transform-origin:top left}
+.art .clab b{font-family:var(--hand);font-size:38px;line-height:1;color:var(--ink)}
+.art .clab small{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.1em;color:var(--ink2);margin-top:4px}
+.copy{position:absolute;top:286px;left:24px;right:24px}
+h1{font-size:38px;font-weight:700;letter-spacing:-.03em;line-height:1.04;text-wrap:balance}
+h1 em{color:var(--tomato);position:relative;display:inline-block}
+h1 em .u{position:absolute;left:0;right:0;bottom:-6px}
+.lede{font-size:18px;font-style:italic;line-height:1.35;margin-top:16px;max-width:320px}
+.pnote{position:absolute;top:548px;left:24px;right:24px;padding:10px 14px;font-size:13px;line-height:1.38;transform:rotate(.6deg);box-shadow:var(--sh-chip)}
+.cta{position:absolute;left:24px;right:24px;bottom:60px}
+.cta .btn{height:56px;font-size:18px}
+.cta .btn span{display:inline-flex;gap:10px;align-items:center}
+.priv{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:10px;font-size:15px;font-weight:600;color:var(--teal)}
+.disclaimer{position:absolute;left:0;right:0;bottom:16px}
+</style></head><body><div class="screen"><div class="topbar"><div class="brand"><svg aria-hidden="true" width="24" height="16" viewBox="0 0 22 15"><rect x="1" y="1" width="20" height="13" rx="2" fill="#1F1B16"/><rect x="4" y="3.5" width="14" height="5" rx="2.5" fill="#F3EBDD"/><circle cx="7.5" cy="6" r="1.5" fill="#1F1B16"/><circle cx="14.5" cy="6" r="1.5" fill="#1F1B16"/><path d="M6 14l1.5-3h7L16 14" fill="#B33A24"/></svg>Watchback</div></div><span class="example tr">Example data</span>
+<div class="doodle" style="right:26px;top:96px"><svg aria-hidden="true" class="" style="width:40px;height:40px;color:#E2A72E;" viewBox="0 0 40 40"><path d="M20 2 L24 15 L38 16 L27 24 L31 38 L20 30 L9 38 L13 24 L2 16 L16 15 Z" fill="currentColor" stroke="#1F1B16" stroke-width="2" stroke-linejoin="round"/></svg></div>
+<div class="doodle" style="left:22px;top:250px"><svg aria-hidden="true" class="" style="width:22px;height:22px;color:#B33A24;" viewBox="0 0 30 30"><path d="M15 2 C16 11 19 14 28 15 C19 16 16 19 15 28 C14 19 11 16 2 15 C11 14 14 11 15 2Z" fill="currentColor"/></svg></div>
+<div class="art"><div class="cass" style="width:300px;background:#1E6B66">
+<div class="clab"><b>Watchback</b></div>
+<div class="win"><div class="reel"><i></i></div><div class="band"></div><div class="reel"><i></i></div></div>
+<span class="screw" style="left:10px;top:10px"></span><span class="screw" style="right:10px;top:10px"></span><span class="screw" style="left:10px;bottom:10px"></span><span class="screw" style="right:10px;bottom:10px"></span>
+</div></div>
+<div class="copy">
+<h1>Your last 12 months on YouTube, <em>played back.<span class="u"><svg aria-hidden="true" class="" style="display:block;width:100%;height:12px;color:#B33A24;" viewBox="0 0 200 14" preserveAspectRatio="none" fill="none"><path d="M3 9 C 40 3, 80 13, 120 6 S 178 4, 197 9" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" vector-effect="non-scaling-stroke"/></svg></span></em></h1>
+<p class="lede">See who you watched, what you replayed, and when you couldn’t stop.</p>
+</div>
+<div class="sticker pnote"><span class="tape c" style="left:-14px;top:-9px;transform:rotate(-22deg);width:56px;height:18px"></span>Your Takeout file is read right here in your browser and never uploaded. The only thing that leaves your device is a list of video IDs, used to look up video lengths for your watch-time estimate. No account, no tracking, nothing saved. Close the tab and it’s gone.</div>
+<div class="cta"><div class="btn p"><span>Get started <span aria-hidden="true">→</span></span></div>
+<div class="priv"><svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>Your file never leaves your device.</div></div>
+<div class="disclaimer">Not affiliated with YouTube or Google.</div>
+</div></body></html>
