@@ -7,7 +7,7 @@ Stack: Next.js 16 (App Router), TypeScript, Tailwind 4, JSZip, Vitest, pnpm.
 
 ```bash
 pnpm install
-pnpm dev          # placeholder page at / (drop a Takeout .zip to dump stats as JSON)
+pnpm dev          # / = parser placeholder (drop a Takeout .zip), /demo = story player demo
 pnpm test         # vitest run
 pnpm build
 ```
@@ -33,7 +33,7 @@ pnpm build
 
 ### Timezones
 * Takeout JSON times are UTC ISO strings. HTML dates are wall-clock strings with a zone abbreviation.
-* **All calendar bucketing** (hour, weekday, date, month, streaks, range boundaries, night-owl) happens in `StatsOptions.timeZone`, which defaults to `Intl.DateTimeFormat().resolvedOptions().timeZone`.
+* **All calendar bucketing** (hour, weekday, date, month, streaks, range boundaries, peak-hour badge) happens in `StatsOptions.timeZone`, which defaults to `Intl.DateTimeFormat().resolvedOptions().timeZone`.
 * The default range is the **12 local calendar months ending with the latest watch's month**, so the month chart always has exactly 12 buckets. `calendarYear` and `allTime` ranges are also available, plus `custom`.
 
 ### Known limitations / edge cases
@@ -50,6 +50,40 @@ pnpm build
 * **Ads** (`From Google Ads` / `Dari Google Ads`) stay in `events` with `isAd: true` and are reported as `adsExcluded`. They're left out of every other stat and out of `uniqueVideoIds`.
 * "Visited YouTube Music" entries are dropped and counted in `diagnostics.visitEntries`.
 * "Watched" ≠ finished. Each entry counts as one play.
+
+### Peak-hour badge
+`stats.peakHourBadge` is `{ badge, pct, plays } | null` (also exported as `peakHourBadge(hourOfDay)`). It picks one of six local-time windows that cover the whole day:
+
+| Badge | Window |
+| --- | --- |
+| early-bird | 5–9 |
+| coffee-break | 9–11 |
+| lunch-break | 11–14 |
+| afternoon-drifter | 14–18 |
+| evening-regular | 18–22 |
+| night-owl | 22–5 |
+
+* The winner is the window with the highest **plays per hour** (plays ÷ window length), so the 7-hour night-owl window can't win just by being wide. Ties go to more raw plays, then table order.
+* `pct` is the integer % of all plays that fall in the winning window. The result is null only when there are zero plays.
+
+## Story UI: `src/components/story/`
+
+* **`StoryPlayer`**
+  * Progress bars per slide.
+  * Tap the right or left half for next or previous; press and hold (pointer events, so touch, mouse and pen) to pause.
+  * ←/→ to navigate and Space to pause/resume.
+  * Each slide has its own `durationMs` auto-advance timer, and the remaining time survives pauses. Taps on buttons and links inside slides are ignored.
+  * The current slide is tracked by id, so slides can appear or disappear without restarting the story.
+  * With `prefers-reduced-motion`, there's no auto-advance (unless `autoAdvanceWithReducedMotion` is set) and no progress animation.
+* **`PeriodPill`**
+  * Shows `Mon YYYY – Mon YYYY`, `YYYY`, or `All time`, plus a chevron that opens a picker: last 12 months, available years, all time.
+  * Pair it with `useStoryStats(events)`, which re-runs `computeStats` on the already-parsed events. The story pauses while the picker is open.
+* **`planSlides(stats, { watchTime, only })`** is the conditional slide list. It drops watch-time when `estimateWatchTime` returned null, drops music slides with no YouTube Music plays, and drops other slides that have no data.
+* **Theming:** every color and font comes from CSS variables (`--story-bg`, `--story-fg`, `--story-accent`, `--story-track`, `--story-fill`, `--story-pill-bg`, `--story-menu-*`, `--story-font`, `--story-radius`) in `globals.css`. Re-skin by overriding them.
+* **Frame:** `.story-frame` is a mobile-first 9:16 frame.
+* **Line clamping:** the `clamp-title` (2 lines) and `clamp-name` (1 line) utilities clamp in CSS. Strings are never cut in JS.
+* **`/demo`:** a deterministic synthetic history (2023 has no Music, so picking 2023 drops the music slide) and a checkbox that simulates a failed durations lookup. The slides are placeholder layouts, not designs.
+* **Component tests** use jsdom 26 + Testing Library (opt-in per file via `// @vitest-environment jsdom`). jsdom 27+ needs Node 22.
 
 ## For Backend Dev: duration lookup (watch-time estimate)
 

@@ -58,8 +58,8 @@ export interface WatchStats {
   hourOfDay: number[];
   dayOfWeek: number[];
   peak: { day: number; hour: number; count: number } | null;
-  /** Night owl = plays between 22:00 and 03:59 local. Badge when share >= 25%. */
-  nightOwl: { count: number; share: number; isNightOwl: boolean };
+  /** Exactly one time-of-day badge (normalized by window length); null only with zero plays. */
+  peakHourBadge: PeakHourBadgeResult | null;
   longestStreak: { days: number; start: string; end: string } | null;
   totalSearches: number;
   topSearches: Array<{ query: string; count: number }>;
@@ -69,8 +69,51 @@ export interface WatchStats {
   playCountsById: Record<string, number>;
 }
 
-export const NIGHT_HOURS = new Set([22, 23, 0, 1, 2, 3]);
-export const NIGHT_OWL_THRESHOLD = 0.25;
+export type PeakHourBadge =
+  | "early-bird"
+  | "coffee-break"
+  | "lunch-break"
+  | "afternoon-drifter"
+  | "evening-regular"
+  | "night-owl";
+
+export interface PeakHourBadgeResult {
+  badge: PeakHourBadge;
+  /** Integer % of all plays that fall in the winning window. */
+  pct: number;
+  /** Plays in the winning window. */
+  plays: number;
+}
+
+/** Local-time windows covering all 24 hours: [startHour, endHour), wrapping past midnight. */
+export const PEAK_HOUR_WINDOWS: ReadonlyArray<{ badge: PeakHourBadge; start: number; end: number; hours: number }> = [
+  { badge: "early-bird", start: 5, end: 9, hours: 4 },
+  { badge: "coffee-break", start: 9, end: 11, hours: 2 },
+  { badge: "lunch-break", start: 11, end: 14, hours: 3 },
+  { badge: "afternoon-drifter", start: 14, end: 18, hours: 4 },
+  { badge: "evening-regular", start: 18, end: 22, hours: 4 },
+  { badge: "night-owl", start: 22, end: 5, hours: 7 },
+];
+
+const inWindow = (hour: number, w: { start: number; end: number }) =>
+  w.start < w.end ? hour >= w.start && hour < w.end : hour >= w.start || hour < w.end;
+
+/**
+ * Pick the window with the highest plays-per-hour (plays / window hours), so the 7h
+ * night-owl window can't win just by being wide. Ties: more raw plays, then list order.
+ */
+export function peakHourBadge(hourOfDay: number[]): PeakHourBadgeResult | null {
+  const total = hourOfDay.reduce((a, b) => a + b, 0);
+  if (total === 0) return null;
+  let best: { badge: PeakHourBadge; plays: number; rate: number } | null = null;
+  for (const w of PEAK_HOUR_WINDOWS) {
+    let plays = 0;
+    for (let h = 0; h < 24; h++) if (inWindow(h, w)) plays += hourOfDay[h] ?? 0;
+    const rate = plays / w.hours;
+    if (!best || rate > best.rate || (rate === best.rate && plays > best.plays)) best = { badge: w.badge, plays, rate };
+  }
+  return { badge: best!.badge, plays: best!.plays, pct: Math.round((best!.plays / total) * 100) };
+}
 
 const isPlay = (e: TakeoutEvent) => e.kind === "watch" && !e.isAd;
 
@@ -135,7 +178,7 @@ export function computeStats(events: TakeoutEvent[], options: StatsOptions = {})
   const clock = new LocalClock(timeZone);
   const { start, end } = resolveRange(events, range, timeZone);
 
-  let totalVideos = 0, totalSongs = 0, adsExcluded = 0, unavailableVideos = 0, shortsWatched = 0, totalSearches = 0, night = 0;
+  let totalVideos = 0, totalSongs = 0, adsExcluded = 0, unavailableVideos = 0, shortsWatched = 0, totalSearches = 0;
   const creators = new Map<string, CountedName>();
   const videos = new Map<string, { videoId: string; title?: string; channelName?: string; count: number; last: number }>();
   const artists = new Map<string, CountedName>();
@@ -178,7 +221,6 @@ export function computeStats(events: TakeoutEvent[], options: StatsOptions = {})
     const mkey = `${y}-${String(mo + 1).padStart(2, "0")}`;
     monthCounts.set(mkey, (monthCounts.get(mkey) ?? 0) + 1);
     days.add(Math.floor((t + offset) / 86400000));
-    if (NIGHT_HOURS.has(hour)) night++;
     if (e.unavailable) unavailableVideos++;
     if (e.isShort) shortsWatched++;
     if (e.videoId) plays.set(e.videoId, (plays.get(e.videoId) ?? 0) + 1);
@@ -293,7 +335,7 @@ export function computeStats(events: TakeoutEvent[], options: StatsOptions = {})
     hourOfDay,
     dayOfWeek,
     peak,
-    nightOwl: { count: night, share: totalPlays ? night / totalPlays : 0, isNightOwl: totalPlays > 0 && night / totalPlays >= NIGHT_OWL_THRESHOLD },
+    peakHourBadge: peakHourBadge(hourOfDay),
     longestStreak,
     totalSearches,
     topSearches: topEntries(searches, topSearchesN, (s) => s.query),

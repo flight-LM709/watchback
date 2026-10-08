@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { parseJsonHistory } from "../parseJson";
-import { availableYears, computeStats } from "../stats";
+import { availableYears, computeStats, PEAK_HOUR_WINDOWS, peakHourBadge } from "../stats";
 import type { TakeoutEvent } from "../types";
 import { fixture } from "./helpers";
 
@@ -67,19 +67,18 @@ describe("local timezone bucketing", () => {
     expect(s.timeZone).toBe(Intl.DateTimeFormat().resolvedOptions().timeZone);
   });
 
-  it("a 22:30 WIB watch (15:30Z) is a night-owl watch at hour 22 on Friday in Jakarta", () => {
+  it("a 22:30 WIB watch (15:30Z) lands at hour 22 on Friday and earns night-owl in Jakarta", () => {
     const ev = [watch("2024-01-05T15:30:00Z"), watch("2024-01-12T15:30:00Z"), watch("2024-01-13T07:00:00Z")];
     const jkt = computeStats(ev, { timeZone: JKT });
     expect(jkt.heatmap[5][22]).toBe(2); // Friday 22:00
     expect(jkt.hourOfDay[22]).toBe(2);
     expect(jkt.peak).toEqual({ day: 5, hour: 22, count: 2 });
-    expect(jkt.nightOwl.count).toBe(2);
-    expect(jkt.nightOwl.isNightOwl).toBe(true);
+    expect(jkt.peakHourBadge).toEqual({ badge: "night-owl", pct: 67, plays: 2 });
 
+    // Same instants in UTC: 15:30 x2 (afternoon-drifter), 07:00 (early-bird)
     const utc = computeStats(ev, { timeZone: "UTC" });
     expect(utc.heatmap[5][15]).toBe(2);
-    expect(utc.nightOwl.count).toBe(0);
-    expect(utc.nightOwl.isNightOwl).toBe(false);
+    expect(utc.peakHourBadge).toEqual({ badge: "afternoon-drifter", pct: 67, plays: 2 });
   });
 
   it("streaks use the local calendar date", () => {
@@ -125,6 +124,39 @@ describe("local timezone bucketing", () => {
     const s = computeStats(ev, { timeZone: "America/New_York", range: { type: "allTime" } });
     expect(s.hourOfDay[1]).toBe(1);
     expect(s.hourOfDay[3]).toBe(1);
+  });
+});
+
+describe("peakHourBadge", () => {
+  const hours = (spec: Record<number, number>) => Array.from({ length: 24 }, (_, h) => spec[h] ?? 0);
+
+  it("windows cover all 24 hours exactly once", () => {
+    expect(PEAK_HOUR_WINDOWS.reduce((a, w) => a + w.hours, 0)).toBe(24);
+  });
+
+  it("normalizes by window width: night-owl doesn't win just by being 7h wide", () => {
+    // night-owl: 7 plays over 7h = 1.0/h; coffee-break: 3 plays over 2h = 1.5/h
+    const r = peakHourBadge(hours({ 22: 1, 23: 1, 0: 1, 1: 1, 2: 1, 3: 1, 4: 1, 9: 2, 10: 1 }));
+    expect(r).toEqual({ badge: "coffee-break", pct: 30, plays: 3 });
+  });
+
+  it("night-owl wins when its per-hour rate is highest", () => {
+    // 12 plays / 7h = 1.71/h beats 3 plays / 2h = 1.5/h
+    expect(peakHourBadge(hours({ 23: 12, 9: 3 }))).toEqual({ badge: "night-owl", pct: 80, plays: 12 });
+  });
+
+  it("window edges: 5:00 is early-bird, 4:59 is night-owl, 22:00 is night-owl", () => {
+    expect(peakHourBadge(hours({ 5: 1 }))!.badge).toBe("early-bird");
+    expect(peakHourBadge(hours({ 4: 1 }))!.badge).toBe("night-owl");
+    expect(peakHourBadge(hours({ 22: 1 }))!.badge).toBe("night-owl");
+    expect(peakHourBadge(hours({ 21: 1 }))!.badge).toBe("evening-regular");
+  });
+
+  it("exactly one badge, null only with zero plays", () => {
+    expect(peakHourBadge(hours({}))).toBeNull();
+    // Equal rate: lunch 3 plays/3h = 1/h vs coffee 2 plays/2h = 1/h -> more raw plays wins
+    expect(peakHourBadge(hours({ 11: 1, 12: 1, 13: 1, 9: 1, 10: 1 }))!.badge).toBe("lunch-break");
+    expect(computeStats([], { timeZone: "UTC" }).peakHourBadge).toBeNull();
   });
 });
 

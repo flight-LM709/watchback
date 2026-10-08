@@ -1,1 +1,81 @@
 @import "tailwindcss";
+
+/*
+ * Story theme tokens. The visual direction isn't chosen yet, so every color/font the
+ * story UI uses comes from these variables. Re-skin by overriding them on :root,
+ * on a wrapper class, or via style={{ "--story-bg": "…" }}.
+ */
+:root {
+  --story-bg: #121212;
+  --story-fg: #ffffff;
+  --story-muted: rgb(255 255 255 / 0.72);
+  --story-accent: #ff4d6d;
+  --story-track: rgb(255 255 255 / 0.35);
+  --story-fill: #ffffff;
+  --story-pill-bg: rgb(255 255 255 / 0.16);
+  --story-menu-bg: #ffffff;
+  --story-menu-fg: #121212;
+  --story-radius: 0px;
+  --story-font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+/* Mobile-first 9:16 frame: fills a phone screen, letterboxes on larger screens. */
+.story-frame {
+  aspect-ratio: 9 / 16;
+  width: min(100vw, calc(100dvh * 9 / 16));
+  max-height: 100dvh;
+  border-radius: var(--story-radius);
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+}
+@media (min-width: 640px) {
+  .story-frame {
+    --story-radius: 16px;
+  }
+}
+
+@keyframes story-progress {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+.story-progress-fill {
+  transform: scaleX(0);
+  animation-name: story-progress;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+.story-progress-fill[data-state="done"],
+.story-progress-fill[data-state="todo"] {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .story-progress-fill {
+    animation: none !important;
+  }
+  .story-frame * {
+    transition: none !important;
+  }
+}
+
+/*
+ * Line clamping: always clamp visually with CSS, never cut strings in JS.
+ * clamp-title: video/song titles (2 lines). clamp-name: creator/artist names (1 line).
+ */
+@utility clamp-title {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+@utility clamp-name {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
