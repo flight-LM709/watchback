@@ -239,44 +239,43 @@ def wt_body(sheet=False):
 page('05b-watch-time', WT_CSS, wt_body())
 page('05b-watch-time-explainer', WT_CSS, wt_body(True))
 
-# ================================================================ 03 top creator
-rows = [('02', 'Sample Channel B', '812'), ('03', 'Creator Name C', '655'), ('04', 'Sample Channel D', '540'), ('05', 'Creator Name E', '498')]
+# ================================================================ 03 top creator (runners-up removed: they live on 06b)
 AVATAR = '<svg aria-hidden="true" viewBox="0 0 120 130" style="width:72%;height:auto"><circle cx="60" cy="46" r="28" fill="#F3EBDD" opacity=".85"/><path d="M8 132c4-34 26-52 52-52s48 18 52 52z" fill="#F3EBDD" opacity=".85"/></svg>'
 page('03-top-creator', '''
-.wrap{padding-top:120px;text-align:center}
-.h{font-size:28px;font-weight:600;letter-spacing:-.02em}
+.wrap{padding-top:122px;text-align:center}
+.h{font-size:30px;font-weight:600;letter-spacing:-.02em}
 .h em{font-style:italic}
-.avw{position:relative;width:112px;height:112px;margin:16px auto 0}
-.av{width:112px;height:112px;border-radius:50%;background:var(--teal);border:2.5px solid var(--ink);overflow:hidden;display:flex;align-items:flex-end;justify-content:center}
-.stamp{position:absolute;right:-30px;top:-10px;transform:rotate(12deg);width:56px;height:56px}
-.stamp span{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--mono);font-weight:700;font-size:14px;padding-top:4px}
-.name{font-size:30px;font-weight:700;letter-spacing:-.02em;margin-top:12px;position:relative;display:inline-block;max-width:100%}
+.avw{position:relative;width:176px;height:176px;margin:26px auto 0}
+.av{width:176px;height:176px;border-radius:50%;background:var(--teal);border:2.5px solid var(--ink);box-shadow:var(--sh-sticker);overflow:hidden;display:flex;align-items:flex-end;justify-content:center}
+.stamp{position:absolute;right:-34px;top:-14px;transform:rotate(12deg);width:72px;height:72px}
+.stamp span{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--mono);font-weight:700;font-size:17px;padding-top:5px}
+.name{font-size:32px;font-weight:700;letter-spacing:-.02em;margin-top:22px;max-width:100%}
 .name .t{display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
-.count{color:var(--tomato);margin-top:6px}
-.line{font-size:18px;font-style:italic;margin-top:4px}
-.list{margin-top:22px;text-align:left;padding:10px 14px 4px;transform:rotate(.6deg)}
-.lh{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;border-bottom:1.5px solid var(--ink);padding-bottom:6px}
-.row{display:flex;align-items:baseline;gap:10px;padding:8px 0;border-bottom:1px dashed var(--rule);font-size:16px;font-weight:600}
-.row:last-child{border:0}
-.row .n{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--tomato)}
-.row .t{min-width:0;max-width:60%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.row .dots{flex:1;border-bottom:2px dotted var(--rule);transform:translateY(-4px)}
-.row .v{font-family:var(--mono);font-size:13px;font-weight:700}
+.vhs{margin:26px 6px 0;padding:0 0 14px;transform:rotate(-2deg)}
+.stripes{display:flex;height:14px;border-bottom:2px solid var(--ink)}
+.stripes i{flex:1}
+.count{color:var(--tomato);font-size:var(--fs-hero-xl);margin-top:10px}
+.line{font-size:22px;font-style:italic;font-weight:600;margin-top:22px}
+.line .u{display:block;width:150px;margin:4px auto 0}
 ''', prog(3) + TOP + PERIOD + f'''
+<div class="doodle" style="left:30px;top:200px">{spark(30, MUSTARD)}</div>
+<div class="doodle" style="right:40px;top:356px">{spark(18, TOMATO)}</div>
+<div class="doodle" style="left:34px;top:418px;transform:rotate(-30deg)">{arrow(34)}</div>
+<div class="doodle" style="right:34px;bottom:120px">{star(34, TEAL)}</div>
 <div class="wrap">
 <div class="h">Your #1 creator <em>was</em></div>
 <div class="avw">
 <div class="av">{AVATAR}</div>
-{circle(12,12,12,12)}
-<div class="stamp">{star(56)}<span>#1</span></div>
+{circle(16,16,16,14)}
+<div class="stamp">{star(72)}<span>#1</span></div>
 </div>
 <div class="name"><span class="t">Creator Name A.</span></div>
+<div class="sticker vhs">
+<span class="tape" style="left:-16px;top:-11px;transform:rotate(-24deg)"></span><span class="tape c" style="right:-16px;bottom:-8px;transform:rotate(-20deg)"></span>
+{STRIPES}
 <div class="count hero-n">1<span class="cm">,</span>204</div>
-<div class="line">videos. That’s loyalty.</div>
-<div class="sticker list">
-<div class="lh">Side B · Runners-up</div>
-{''.join(f'<div class="row"><span class="n">{n}</span><span class="t">{t}</span><span class="dots"></span><span class="v">{v} videos</span></div>' for n, t, v in rows)}
 </div>
+<div class="line">videos. That’s loyalty.<span class="u">{underline(TOMATO, 10)}</span></div>
 </div>
 ''' + EX('bl'))
 
@@ -320,6 +319,7 @@ h1{position:absolute;top:112px;left:24px;right:24px;font-size:30px;font-weight:6
 h1 em{font-style:italic;color:var(--tomato)}
 .pol{position:absolute;top:208px;left:30px;right:30px;padding:12px 12px 14px;transform:rotate(-2deg)}
 .thumb{aspect-ratio:16/9;border:2px solid var(--ink);background-color:var(--paper-dark);background-image:repeating-linear-gradient(-45deg,rgba(30,107,102,.18) 0 10px,transparent 10px 20px);display:grid;place-items:center;position:relative}
+.thumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
 .thumb .ph{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--ink2);background:var(--paper2);border:1.5px solid var(--ink);padding:3px 8px}
 .thumb .dur{position:absolute;right:6px;bottom:6px;font-family:var(--mono);font-size:11px;font-weight:700;background:var(--ink);color:var(--paper2);padding:1px 5px;border-radius:2px}
 .cap{margin-top:12px}
@@ -336,7 +336,7 @@ h1 em{font-style:italic;color:var(--tomato)}
 <h1>You couldn’t stop <em>rewatching</em> this one.</h1>
 <div class="sticker pol">
 <span class="tape" style="left:50%;top:-12px;transform:translateX(-50%) rotate(-3deg)"></span>
-<div class="thumb"><span class="ph">THUMBNAIL · 16:9</span><span class="dur">12:34</span></div>
+<div class="thumb"><img src="img/thumb-example.jpg" alt="Example Video Title That Is Deliberately Very Long To Prove The Two Line Clamp Works On Small Phones Every Time"><span class="dur">12:34</span></div>
 <div class="cap"><div class="t">Example Video Title That Is Deliberately Very Long To Prove The Two Line Clamp Works On Small Phones Every Time</div><div class="c">An Example Creator With A Rather Long Channel Name Too</div></div>
 </div>
 <div class="doodle" style="right:20px;top:470px">{star(42)}</div>

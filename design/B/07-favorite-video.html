@@ -3,6 +3,7 @@ h1{position:absolute;top:112px;left:24px;right:24px;font-size:30px;font-weight:6
 h1 em{font-style:italic;color:var(--tomato)}
 .pol{position:absolute;top:208px;left:30px;right:30px;padding:12px 12px 14px;transform:rotate(-2deg)}
 .thumb{aspect-ratio:16/9;border:2px solid var(--ink);background-color:var(--paper-dark);background-image:repeating-linear-gradient(-45deg,rgba(30,107,102,.18) 0 10px,transparent 10px 20px);display:grid;place-items:center;position:relative}
+.thumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
 .thumb .ph{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--ink2);background:var(--paper2);border:1.5px solid var(--ink);padding:3px 8px}
 .thumb .dur{position:absolute;right:6px;bottom:6px;font-family:var(--mono);font-size:11px;font-weight:700;background:var(--ink);color:var(--paper2);padding:1px 5px;border-radius:2px}
 .cap{margin-top:12px}
@@ -19,7 +20,7 @@ h1 em{font-style:italic;color:var(--tomato)}
 <h1>You couldn’t stop <em>rewatching</em> this one.</h1>
 <div class="sticker pol">
 <span class="tape" style="left:50%;top:-12px;transform:translateX(-50%) rotate(-3deg)"></span>
-<div class="thumb"><span class="ph">THUMBNAIL · 16:9</span><span class="dur">12:34</span></div>
+<div class="thumb"><img src="img/thumb-example.jpg" alt="Example Video Title That Is Deliberately Very Long To Prove The Two Line Clamp Works On Small Phones Every Time"><span class="dur">12:34</span></div>
 <div class="cap"><div class="t">Example Video Title That Is Deliberately Very Long To Prove The Two Line Clamp Works On Small Phones Every Time</div><div class="c">An Example Creator With A Rather Long Channel Name Too</div></div>
 </div>
 <div class="doodle" style="right:20px;top:470px"><svg aria-hidden="true" class="" style="width:42px;height:42px;color:#E2A72E;" viewBox="0 0 40 40"><path d="M20 2 L24 15 L38 16 L27 24 L31 38 L20 30 L9 38 L13 24 L2 16 L16 15 Z" fill="currentColor" stroke="#1F1B16" stroke-width="2" stroke-linejoin="round"/></svg></div>
