@@ -43,9 +43,29 @@
      paper-2  #FBF6EC on teal-dk  #123F3C  10.82  AAA
      paper-2  #FBF6EC on ink      #1F1B16  15.89  AAA (primary button)
      mustard  #E2A72E on ink      #1F1B16   7.99  AAA
-   DO NOT pair (fails AA for text):
-     tomato on mustard 2.76 · mustard on paper 1.81 · paper-2 on heat-6 3.02
-     (heat-6 is a fill only, never a text background).
+   ---------------------------------------------------------------------
+   DO NOT USE FOR TEXT (fails WCAG AA 4.5:1). Use the allowed alternative:
+     tomato  #B33A24 on mustard #E2A72E   2.76  -> ink on mustard 7.99
+                                                   (ranks/labels on mustard are ink)
+     ink     #1F1B16 on teal    #1E6B66   2.73  -> paper-2 on teal 5.82
+     ink-2   #4A4238 on teal    #1E6B66   1.57  -> paper-2 on teal 5.82
+                                                   (cassette shell text, .ZIP mark,
+                                                   song cards: always paper/white)
+     ink     #1F1B16 on teal-dk #123F3C   1.47  -> paper-2 on teal-dk 10.82
+     ink     #1F1B16 on heat-8  #B33A24   2.89  -> paper-2 on heat-8 5.50
+     ink-2   #4A4238 on tomato  #B33A24   1.67  -> paper-2 on tomato 5.50
+                                                   (peak heatmap cell, peak bar,
+                                                   streak start/end days, tomato
+                                                   stickers: always paper/white)
+     ink     #1F1B16 on heat-7  #D05B32   4.26  -> no text on heat-7; label outside
+     paper-2 #FBF6EC on heat-7  #D05B32   3.73  -> no text on heat-7; label outside
+     paper-2 #FBF6EC on heat-6  #D9733A   3.02  -> no text on heat-6; label outside
+     mustard #E2A72E on paper   #F3EBDD   1.81  -> mustard is a fill only
+                                                   (stickers, tape, bars), never text
+   Rule of thumb: on tomato / teal / teal-dark / ink, text is paper-2 or
+   white. On paper / paper-2 / mustard / grid, text is ink (or ink-2 or
+   tomato, but never tomato on mustard).
+   ---------------------------------------------------------------------
    Heat ramp / bar fills are graphics: every filled bar or cell also has a
    1.5-2px ink outline or sits next to ink labels, so the >=3:1 non-text rule
    is met by the outline (ink on paper 14.46), not by the fill.
