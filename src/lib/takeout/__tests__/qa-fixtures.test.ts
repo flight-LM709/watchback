@@ -9,18 +9,16 @@
  * Skips when the fixtures directory is absent. QA's files are only read, never modified.
  *
  * Definitions (see QA README): ads not counted; removed videos count toward totals but never
- * top creator/favorite; Music counted separately. QA computes busiest month, prime time,
- * streak and unique IDs over *linked YouTube videos only*. Our product stats compute those
- * over all non-ad plays (videos + removed + songs), and uniqueVideoIds includes Music (it
- * feeds the duration lookup). So those fields are checked two ways:
- *   - "parser" lens: the same QA definition recomputed from our parsed events must match exactly
- *   - "product" lens: our computeStats value, reported (not asserted) when it differs by definition
+ * top creator/favorite; Music counted separately. Time-based fields (busiest month, prime time,
+ * badge, streak) use QA_TIME_BASIS via the qaTimeStats() helper. unique_video_ids in QA's files
+ * is linked YouTube videos only; our uniqueVideoIds also includes Music (it feeds the duration
+ * lookup), so that difference is reported, not asserted.
  */
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 import { planSlides, MUSIC_SLIDES } from "@/components/story/slides";
-import { computeStats, type WatchStats } from "../stats";
+import { computeStats, countsForTimeStats, TIME_STATS_BASIS, type TimeStatsBasis, type WatchStats } from "../stats";
 import { NoWatchHistoryError, NotTakeoutZipError, type ProgressInfo, type TakeoutEvent } from "../types";
 import { parseTakeoutZip } from "../zip";
 
@@ -77,6 +75,16 @@ const expected = (name: string): Expected => JSON.parse(readFileSync(join(DIR, n
 const stripTopic = (n: string) => n.replace(/\s+-\s+Topic$/, "");
 const allTime = (events: TakeoutEvent[]) => computeStats(events, { range: { type: "allTime" }, timeZone: TZ });
 
+/**
+ * The basis QA's expected-*.json use for busiest month / prime time / badge / streak.
+ * QA README (updated 6:52 PM WIB): "YouTube plays including removed videos, excluding ads and Music".
+ * If QA changes definitions, change this one line.
+ */
+const QA_TIME_BASIS: TimeStatsBasis = "youtube-videos";
+const qaTimeStats = (events: TakeoutEvent[]) =>
+  computeStats(events, { range: { type: "allTime" }, timeZone: TZ, timeBasis: QA_TIME_BASIS });
+const slideValues: Array<Record<string, unknown>> = [];
+
 async function run(files: string[], onProgress?: (p: ProgressInfo) => void) {
   const r = await parseTakeoutZip(files.map(zip), { fallbackTimeZone: TZ, onProgress });
   return { ...r, stats: allTime(r.events) };
@@ -96,31 +104,44 @@ function compare(fixture: string, exp: Expected, events: TakeoutEvent[], s: Watc
   const expArtists = exp.top_artists.map(([n, c]) => [stripTopic(n), c] as Pair); // we display artists without " - Topic"
   check(fixture, "top_artists (sans ' - Topic')", expArtists, artists, sameRanking(expArtists, artists));
 
-  // Parser lens: QA's definition (linked, non-ad YouTube videos only) recomputed from our events.
-  const linked = events.filter((e) => e.kind === "watch" && e.product === "youtube" && !e.isAd && !e.unavailable);
-  const v = allTime(linked);
+  // Time-based fields: QA's expected files use QA_TIME_BASIS (see its README). The helper
+  // recomputes with that basis; if it equals our TIME_STATS_BASIS, the slide values must match too.
+  const linked = events.filter((e) => countsForTimeStats(e, "linked-videos"));
   check(fixture, "unique_video_ids (YouTube linked)", exp.unique_video_ids, new Set(linked.map((e) => e.videoId)).size);
+  const q = qaTimeStats(events);
   const [mKey, mCount] = exp.busiest_month;
-  check(fixture, "busiest_month (linked videos)", exp.busiest_month,
-    [v.busiestMonth?.key, v.busiestMonth?.count],
-    v.busiestMonth?.count === mCount && v.monthly.find((b) => b.key === mKey)?.count === mCount);
-  check(fixture, "longest_streak_days (linked videos)", exp.longest_streak_days, v.longestStreak?.days ?? 0);
+  check(fixture, `busiest_month (${QA_TIME_BASIS})`, exp.busiest_month,
+    [q.busiestMonth?.key, q.busiestMonth?.count],
+    q.busiestMonth?.count === mCount && q.monthly.find((b) => b.key === mKey)?.count === mCount);
+  check(fixture, `longest_streak_days (${QA_TIME_BASIS})`, exp.longest_streak_days, q.longestStreak?.days ?? 0);
   if (!opts.skipTies) {
     const [[day, hour], count] = exp.prime_time;
     const d = DAYS.indexOf(day);
-    check(fixture, "prime_time (linked videos)", exp.prime_time, v.peak && [[DAYS[v.peak.day], v.peak.hour], v.peak.count],
-      v.peak?.count === count && v.heatmap[d][hour] === count);
+    check(fixture, `prime_time (${QA_TIME_BASIS})`, exp.prime_time, q.peak && [[DAYS[q.peak.day], q.peak.hour], q.peak.count],
+      q.peak?.count === count && q.heatmap[d][hour] === count);
   }
-
-  // Product lens: what the slides actually show (all plays incl. removed + Music).
+  if (QA_TIME_BASIS === TIME_STATS_BASIS) {
+    check(fixture, "slide stats use the same basis as QA", true,
+      JSON.stringify([s.monthly, s.heatmap, s.longestStreak, s.peakHourBadge]) === JSON.stringify([q.monthly, q.heatmap, q.longestStreak, q.peakHourBadge]));
+  } else {
+    note(fixture, "busiest_month (slides)", exp.busiest_month, [s.busiestMonth?.key, s.busiestMonth?.count]);
+    note(fixture, "longest_streak_days (slides)", exp.longest_streak_days, s.longestStreak?.days ?? 0);
+  }
   note(fixture, "uniqueVideoIds (product: incl. Music)", exp.unique_video_ids, s.uniqueVideoIds.length);
-  note(fixture, "busiest_month (product: all plays)", exp.busiest_month, [s.busiestMonth?.key, s.busiestMonth?.count]);
-  note(fixture, "longest_streak_days (product: all plays)", exp.longest_streak_days, s.longestStreak?.days ?? 0);
-  if (!opts.skipTies) note(fixture, "prime_time (product: all plays)", exp.prime_time, s.peak && [[DAYS[s.peak.day], s.peak.hour], s.peak.count]);
+  slideValues.push({
+    fixture,
+    busiestMonth: s.busiestMonth && `${s.busiestMonth.key} (${s.busiestMonth.count})`,
+    primeTime: s.peak && `${DAYS[s.peak.day]} ${String(s.peak.hour).padStart(2, "0")}:00 (${s.peak.count})`,
+    streak: s.longestStreak && `${s.longestStreak.days} days (${s.longestStreak.start} → ${s.longestStreak.end})`,
+    badge: s.peakHourBadge && `${s.peakHourBadge.badge} ${s.peakHourBadge.pct}%`,
+    avgVideosPerDay: s.avgVideosPerDay.toFixed(2),
+  });
 }
 
 describe.skipIf(!HAVE)(`QA fixtures (${DIR})`, () => {
   afterAll(() => {
+    console.log("\nSlide values (computeStats, all time, Asia/Jakarta, basis " + TIME_STATS_BASIS + "):");
+    console.table(slideValues);
     const out = rows.map((r) => `${r.status.padEnd(10)} ${r.fixture.padEnd(22)} ${r.field.padEnd(42)} exp=${r.expected}  got=${r.actual}`);
     console.log(`\nQA fixture report (${rows.filter((r) => r.status === "pass").length} pass, ${rows.filter((r) => r.status === "FAIL").length} fail, ${rows.filter((r) => r.status === "definition").length} definition diffs)\n` + out.join("\n"));
   });

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { parseJsonHistory } from "../parseJson";
-import { availableYears, computeStats, PEAK_HOUR_WINDOWS, peakHourBadge } from "../stats";
+import { availableYears, computeStats, countsForTimeStats, PEAK_HOUR_WINDOWS, peakHourBadge, TIME_STATS_BASIS } from "../stats";
 import type { TakeoutEvent } from "../types";
 import { fixture } from "./helpers";
 
@@ -28,8 +28,9 @@ describe("computeStats on the English fixture (Asia/Jakarta)", () => {
     expect(s.range.start.toISOString()).toBe("2023-03-31T17:00:00.000Z"); // Apr 1 2023 00:00 WIB
     expect(s.monthly).toHaveLength(12);
     expect(s.monthly[0].key).toBe("2023-04");
-    expect(s.monthly[11]).toMatchObject({ key: "2024-03", count: 10 });
-    expect(s.busiestMonth).toMatchObject({ key: "2024-03", count: 10 });
+    // time-based stats count YouTube plays incl. removed; the 3 Music plays in March don't count
+    expect(s.monthly[11]).toMatchObject({ key: "2024-03", count: 7 });
+    expect(s.busiestMonth).toMatchObject({ key: "2024-03", count: 7 });
     expect(s.monthOfYear[0]).toBe(1);
     expect(s.range.days).toBe(345); // Apr 1 2023 .. Mar 10 2024
     expect(s.avgVideosPerDay).toBeCloseTo(8 / 345);
@@ -124,6 +125,50 @@ describe("local timezone bucketing", () => {
     const s = computeStats(ev, { timeZone: "America/New_York", range: { type: "allTime" } });
     expect(s.hourOfDay[1]).toBe(1);
     expect(s.hourOfDay[3]).toBe(1);
+  });
+});
+
+describe("time-stats basis (busiest month, heatmap, badge, streak, per-day average)", () => {
+  const ev = [
+    watch("2024-01-01T13:00:00Z"), // 20:00 WIB, YouTube
+    watch("2024-01-02T13:00:00Z", { unavailable: true, videoId: undefined, title: "Watched a video that has been removed" }),
+    watch("2024-01-03T13:00:00Z", { isAd: true }),
+    watch("2024-01-04T01:00:00Z", { product: "music", videoId: "MMMMMMMMMMM" }), // 08:00 WIB
+    watch("2024-01-05T01:00:00Z", { product: "music", videoId: "MMMMMMMMMMM" }),
+    watch("2024-01-06T01:00:00Z", { product: "music", videoId: "MMMMMMMMMMM" }),
+  ];
+
+  it("default is YouTube plays incl. removed, excl. ads and Music", () => {
+    expect(TIME_STATS_BASIS).toBe("youtube-videos");
+    const s = computeStats(ev, { timeZone: JKT, range: { type: "allTime" } });
+    expect(s.timeBasis).toBe("youtube-videos");
+    expect(s.monthly[0].count).toBe(2);
+    expect(s.hourOfDay[20]).toBe(2);
+    expect(s.hourOfDay[8]).toBe(0); // Music not in the heatmap
+    expect(s.peakHourBadge).toEqual({ badge: "evening-regular", pct: 100, plays: 2 });
+    expect(s.longestStreak).toEqual({ days: 2, start: "2024-01-01", end: "2024-01-02" });
+    expect(s.avgVideosPerDay).toBeCloseTo(2 / 6);
+    expect(s.avgPlaysPerDay).toBeCloseTo(5 / 6);
+    // Music keeps its own stats, and uniqueVideoIds still includes it (duration lookup)
+    expect(s.totalSongs).toBe(3);
+    expect(s.uniqueVideoIds).toContain("MMMMMMMMMMM");
+  });
+
+  it("is a one-line switch: all-plays / linked-videos", () => {
+    const all = computeStats(ev, { timeZone: JKT, range: { type: "allTime" }, timeBasis: "all-plays" });
+    expect(all.monthly[0].count).toBe(5);
+    expect(all.longestStreak).toEqual({ days: 3, start: "2024-01-04", end: "2024-01-06" }); // Jan 3 only had an ad
+    expect(all.peakHourBadge!.badge).toBe("early-bird"); // 3 plays / 4h at 08:00 beats 2 / 4h at 20:00
+    const linked = computeStats(ev, { timeZone: JKT, range: { type: "allTime" }, timeBasis: "linked-videos" });
+    expect(linked.monthly[0].count).toBe(1);
+    expect(linked.longestStreak!.days).toBe(1);
+  });
+
+  it("countsForTimeStats never counts ads or searches", () => {
+    for (const b of ["youtube-videos", "all-plays", "linked-videos"] as const) {
+      expect(countsForTimeStats(watch("2024-01-01T00:00:00Z", { isAd: true }), b)).toBe(false);
+      expect(countsForTimeStats(watch("2024-01-01T00:00:00Z", { kind: "search" }), b)).toBe(false);
+    }
   });
 });
 

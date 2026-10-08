@@ -22,6 +22,36 @@ export interface StatsOptions {
   topN?: number;
   /** Size of the top searches list. Default 10. */
   topSearchesN?: number;
+  /** Which plays feed the time-based slides. Default TIME_STATS_BASIS. */
+  timeBasis?: TimeStatsBasis;
+}
+
+/**
+ * Which plays count toward the TIME-BASED slides: busiest month (monthly / monthOfYear),
+ * prime-time heatmap (heatmap / hourOfDay / dayOfWeek / peak), peak-hour badge, streak,
+ * and the per-day average.
+ *  - "youtube-videos": YouTube (non-Music) plays, including removed/private videos. Ads and Music excluded.
+ *  - "all-plays":      every non-ad play, YouTube + Music.
+ *  - "linked-videos":  YouTube plays that still have a video link (QA's definition; removed excluded).
+ * Totals, top lists and uniqueVideoIds don't depend on this (Music always has its own stats,
+ * and uniqueVideoIds always includes Music because it feeds the duration lookup).
+ */
+export type TimeStatsBasis = "youtube-videos" | "all-plays" | "linked-videos";
+
+/** TENTATIVE default, pending Project Lead. Change this one line to switch the definition. */
+export const TIME_STATS_BASIS: TimeStatsBasis = "youtube-videos";
+
+/** Does this event count toward the time-based slides under `basis`? (Ads never do.) */
+export function countsForTimeStats(e: TakeoutEvent, basis: TimeStatsBasis = TIME_STATS_BASIS): boolean {
+  if (e.kind !== "watch" || e.isAd) return false;
+  switch (basis) {
+    case "all-plays":
+      return true;
+    case "youtube-videos":
+      return e.product === "youtube";
+    case "linked-videos":
+      return e.product === "youtube" && !e.unavailable && !!e.videoId;
+  }
 }
 
 export interface CountedName { name: string; url?: string; count: number }
@@ -41,8 +71,12 @@ export interface WatchStats {
   adsExcluded: number;
   unavailableVideos: number;
   shortsWatched: number;
+  /** Time-basis plays (see TIME_STATS_BASIS) per local day in range. */
   avgVideosPerDay: number;
+  /** All non-ad plays (YouTube + Music) per local day in range. */
   avgPlaysPerDay: number;
+  /** Which plays fed the time-based fields below. */
+  timeBasis: TimeStatsBasis;
   topCreators: CountedName[];
   /** Most-rewatched YouTube video with a known title (removed/private ones can't win). */
   favoriteVideo: { videoId: string; title: string; channelName?: string; count: number } | null;
@@ -194,8 +228,10 @@ export function computeStats(events: TakeoutEvent[], options: StatsOptions = {})
   const range = options.range ?? { type: "last12Months" };
   const topN = options.topN ?? 5;
   const topSearchesN = options.topSearchesN ?? 10;
+  const timeBasis = options.timeBasis ?? TIME_STATS_BASIS;
   const clock = new LocalClock(timeZone);
   const { start, end } = resolveRange(events, range, timeZone);
+  let timeEvents = 0;
 
   let totalVideos = 0, totalSongs = 0, adsExcluded = 0, unavailableVideos = 0, shortsWatched = 0, totalSearches = 0;
   const creators = new Map<string, CountedName>();
@@ -227,19 +263,23 @@ export function computeStats(events: TakeoutEvent[], options: StatsOptions = {})
     if (e.isAd) { adsExcluded++; continue; }
 
     // ---- a play (watch or song) ----
-    const offset = clock.offsetMs(t);
-    const local = new Date(t + offset);
-    const dow = local.getUTCDay();
-    const hour = local.getUTCHours();
-    const y = local.getUTCFullYear();
-    const mo = local.getUTCMonth();
-    heatmap[dow][hour]++;
-    hourOfDay[hour]++;
-    dayOfWeek[dow]++;
-    monthOfYear[mo]++;
-    const mkey = `${y}-${String(mo + 1).padStart(2, "0")}`;
-    monthCounts.set(mkey, (monthCounts.get(mkey) ?? 0) + 1);
-    days.add(Math.floor((t + offset) / 86400000));
+    // Time-based slides only count plays that match the configured basis (see TIME_STATS_BASIS).
+    if (countsForTimeStats(e, timeBasis)) {
+      timeEvents++;
+      const offset = clock.offsetMs(t);
+      const local = new Date(t + offset);
+      const dow = local.getUTCDay();
+      const hour = local.getUTCHours();
+      const y = local.getUTCFullYear();
+      const mo = local.getUTCMonth();
+      heatmap[dow][hour]++;
+      hourOfDay[hour]++;
+      dayOfWeek[dow]++;
+      monthOfYear[mo]++;
+      const mkey = `${y}-${String(mo + 1).padStart(2, "0")}`;
+      monthCounts.set(mkey, (monthCounts.get(mkey) ?? 0) + 1);
+      days.add(Math.floor((t + offset) / 86400000));
+    }
     if (e.unavailable) unavailableVideos++;
     if (e.isShort) shortsWatched++;
     if (e.videoId) plays.set(e.videoId, (plays.get(e.videoId) ?? 0) + 1);
@@ -341,7 +381,8 @@ export function computeStats(events: TakeoutEvent[], options: StatsOptions = {})
     adsExcluded,
     unavailableVideos,
     shortsWatched,
-    avgVideosPerDay: rangeDays ? totalVideos / rangeDays : 0,
+    timeBasis,
+    avgVideosPerDay: rangeDays ? timeEvents / rangeDays : 0,
     avgPlaysPerDay: rangeDays ? totalPlays / rangeDays : 0,
     topCreators: topEntries(mergeByName(creators), topN, (c) => c.name),
     favoriteVideo,
