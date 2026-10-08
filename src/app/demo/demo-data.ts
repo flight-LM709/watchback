@@ -72,6 +72,23 @@ export function fakeDurations(ids: string[]): Record<string, number | null> {
 }
 
 /**
+ * Fake `isShort` sibling map, consistent with fakeDurations() and the agreed rule (≤ 3 min and
+ * vertical): null where the duration is null (private/deleted), true for ~3 in 4 of the ≤180s IDs
+ * (the rest are short horizontal clips), false otherwise.
+ */
+export function fakeIsShort(ids: string[]): Record<string, boolean | null> {
+  const durations = fakeDurations(ids);
+  const out: Record<string, boolean | null> = {};
+  for (const id of ids) {
+    const d = durations[id];
+    let h = 7;
+    for (const ch of id) h = (h * 131 + ch.charCodeAt(0)) >>> 0;
+    out[id] = d === null ? null : d <= 180 && h % 4 !== 0;
+  }
+  return out;
+}
+
+/**
  * Demo thumbnail: a generated abstract 16:9 image (no YouTube content, no network), returned as a
  * same-origin blob: URL like the real /api/thumb client. Resolves null where OffscreenCanvas is missing.
  */
