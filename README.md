@@ -53,9 +53,6 @@ pnpm build
 * "Visited YouTube Music" entries are dropped and counted in `diagnostics.visitEntries`.
 * "Watched" ≠ finished. Each entry counts as one play.
 
-### Stat definitions vs QA's expected files
-QA's expected files compute busiest month, prime time, streak and unique IDs over **linked YouTube videos only**. Our slide stats (`monthly`, `heatmap`/`peak`, `peakHourBadge`, `longestStreak`) count **every non-ad play**, including removed videos and YouTube Music. `uniqueVideoIds` also includes Music, because it feeds the duration lookup. The fixture suite checks both: QA's definition recomputed from our parsed events must match exactly, and our product values are reported next to them.
-
 ### Peak-hour badge
 `stats.peakHourBadge` is `{ badge, pct, plays } | null` (also exported as `peakHourBadge(hourOfDay)`). It picks one of six local-time windows that cover the whole day:
 
@@ -99,6 +96,31 @@ All user-facing words come from Copywriter's `src/copy/en.ts` (don't hardcode st
 buttons, first-slide gesture + keyboard hints (keyboard hint hidden on coarse pointers), and a "Tap to continue"
 prompt when reduced motion turns off auto-advance. `PeriodPill` gets its `label`/`options` from `useStoryStats`.
 The share-card stamp renders `en.appName` uppercased in CSS (`deco.shareStamp` is unused).
+
+## Stat definitions
+
+Which plays each slide counts. The one switch is `TIME_STATS_BASIS` in `src/lib/takeout/stats.ts`, checked by
+`countsForTimeStats(event)`. Change that constant (or pass `computeStats(events, { timeBasis })`) if the definition changes.
+
+| Stat | Counts |
+| --- | --- |
+| **Busiest month** (`monthly`, `busiestMonth`) | YouTube (non-Music) plays, **including removed/private videos**, **excluding ads and YouTube Music** |
+| **Prime time** (`heatmap`, `hourOfDay`, `dayOfWeek`, `peak`) | same |
+| **Peak-hour badge** (`peakHourBadge`) | same |
+| **Streak** (`longestStreak`, local calendar days) | same |
+| **Per-day average** (`avgVideosPerDay` = those plays ÷ local days in range) | same |
+| Total videos, top creators, favorite video | non-ad YouTube (non-Music) plays; favorite video skips removed/private videos |
+| Watch time | non-ad plays with a looked-up duration, Music included (via `uniqueVideoIds`) |
+| Music slides (top songs/artists, music plays) | YouTube Music plays only |
+| `uniqueVideoIds` | every non-ad play with an ID, **including Music** (it feeds `/api/durations`) |
+
+`TIME_STATS_BASIS` values:
+* `"youtube-videos"` (default, Project Lead's call): the definition above.
+* `"all-plays"`: every non-ad play, Music included.
+* `"linked-videos"`: YouTube plays that still have a video link (removed videos excluded).
+
+Ads and searches never count toward any time-based stat. `stats.timeBasis` records which basis produced a result.
+QA's fixture suite (`pnpm test:fixtures`) asserts these stats with its own `QA_TIME_BASIS` constant, currently the same default.
 
 ## For Backend Dev: duration lookup (watch-time estimate)
 
