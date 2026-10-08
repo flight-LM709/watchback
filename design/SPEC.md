@@ -159,3 +159,6 @@ The ratios are computed with the WCAG 2.x relative-luminance formula from the he
 **Sizes**: **176px** hero (slide 3, with tape, hand circle and the "#1" star stamp), **40px** list rows (slide 4), and **52px** for the #1 row on slide 4. A11y: `role="img"` with `aria-label` = the creator name. The SVG internals are `aria-hidden`.
 
 **Later**: real channel avatars may come in a later version through the same proxy (`POST /api/thumb`, or a sibling avatar route), with the same fetch + `AbortSignal.timeout(3000)` + `URL.createObjectURL` flow. The MonogramSticker would stay as the loading and failure fallback, and the image would sit inside the same paper rim, clipped to the disc.
+
+## Share export: grain
+SVG `feTurbulence` grain renders as a black box in html-to-image, so share cards must not use the SVG filter. Use `assets/grain-tile.png` instead: a 256px seamless noise tile with alpha of 11% or less. Set it as `background-image` on the card root, `background-size: 128px` (so it stays fine at pixelRatio 3), over the `paper` token (`#F3EBDD`). This is a raster, so it exports correctly. On-screen slides can keep the SVG filter or use the same tile.
