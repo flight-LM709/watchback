@@ -8,7 +8,9 @@ Stack: Next.js 16 (App Router), TypeScript, Tailwind 4, JSZip, Vitest, pnpm.
 ```bash
 pnpm install
 pnpm dev          # / = parser placeholder (drop a Takeout .zip), /demo = story player demo
-pnpm test         # vitest run
+pnpm test         # vitest run (includes QA fixtures if /workspace/watchback-fixtures/out exists)
+pnpm test:fixtures  # QA fixture suite only (override dir with WATCHBACK_FIXTURES_DIR)
+YOUTUBE_API_MOCK=1 pnpm start   # fake durations for /api/durations without an API key
 pnpm build
 ```
 
@@ -50,6 +52,9 @@ pnpm build
 * **Ads** (`From Google Ads` / `Dari Google Ads`) stay in `events` with `isAd: true` and are reported as `adsExcluded`. They're left out of every other stat and out of `uniqueVideoIds`.
 * "Visited YouTube Music" entries are dropped and counted in `diagnostics.visitEntries`.
 * "Watched" ≠ finished. Each entry counts as one play.
+
+### Stat definitions vs QA's expected files
+QA's expected files compute busiest month, prime time, streak and unique IDs over **linked YouTube videos only**. Our slide stats (`monthly`, `heatmap`/`peak`, `peakHourBadge`, `longestStreak`) count **every non-ad play**, including removed videos and YouTube Music. `uniqueVideoIds` also includes Music, because it feeds the duration lookup. The fixture suite checks both: QA's definition recomputed from our parsed events must match exactly, and our product values are reported next to them.
 
 ### Peak-hour badge
 `stats.peakHourBadge` is `{ badge, pct, plays } | null` (also exported as `peakHourBadge(hourOfDay)`). It picks one of six local-time windows that cover the whole day:
@@ -97,7 +102,7 @@ POST /api/durations     { "ids": ["dQw4w9WgXcQ", ...] }        // 1..2000 unique
 * Every ID matches `/^[A-Za-z0-9_-]{11}$/` (exported as `VIDEO_ID_PATTERN`). Please reject requests with more than 2,000 IDs or any malformed ID, and don't log or store the IDs (the privacy copy depends on it).
 * An ID missing from `durations` is treated the same as `null`.
 
-Client side (`src/lib/takeout/watchTime.ts`):
+The client is `lookupWatchTime(stats)` / `fetchDurations(ids)` in `src/lib/takeout/durationsClient.ts`. It sends a single request, and any HTTP or network error, bad JSON or timeout becomes `durations: {}`, so the watch-time slide is dropped. The contract tests run the client against Backend Dev's real handler. Underneath, it does the following (`src/lib/takeout/watchTime.ts`):
 
 ```ts
 const stats = computeStats(events);
