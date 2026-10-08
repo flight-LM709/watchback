@@ -160,10 +160,11 @@ export const en = {
       peakValue: "{day} {hour}",
       daysShort: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
       // One badge per person: the window with the most plays. Windows cover all 24 hours (start inclusive, end exclusive).
+      // Hyphens below are non-breaking (U+2011) so names never split mid-word on the sticker.
       badges: {
         earlyBird: "Early bird", // 5 AM to 9 AM
-        coffeeBreak: "Coffee-break viewer", // 9 AM to 11 AM
-        lunchBreak: "Lunch-break scroller", // 11 AM to 2 PM
+        coffeeBreak: "Coffee‑break viewer", // 9 AM to 11 AM
+        lunchBreak: "Lunch‑break scroller", // 11 AM to 2 PM
         afternoonDrifter: "Afternoon drifter", // 2 PM to 6 PM
         eveningRegular: "Evening regular", // 6 PM to 10 PM
         nightOwl: "Night owl", // 10 PM to 5 AM
