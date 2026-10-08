@@ -56,6 +56,16 @@ export function countsForTimeStats(e: TakeoutEvent, basis: TimeStatsBasis = TIME
 
 export interface CountedName { name: string; url?: string; count: number }
 export interface CountedSong { videoId?: string; title: string; artist?: string; count: number }
+/** One video × creator pair of non-ad YouTube (non-Music) plays. Feeds the Shorts/long-form split. */
+export interface VideoPlayRow {
+  videoId: string;
+  /** Plays in range (a video counted under two channel keys, e.g. a channel URL change, gets two rows). */
+  plays: number;
+  /** Of those, plays opened from a /shorts/ URL (always Shorts, whatever the API says). */
+  shortsUrlPlays: number;
+  /** Key into WatchStats.channels; absent when Takeout had no channel for these plays. */
+  channel?: string;
+}
 export interface MonthBucket { key: string; year: number; month: number; count: number }
 
 export interface WatchStats {
@@ -101,6 +111,13 @@ export interface WatchStats {
   uniqueVideoIds: string[];
   /** Plays per video ID. Stays client-side: watch time ≈ Σ duration(id) × plays(id). */
   playCountsById: Record<string, number>;
+  /**
+   * Non-ad YouTube (non-Music) plays that have a video ID, per video and creator. Stays client-side.
+   * Removed videos (no ID) aren't here; they count as "unknown" in the Shorts split.
+   */
+  videoPlays: VideoPlayRow[];
+  /** Creator key (channel URL, or "n:" + name) → latest display name, for videoPlays[].channel. */
+  channels: Record<string, { name: string; url?: string }>;
 }
 
 export type PeakHourBadge =
@@ -240,6 +257,7 @@ export function computeStats(events: TakeoutEvent[], options: StatsOptions = {})
   const songs = new Map<string, CountedSong & { last: number }>();
   const searches = new Map<string, { query: string; count: number }>();
   const plays = new Map<string, number>();
+  const videoPlays = new Map<string, VideoPlayRow>();
   const monthCounts = new Map<string, number>();
   const monthOfYear = new Array(12).fill(0);
   const heatmap = Array.from({ length: 7 }, () => new Array(24).fill(0));
@@ -305,11 +323,18 @@ export function computeStats(events: TakeoutEvent[], options: StatsOptions = {})
       }
     } else {
       totalVideos++;
+      let channel: string | undefined;
       if (e.channelName || e.channelUrl) {
-        const k = e.channelUrl ?? `n:${e.channelName}`;
+        const k = (channel = e.channelUrl ?? `n:${e.channelName}`);
         const c = creators.get(k);
         if (c) { c.count++; if (e.channelName) c.name = e.channelName; }
         else creators.set(k, { name: e.channelName ?? e.channelUrl!, url: e.channelUrl, count: 1 });
+      }
+      if (e.videoId) {
+        const rk = channel === undefined ? e.videoId : `${e.videoId}\u0000${channel}`;
+        const row = videoPlays.get(rk);
+        if (row) { row.plays++; if (e.isShort) row.shortsUrlPlays++; }
+        else videoPlays.set(rk, { videoId: e.videoId, plays: 1, shortsUrlPlays: e.isShort ? 1 : 0, ...(channel !== undefined ? { channel } : {}) });
       }
       if (e.videoId) {
         const v = videos.get(e.videoId);
@@ -401,5 +426,7 @@ export function computeStats(events: TakeoutEvent[], options: StatsOptions = {})
     topSearches: topEntries(searches, topSearchesN, (s) => s.query),
     uniqueVideoIds,
     playCountsById: Object.fromEntries(plays),
+    videoPlays: [...videoPlays.values()],
+    channels: Object.fromEntries([...creators].map(([k, c]) => [k, c.url ? { name: c.name, url: c.url } : { name: c.name }])),
   };
 }

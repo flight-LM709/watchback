@@ -50,7 +50,7 @@ export function TakeoutDebug() {
       {result && (
         <pre className="overflow-auto whitespace-pre-wrap rounded border p-3">
           {JSON.stringify(
-            { stats: { ...result.stats, uniqueVideoIds: `${result.stats.uniqueVideoIds.length} ids`, playCountsById: "…" }, diagnostics: result.diagnostics },
+            { stats: { ...result.stats, uniqueVideoIds: `${result.stats.uniqueVideoIds.length} ids`, playCountsById: "…", videoPlays: `${result.stats.videoPlays.length} rows`, channels: "…" }, diagnostics: result.diagnostics },
             null,
             2,
           )}
