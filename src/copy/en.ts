@@ -194,6 +194,8 @@ export const en = {
       sameTop: "{creator} topped both lists.", // optional line when #1 is the same on both sides
       emptyShorts: "Not enough Shorts to rank.",
       emptyLong: "Not enough long‑form to rank.",
+      // When a column has a #1 but nobody else (use instead of empty* below the #1 block).
+      noRunnersUp: "No runners‑up this time.",
     },
     favoriteVideo: {
       headline: "You couldn't stop rewatching this one.",
