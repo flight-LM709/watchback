@@ -169,11 +169,11 @@ SVG `feTurbulence` grain renders as a black box in html-to-image, so share cards
 
 ## 9. Shorts vs long‑form (slides 3–4)
 Copy lives in `src/copy/en.ts` on `copy/en` (draft commit `b834d58`, chip explainer updated in `084a184`). Key paths:
-- `slides.shortsVsLong.headline` · `.shortsLabel` · `.longLabel` · `.count` ("≈ {n} videos") · `.time` ("≈ {hours} hours") · `.timeMinutes` ("≈ {minutes} min", when under 1 hour) · `.share` ("{pct}% of your plays") · `.subs.{shortsBoth|longBoth|shortsPlaysLongTime|longPlaysShortsTime}` · `.noShorts` · `.chip` · `.chipExplainer` · `.aria`
+- `slides.shortsVsLong.headline` · `.shortsLabel` · `.longLabel` · `.count` ("≈ {n} videos") · `.time` ("≈ {hours} hours") · `.timeMinutes` ("≈ {minutes} min", when under 1 hour) · `.share` ("{pct}% of your plays") · `.subs.{shortsBoth|longBoth|shortsPlaysLongTime|longPlaysShortsTime}` · `.noShorts` · `.note` · `.chip` · `.chipExplainer` · `.aria`
 - `slides.topCreatorsSplit.headline` · `.shortsColumn` · `.longColumn` · `.item` ("≈ {n} videos") · `.sameTop` ("{creator} topped both lists.") · `.emptyShorts` · `.emptyLong`
 - `deco.shortsTape` ("Singles") · `deco.longTape` ("Long play"). These are Caveat 22px/700 ink on a TapeStrip (mustard tape for Shorts, clear tape for long‑form), `aria-hidden`.
 
-**Detection (Backend).** `/api/durations` will return an `isShort` flag per ID. A video is a Short if it was opened from a **`/shorts/` link**, **or** its **duration ≤ 180s and it's vertical** (height > width). The `/shorts/` check can run client-side from the Takeout URL. Counts and hours are estimated from the same 2,000-ID sample and scaled up like watch time (3h cap per play still applies). Deleted/private videos are left out of the split (per `chipExplainer`), so Shorts + long‑form can be slightly less than slide 1's total. Music plays are excluded.
+**Detection (Backend).** `/api/durations` will return an `isShort` flag per ID. A video is a Short if it was opened from a **`/shorts/` link**, **or** its **duration ≤ 180s and it's vertical or square** (height ≥ width). Square is provisional until Backend Dev's accuracy run; Copywriter updates `.note` / `.chipExplainer` to match the final rule. The `/shorts/` check can run client-side from the Takeout URL. Counts and hours are estimated from the same 2,000-ID sample and scaled up like watch time (3h cap per play still applies). Deleted/private videos are left out of the split (per `chipExplainer`), so Shorts + long‑form can be slightly less than slide 1's total. Music plays are excluded.
 
 **Slide 3, `16-shorts-vs-long`.**
 - Headline 30px. The second half is in tomato italic with a hand underline.
@@ -184,7 +184,7 @@ Copy lives in `src/copy/en.ts` on `copy/en` (draft commit `b834d58`, chip explai
   - **Hero**: "≈" (mono 48px) + the count at **96px Space Mono**. Shorts is tomato (5.50:1 on paper-2) and long‑form is ink. `count` is split around the hero: "≈" before it and "videos" in italic 22px under it.
   - **Stats row** under a dashed rule, mono 14px/700: `time` on the left and `share` on the right. Under 1 hour, use `timeMinutes`.
 - Below the cards: the `subs.*` line (italic 18px/600). Pick it by comparing plays and hours (e.g. Shorts win plays and long‑form wins hours → `shortsPlaysLongTime`).
-- Then the **EstimateChip**, which opens a BottomSheet with `shortsVsLong.chipExplainer`. Next to the chip goes a one-sentence detection note in italic 13px ink-2. The mockup uses the second sentence of `chipExplainer` verbatim. Copywriter: if this note stays, it wants its own key (e.g. `shortsVsLong.note`).
+- Then the **EstimateChip**, which opens a BottomSheet with `shortsVsLong.chipExplainer`. Next to the chip goes `shortsVsLong.note` in italic 13px ink-2 (Copywriter `510fe17`: "Shorts are videos opened from a Shorts link, or 3 minutes or shorter and vertical."). Update that string after the accuracy run if the rule becomes "vertical or square".
 - `aria-label` on the slide region: `shortsVsLong.aria`.
 - At most one hero per card. This slide deliberately has two equal heroes: the split *is* the stat. There's no chart.
 
