@@ -21,8 +21,8 @@ describe("demo /api/durations mock: isShort", () => {
 
   it("gives the demo a split with both sides", () => {
     const r = estimateShortsSplit(stats, isShort, durations, sample)!;
-    expect(r.shorts.plays).toBeGreaterThan(0);
-    expect(r.long.plays).toBeGreaterThan(r.shorts.plays);
+    expect(r.shorts.count).toBeGreaterThan(0);
+    expect(r.long.count).toBeGreaterThan(r.shorts.count);
     expect(r.long.topCreators.length).toBeGreaterThan(0);
   });
 });

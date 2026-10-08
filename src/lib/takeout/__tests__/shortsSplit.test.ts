@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { estimateShortsSplit } from "../shortsSplit";
+import { classifyShortsPlay, estimateShortsSplit, shortsSlides } from "../shortsSplit";
 import { computeStats } from "../stats";
 import type { TakeoutEvent } from "../types";
 import { buildDurationSample, mulberry32, type DurationSample } from "../watchTime";
@@ -22,8 +22,8 @@ describe("estimateShortsSplit", () => {
   it("/shorts/ URL plays are Shorts even when the API says long-form", () => {
     const s = stats([...plays(2, id("A"), { isShort: true }), ...plays(3, id("A")), ...plays(5, id("B"))]);
     const r = estimateShortsSplit(s, { [id("A")]: false, [id("B")]: false }, { [id("A")]: 600, [id("B")]: 600 }, all(s))!;
-    expect(r.shorts.plays).toBe(2);
-    expect(r.long.plays).toBe(8);
+    expect(r.shorts.count).toBe(2);
+    expect(r.long.count).toBe(8);
     expect(r.shorts.pct).toBe(20);
     expect(r.long.pct).toBe(80);
   });
@@ -36,8 +36,8 @@ describe("estimateShortsSplit", () => {
       { [id("S")]: 30, [id("L")]: 600, [id("P")]: null },
       all(s),
     )!;
-    expect(r.shorts.plays).toBe(4);
-    expect(r.long.plays).toBe(6);
+    expect(r.shorts.count).toBe(4);
+    expect(r.long.count).toBe(6);
     expect(r.shorts.pct).toBe(40);
     expect(r.unknownPlays).toBe(5 + 3 + 2);
     expect(r.coverage).toBeCloseTo(10 / 20);
@@ -67,8 +67,8 @@ describe("estimateShortsSplit", () => {
     };
     const r = estimateShortsSplit(s, { [id("T")]: false, [id("S1")]: true, [id("S2")]: null }, { [id("T")]: 1200, [id("S1")]: 45, [id("S2")]: null }, sample)!;
     // rest non-/shorts/ plays = 2+2+2+2+2 = 10; looked up in the sample = S1 + S2 = 4 → weight 2.5
-    expect(r.shorts.plays).toBe(Math.round(2 * 2.5 + 1)); // 6
-    expect(r.long.plays).toBe(10);
+    expect(r.shorts.count).toBe(Math.round(2 * 2.5 + 1)); // 6
+    expect(r.long.count).toBe(10);
     expect(r.unknownPlays).toBe(21 - 6 - 10);
     // Shorts time: S1 known (5 weighted plays × 45s); the R3 /shorts/ play has no duration → Shorts average
     expect(r.shorts.seconds).toBe(6 * 45);
@@ -95,10 +95,10 @@ describe("estimateShortsSplit", () => {
       const sample = buildDurationSample(s, { cap: 2000, seed });
       const looked = Object.fromEntries(sample.ids.map((v) => [v, isShort[v]]));
       const r = estimateShortsSplit(s, looked, durations, sample)!;
-      expect(Math.abs(r.shorts.plays - trueShorts) / trueShorts).toBeLessThan(0.08);
-      expect(Math.abs(r.long.plays - trueLong) / trueLong).toBeLessThan(0.04);
-      expect(r.shorts.plays + r.long.plays).toBeCloseTo(s.totalVideos, -1);
-      expect(r.shorts.seconds! / r.shorts.plays).toBeCloseTo(40, 0);
+      expect(Math.abs(r.shorts.count - trueShorts) / trueShorts).toBeLessThan(0.08);
+      expect(Math.abs(r.long.count - trueLong) / trueLong).toBeLessThan(0.04);
+      expect(r.shorts.count + r.long.count).toBeCloseTo(s.totalVideos, -1);
+      expect(r.shorts.seconds! / r.shorts.count).toBeCloseTo(40, 0);
     }
   });
 
@@ -111,15 +111,18 @@ describe("estimateShortsSplit", () => {
       ...plays(3, id("p1"), { channelName: undefined, channelUrl: undefined }), // long, no channel
     ]);
     const isShort = { [id("a1")]: true, [id("b1")]: true, [id("a2")]: false, [id("g1")]: false, [id("p1")]: false };
-    const r = estimateShortsSplit(s, isShort, {}, all(s), { topN: 2 })!;
+    // long-form durations only: the Shorts side has no known length
+    const r = estimateShortsSplit(s, isShort, { [id("a2")]: 600, [id("g1")]: 300, [id("p1")]: 900 }, all(s), { topN: 2 })!;
     expect(r.shorts.topCreators).toEqual([
       { name: "Alpha", url: "https://www.youtube.com/channel/UCAlpha", count: 5 },
       { name: "Beta", url: "https://www.youtube.com/channel/UCBeta", count: 2 },
     ]);
     expect(r.long.topCreators.map((c) => [c.name, c.count])).toEqual([["Alpha", 9], ["Gamma", 4]]);
-    expect(r.long.plays).toBe(16);
+    expect(r.long.count).toBe(16);
     expect(r.sameTopCreator).toBe("Alpha");
-    // no durations at all → times unknown → no sub
+    expect(r.shorts.showEmptyState).toBe(false);
+    expect(r.slides).toEqual({ shortsVsLong: true, creatorsByFormat: true });
+    // no Shorts duration known → Shorts time unknown → no sub
     expect(r.shorts.seconds).toBeNull();
     expect(r.timeWinner).toBeNull();
     expect(r.sub).toBeNull();
@@ -128,8 +131,8 @@ describe("estimateShortsSplit", () => {
   it("YouTube Music plays are excluded, even for an ID the API calls a Short", () => {
     const s = stats([...plays(7, id("M"), { product: "music", channelName: "Band - Topic", channelUrl: undefined }), ...plays(2, id("M")), ...plays(3, id("L"))]);
     const r = estimateShortsSplit(s, { [id("M")]: true, [id("L")]: false }, { [id("M")]: 50, [id("L")]: 500 }, all(s))!;
-    expect(r.shorts.plays).toBe(2);
-    expect(r.long.plays).toBe(3);
+    expect(r.shorts.count).toBe(2);
+    expect(r.long.count).toBe(3);
     expect(r.unknownPlays).toBe(0);
     expect(r.shorts.seconds).toBe(100);
   });
@@ -138,8 +141,10 @@ describe("estimateShortsSplit", () => {
     const s = stats([...plays(4, id("L1"), by("Long")), ...plays(2, id("L2"), by("Long"))]);
     const r = estimateShortsSplit(s, { [id("L1")]: false, [id("L2")]: false }, { [id("L1")]: 600, [id("L2")]: 300 }, all(s))!;
     expect(r.noShorts).toBe(true);
-    expect(r.shorts).toEqual({ plays: 0, seconds: 0, pct: 0, topCreators: [] });
-    expect(r.long).toMatchObject({ plays: 6, seconds: 4 * 600 + 2 * 300, pct: 100 });
+    expect(r.shorts).toEqual({ count: 0, seconds: 0, pct: 0, topCreators: [], showEmptyState: true });
+    expect(r.long).toMatchObject({ count: 6, seconds: 4 * 600 + 2 * 300, pct: 100, showEmptyState: true });
+    // Project Lead: slide 16 stays (noShorts copy), slide 17 is skipped
+    expect(r.slides).toEqual({ shortsVsLong: true, creatorsByFormat: false });
     expect(r.sub).toBeNull();
     expect(r.sameTopCreator).toBeNull();
   });
@@ -151,5 +156,22 @@ describe("estimateShortsSplit", () => {
     expect([r.playsWinner, r.timeWinner, r.sub]).toEqual(["shorts", "long", "shortsPlaysLongTime"]);
     const r2 = estimateShortsSplit(s, { [id("S")]: true, [id("L")]: false }, { [id("S")]: 30, [id("L")]: 60 }, all(s))!;
     expect(r2.sub).toBe("shortsBoth");
+  });
+
+  it("durations unavailable (empty / all null) → null even with an isShort map; both slides skipped", () => {
+    const s = stats([...plays(3, id("A")), ...plays(3, id("B"))]);
+    const flags = { [id("A")]: true, [id("B")]: false };
+    expect(estimateShortsSplit(s, flags, {}, all(s))).toBeNull();
+    expect(estimateShortsSplit(s, flags, { [id("A")]: null, [id("B")]: null }, all(s))).toBeNull();
+    expect(shortsSlides(null)).toEqual({ shortsVsLong: false, creatorsByFormat: false });
+  });
+
+  it("classifyShortsPlay: the rule in one place", () => {
+    expect(classifyShortsPlay({ shortsUrl: true, apiIsShort: false })).toBe("shorts");
+    expect(classifyShortsPlay({ shortsUrl: true, apiIsShort: undefined })).toBe("shorts");
+    expect(classifyShortsPlay({ shortsUrl: false, apiIsShort: true })).toBe("shorts");
+    expect(classifyShortsPlay({ shortsUrl: false, apiIsShort: false })).toBe("long");
+    expect(classifyShortsPlay({ shortsUrl: false, apiIsShort: null, durationSec: 30 })).toBe("unknown");
+    expect(classifyShortsPlay({ shortsUrl: false, apiIsShort: undefined })).toBe("unknown");
   });
 });
