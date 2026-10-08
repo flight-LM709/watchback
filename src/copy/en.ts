@@ -15,12 +15,13 @@ export const en = {
   },
 
   privacy: {
-    body: "Your Takeout file is read right here in your browser and never uploaded. The only thing that leaves your device is a list of video IDs, used to look up video lengths for your watch-time estimate. No account, no tracking, nothing saved. Close the tab and it's gone.",
+    body: "Your Takeout file is read in your browser and never uploaded. Only video IDs leave your device, to look up video lengths and load thumbnails through our own server, so Google never sees who's asking. No account, no tracking, nothing saved. Close the tab and it's gone.",
   },
 
   upload: {
     dropzone: "Drop your Takeout .zip here",
     dropzoneAlt: "or tap to choose a file",
+    cassetteLabel: ".ZIP",
     badge: "Processed on your device",
     intro: "Bring your history. We'll do the math.",
     stepsTitle: "Get your file from Google Takeout",
@@ -49,6 +50,25 @@ export const en = {
   errors: {
     notTakeout: "That doesn't look like a Takeout .zip. Grab the one Google emailed you.",
     noHistory: "We couldn't find any watch history in there. Check that 'history' was ticked.",
+  },
+
+  periodSheet: {
+    title: "Choose a period",
+    last12: "Last 12 months",
+    calendarYears: "Calendar years",
+    allTime: "All time",
+    close: "Close",
+  },
+
+  shareCard: {
+    videos: "Videos",
+    watchTime: "Watch time",
+    topCreators: "Top creators",
+    topSong: "Top song",
+    topCreator: "#1 creator",
+    hours: "hours",
+    perDay: "≈ {perDay} a day",
+    plays: "{n} plays",
   },
 
   period: {
@@ -104,7 +124,10 @@ export const en = {
     },
     favoriteVideo: {
       headline: "You couldn't stop rewatching this one.",
-      sub: "{title}, watched {n} times.",
+      sub: "{title}, watched {n} times.", // single-line fallback
+      title: "{title}", // clamped to 2 lines
+      watchedTimes: "watched {n} times.",
+      thumbAlt: "{title}",
     },
     busiestMonth: {
       headline: {
@@ -116,6 +139,7 @@ export const en = {
     },
     primeTime: {
       headline: "Prime time: {day}s at {hour}.",
+      heatmapHeader: "Day × hour · {tz}",
       sub: "That's when you hit play the most.",
       peakLabel: "Your peak hour",
       // One badge per person: the window with the most plays. Windows cover all 24 hours (start inclusive, end exclusive).
