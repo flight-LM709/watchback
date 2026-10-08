@@ -611,17 +611,17 @@ function FormatCard({ format, side, className = "" }: { format: "shorts" | "long
   return (
     <div className={`relative ${className}`} data-testid={`format-card-${format}`}>
       <TapeLabel text={shorts ? en.deco.shortsTape : en.deco.longTape} variant={shorts ? "mustard" : "clear"} angle={shorts ? -5 : 3} className="-left-3 -top-7" />
-      <Sticker rotate={shorts ? -1.2 : 1} className="px-3.5 pb-3">
+      <Sticker rotate={shorts ? -1.2 : 1} className="px-3.5 pb-3 short:pb-2">
         <p className={`-mx-3.5 flex h-[30px] items-center border-b-2 border-ink px-3.5 font-serif text-[16px] font-bold tracking-[-0.01em] text-paper-2 ${shorts ? "bg-tomato" : "bg-teal-dark"}`}>
           <NoBreakHyphens text={shorts ? SV.shortsLabel : SV.longLabel} />
         </p>
         {shorts ? <PhoneMotif className="absolute -top-[18px] right-5 rotate-[8deg]" /> : <ScreenMotif className="absolute -top-3.5 right-3.5 -rotate-6" />}
-        <div aria-hidden="true" className={`mt-2 flex items-end gap-1.5 ${shorts ? "text-tomato" : "text-ink"}`}>
+        <div aria-hidden="true" className={`mt-2 flex items-end gap-1.5 short:mt-0.5 ${shorts ? "text-tomato" : "text-ink"}`}>
           <span className="pb-3 font-mono text-[48px] font-bold leading-none">≈</span>
           <HeroNumber value={side.count} size={96} maxWidth={FORMAT_HERO_MAX} captionClassName="text-ink-2" />
         </div>
-        <p aria-hidden="true" className="-mt-0.5 font-serif text-[22px] font-semibold italic">{unit}</p>
-        <p aria-hidden="true" className="mt-2 flex items-baseline justify-between gap-2 whitespace-nowrap border-t border-dashed border-rule pt-2 font-mono text-[14px] font-bold">
+        <p aria-hidden="true" className="-mt-0.5 font-serif text-[22px] font-semibold italic short:-mt-2 short:leading-tight">{unit}</p>
+        <p aria-hidden="true" className="mt-2 flex items-baseline justify-between gap-2 whitespace-nowrap border-t border-dashed border-rule pt-2 font-mono text-[14px] font-bold short:mt-1 short:pt-1">
           <span>{time ?? ""}</span>
           <span>{fill(SV.share, { pct: side.pct })}</span>
         </p>
@@ -647,7 +647,7 @@ function versusTail(text: string): ReactNode {
 
 function ShortsChipRow({ ctx, note = true }: { ctx: SlideContext; note?: boolean }) {
   return (
-    <div className="mt-3 flex items-center gap-2.5">
+    <div className="mt-3 flex items-center gap-2.5 short:mt-2">
       <span className="shrink-0">
         <EstimateChip label={SV.chip} onClick={ctx.openShortsExplainer} expanded={ctx.shortsExplainerOpen} controls={ctx.shortsExplainerId} />
       </span>
@@ -674,12 +674,12 @@ function ShortsVsLong({ ctx }: { ctx: SlideContext }) {
       ) : (
         <>
           <p className="sr-only">{plainHyphens(shortsAria(split))}</p>
-          <div className="-mx-2 mt-9 flex flex-col gap-8">
+          <div className="-mx-2 mt-9 flex flex-col gap-8 short:mt-7 short:gap-6">
             <FormatCard format="shorts" side={split.shorts} />
             <FormatCard format="long" side={split.long} />
           </div>
           {split.sub && (
-            <p className="mt-4 font-serif text-[18px] font-semibold italic leading-[1.3]" data-testid="shorts-sub">
+            <p className="mt-4 font-serif text-[18px] font-semibold italic leading-[1.3] short:mt-2.5 short:text-[16px]" data-testid="shorts-sub">
               <NoBreakHyphens text={SV.subs[split.sub]} />
             </p>
           )}

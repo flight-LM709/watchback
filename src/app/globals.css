@@ -1,4 +1,10 @@
 @import "tailwindcss";
+/* Short phones (e.g. 360×740) and the capped 764px desktop frame: tighter vertical rhythm on the densest slides (Shorts slide 16). */
+@custom-variant short {
+  @media (max-height: 760px), (min-aspect-ratio: 3 / 4) {
+    @slot;
+  }
+}
 
 /* ==========================================================================
    Paper Mixtape tokens: copied from design/tokens.css (Designer's file, the source of truth,
