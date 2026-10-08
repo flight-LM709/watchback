@@ -226,7 +226,7 @@ function topEntries<V extends { count: number }>(m: Map<string, V>, n: number, l
  * then groups that end up with the same display name are merged, since the slide can't tell
  * them apart anyway (and it guards against exports with inconsistent channel URLs).
  */
-function mergeByName(byUrl: Map<string, CountedName>): Map<string, CountedName> {
+export function mergeByName(byUrl: Map<string, CountedName>): Map<string, CountedName> {
   const out = new Map<string, CountedName>();
   for (const c of byUrl.values()) {
     const k = c.name.trim().toLowerCase();

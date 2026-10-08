@@ -1,0 +1,155 @@
+import { describe, expect, it } from "vitest";
+import { estimateShortsSplit } from "../shortsSplit";
+import { computeStats } from "../stats";
+import type { TakeoutEvent } from "../types";
+import { buildDurationSample, mulberry32, type DurationSample } from "../watchTime";
+
+const id = (i: number | string) => String(i).padEnd(11, "_").slice(0, 11);
+let clock = Date.UTC(2024, 0, 1);
+function plays(n: number, vid: string, extra: Partial<TakeoutEvent> = {}): TakeoutEvent[] {
+  return Array.from({ length: n }, () => ({
+    kind: "watch" as const, product: "youtube" as const, title: "t", videoId: vid,
+    channelName: "Chan", channelUrl: "https://www.youtube.com/channel/UCchan",
+    timestamp: new Date((clock += 60_000)), isAd: false, ...extra,
+  }));
+}
+const by = (name: string) => ({ channelName: name, channelUrl: `https://www.youtube.com/channel/UC${name.replace(/\W/g, "")}` });
+const stats = (events: TakeoutEvent[]) => computeStats(events, { timeZone: "UTC", range: { type: "allTime" } });
+/** Everything looked up (history under the cap). */
+const all = (s: ReturnType<typeof stats>) => buildDurationSample(s, { cap: 2000 });
+
+describe("estimateShortsSplit", () => {
+  it("/shorts/ URL plays are Shorts even when the API says long-form", () => {
+    const s = stats([...plays(2, id("A"), { isShort: true }), ...plays(3, id("A")), ...plays(5, id("B"))]);
+    const r = estimateShortsSplit(s, { [id("A")]: false, [id("B")]: false }, { [id("A")]: 600, [id("B")]: 600 }, all(s))!;
+    expect(r.shorts.plays).toBe(2);
+    expect(r.long.plays).toBe(8);
+    expect(r.shorts.pct).toBe(20);
+    expect(r.long.pct).toBe(80);
+  });
+
+  it("isShort null and IDs not looked up are left out (never counted as long-form)", () => {
+    const s = stats([...plays(4, id("S")), ...plays(6, id("L")), ...plays(5, id("P")), ...plays(3, id("X")), ...plays(2, undefined as never, { videoId: undefined, unavailable: true })]);
+    const r = estimateShortsSplit(
+      s,
+      { [id("S")]: true, [id("L")]: false, [id("P")]: null }, // X missing: not looked up
+      { [id("S")]: 30, [id("L")]: 600, [id("P")]: null },
+      all(s),
+    )!;
+    expect(r.shorts.plays).toBe(4);
+    expect(r.long.plays).toBe(6);
+    expect(r.shorts.pct).toBe(40);
+    expect(r.unknownPlays).toBe(5 + 3 + 2);
+    expect(r.coverage).toBeCloseTo(10 / 20);
+  });
+
+  it("old API (no isShort map), an empty map, or all-null → null (slides drop)", () => {
+    const s = stats([...plays(3, id("A"), { isShort: true }), ...plays(3, id("B"))]);
+    const d = { [id("A")]: 30, [id("B")]: 600 };
+    expect(estimateShortsSplit(s, undefined, d, all(s))).toBeNull();
+    expect(estimateShortsSplit(s, {}, d, all(s))).toBeNull();
+    expect(estimateShortsSplit(s, { [id("A")]: null, [id("B")]: null }, d, all(s))).toBeNull();
+  });
+
+  it("scales the sampled group like watch time: restPlays / looked-up sampled plays; sampled nulls stay unknown", () => {
+    const s = stats([
+      ...plays(10, id("T")), // top, long-form, exact
+      ...plays(2, id("S1")), // sampled, Short
+      ...plays(2, id("S2")), // sampled, null → unknown
+      ...plays(2, id("S3")), // sampled but missing from the response → not in the denominator
+      ...plays(2, id("R1")), // not sampled
+      ...plays(2, id("R2")), // not sampled
+      ...plays(1, id("R3"), { isShort: true }), // not sampled, /shorts/ URL → exact Short
+    ]);
+    const sample: DurationSample = {
+      ids: [id("T"), id("S1"), id("S2"), id("S3")], topIds: [id("T")], sampleIds: [id("S1"), id("S2"), id("S3")],
+      scale: 1, totalPlays: 21, topPlays: 10, restPlays: 11, sampledPlays: 6,
+    };
+    const r = estimateShortsSplit(s, { [id("T")]: false, [id("S1")]: true, [id("S2")]: null }, { [id("T")]: 1200, [id("S1")]: 45, [id("S2")]: null }, sample)!;
+    // rest non-/shorts/ plays = 2+2+2+2+2 = 10; looked up in the sample = S1 + S2 = 4 → weight 2.5
+    expect(r.shorts.plays).toBe(Math.round(2 * 2.5 + 1)); // 6
+    expect(r.long.plays).toBe(10);
+    expect(r.unknownPlays).toBe(21 - 6 - 10);
+    // Shorts time: S1 known (5 weighted plays × 45s); the R3 /shorts/ play has no duration → Shorts average
+    expect(r.shorts.seconds).toBe(6 * 45);
+    expect(r.long.seconds).toBe(10 * 1200);
+  });
+
+  it("scaled estimate tracks the truth on a 6,000-video history (≈25% Shorts)", () => {
+    const rand = mulberry32(7);
+    const events: TakeoutEvent[] = [];
+    const isShort: Record<string, boolean> = {};
+    const durations: Record<string, number> = {};
+    let trueShorts = 0, trueLong = 0;
+    for (let i = 0; i < 6000; i++) {
+      const v = ("v" + i.toString(36)).padEnd(11, "_");
+      const short = i % 4 === 0;
+      const n = 1 + Math.floor(rand() * rand() * 12);
+      events.push(...plays(n, v, by(`c${i % 50}`)));
+      isShort[v] = short;
+      durations[v] = short ? 40 : 700;
+      if (short) trueShorts += n; else trueLong += n;
+    }
+    const s = stats(events);
+    for (const seed of [1, 2, 3]) {
+      const sample = buildDurationSample(s, { cap: 2000, seed });
+      const looked = Object.fromEntries(sample.ids.map((v) => [v, isShort[v]]));
+      const r = estimateShortsSplit(s, looked, durations, sample)!;
+      expect(Math.abs(r.shorts.plays - trueShorts) / trueShorts).toBeLessThan(0.08);
+      expect(Math.abs(r.long.plays - trueLong) / trueLong).toBeLessThan(0.04);
+      expect(r.shorts.plays + r.long.plays).toBeCloseTo(s.totalVideos, -1);
+      expect(r.shorts.seconds! / r.shorts.plays).toBeCloseTo(40, 0);
+    }
+  });
+
+  it("top creators per side, with counts, and a creator topping both lists", () => {
+    const s = stats([
+      ...plays(5, id("a1"), by("Alpha")), // Short
+      ...plays(2, id("b1"), by("Beta")), // Short
+      ...plays(9, id("a2"), by("Alpha")), // long
+      ...plays(4, id("g1"), by("Gamma")), // long
+      ...plays(3, id("p1"), { channelName: undefined, channelUrl: undefined }), // long, no channel
+    ]);
+    const isShort = { [id("a1")]: true, [id("b1")]: true, [id("a2")]: false, [id("g1")]: false, [id("p1")]: false };
+    const r = estimateShortsSplit(s, isShort, {}, all(s), { topN: 2 })!;
+    expect(r.shorts.topCreators).toEqual([
+      { name: "Alpha", url: "https://www.youtube.com/channel/UCAlpha", count: 5 },
+      { name: "Beta", url: "https://www.youtube.com/channel/UCBeta", count: 2 },
+    ]);
+    expect(r.long.topCreators.map((c) => [c.name, c.count])).toEqual([["Alpha", 9], ["Gamma", 4]]);
+    expect(r.long.plays).toBe(16);
+    expect(r.sameTopCreator).toBe("Alpha");
+    // no durations at all → times unknown → no sub
+    expect(r.shorts.seconds).toBeNull();
+    expect(r.timeWinner).toBeNull();
+    expect(r.sub).toBeNull();
+  });
+
+  it("YouTube Music plays are excluded, even for an ID the API calls a Short", () => {
+    const s = stats([...plays(7, id("M"), { product: "music", channelName: "Band - Topic", channelUrl: undefined }), ...plays(2, id("M")), ...plays(3, id("L"))]);
+    const r = estimateShortsSplit(s, { [id("M")]: true, [id("L")]: false }, { [id("M")]: 50, [id("L")]: 500 }, all(s))!;
+    expect(r.shorts.plays).toBe(2);
+    expect(r.long.plays).toBe(3);
+    expect(r.unknownPlays).toBe(0);
+    expect(r.shorts.seconds).toBe(100);
+  });
+
+  it("no Shorts: noShorts, 0% / 100%, empty Shorts column, no sub", () => {
+    const s = stats([...plays(4, id("L1"), by("Long")), ...plays(2, id("L2"), by("Long"))]);
+    const r = estimateShortsSplit(s, { [id("L1")]: false, [id("L2")]: false }, { [id("L1")]: 600, [id("L2")]: 300 }, all(s))!;
+    expect(r.noShorts).toBe(true);
+    expect(r.shorts).toEqual({ plays: 0, seconds: 0, pct: 0, topCreators: [] });
+    expect(r.long).toMatchObject({ plays: 6, seconds: 4 * 600 + 2 * 300, pct: 100 });
+    expect(r.sub).toBeNull();
+    expect(r.sameTopCreator).toBeNull();
+  });
+
+  it("picks the sub from plays vs time winners; each play capped at 3h", () => {
+    const s = stats([...plays(8, id("S")), ...plays(2, id("L"))]);
+    const r = estimateShortsSplit(s, { [id("S")]: true, [id("L")]: false }, { [id("S")]: 30, [id("L")]: 50_000 }, all(s))!;
+    expect(r.long.seconds).toBe(2 * 10800);
+    expect([r.playsWinner, r.timeWinner, r.sub]).toEqual(["shorts", "long", "shortsPlaysLongTime"]);
+    const r2 = estimateShortsSplit(s, { [id("S")]: true, [id("L")]: false }, { [id("S")]: 30, [id("L")]: 60 }, all(s))!;
+    expect(r2.sub).toBe("shortsBoth");
+  });
+});

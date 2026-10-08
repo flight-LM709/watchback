@@ -16,6 +16,7 @@ import type { WatchStats } from "./stats";
 import {
   buildDurationSample,
   estimateWatchTime,
+  type DurationSample,
   type DurationSampleOptions,
   type DurationsResponse,
   type WatchTimeEstimate,
@@ -112,8 +113,16 @@ export function parseIsShort(raw: unknown, asked: ReadonlySet<string>): IsShortR
 export async function lookupWatchTime(
   stats: Pick<WatchStats, "uniqueVideoIds" | "playCountsById">,
   opts: FetchDurationsOptions & DurationSampleOptions = {},
-): Promise<{ estimate: WatchTimeEstimate | null; error?: string; requestedIds: number }> {
+): Promise<{
+  estimate: WatchTimeEstimate | null;
+  error?: string;
+  requestedIds: number;
+  /** Raw lookup, for estimateShortsSplit(stats, isShort, durations, sample). */
+  durations: DurationsResponse;
+  isShort?: IsShortResponse;
+  sample: DurationSample;
+}> {
   const sample = buildDurationSample(stats, { cap: Math.min(opts.cap ?? MAX_DURATION_IDS, MAX_DURATION_IDS), topCount: opts.topCount, seed: opts.seed });
-  const { durations, error } = await fetchDurations(sample.ids, opts);
-  return { estimate: estimateWatchTime(durations, stats.playCountsById, sample), error, requestedIds: sample.ids.length };
+  const { durations, isShort, error } = await fetchDurations(sample.ids, opts);
+  return { estimate: estimateWatchTime(durations, stats.playCountsById, sample), error, requestedIds: sample.ids.length, durations, isShort, sample };
 }
