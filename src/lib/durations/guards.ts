@@ -21,6 +21,8 @@ export class RateLimiter {
   /** Returns 0 if allowed, otherwise seconds until the client may retry. */
   check(client: string): number {
     const t = this.now();
+    // A limit of 0 (or less) blocks every request.
+    if (this.limit <= 0) return Math.ceil(this.windowMs / 1000);
     const k = this.key(client);
     const entry = this.hits.get(k);
     if (!entry || t - entry.windowStart >= this.windowMs) {
