@@ -66,7 +66,7 @@ describe("POST /api/thumb", () => {
   );
 
   it("forwards none of the user's headers to Google and only calls i.ytimg.com", async () => {
-    const f = vi.fn(async (_url: string, _init?: RequestInit) => img());
+    const f = vi.fn<(url: string, init?: RequestInit) => Promise<Response>>(async () => img());
     await createThumbHandler({ fetchImpl: f })(post({ id: ID }));
     for (const [url, init] of f.mock.calls) {
       expect(new URL(url).host).toBe("i.ytimg.com");
