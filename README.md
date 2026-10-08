@@ -90,6 +90,16 @@ QA's expected files compute busiest month, prime time, streak and unique IDs ove
 * **`/demo`:** a deterministic synthetic history (2023 has no Music, so picking 2023 drops the music slide) and a checkbox that simulates a failed durations lookup. The slides are placeholder layouts, not designs.
 * **Component tests** use jsdom 26 + Testing Library (opt-in per file via `// @vitest-environment jsdom`). jsdom 27+ needs Node 22.
 
+### Copy
+
+All user-facing words come from Copywriter's `src/copy/en.ts` (don't hardcode strings). Helpers in
+`src/copy/format.ts`: `fill(template, vars)`, `fillNodes` (when a placeholder holds JSX, e.g. a clamped title),
+`periodVariant(range)` (last12 / year / allTime; custom ranges use last12 wording), `badgeName`, `errorMessage`.
+`StoryPlayer` takes `copy` (defaults to `en.player`): aria-live progress, visually hidden Prev/Pause-Play/Next
+buttons, first-slide gesture + keyboard hints (keyboard hint hidden on coarse pointers), and a "Tap to continue"
+prompt when reduced motion turns off auto-advance. `PeriodPill` gets its `label`/`options` from `useStoryStats`.
+The share-card stamp renders `en.appName` uppercased in CSS (`deco.shareStamp` is unused).
+
 ## For Backend Dev: duration lookup (watch-time estimate)
 
 **Hard cap: 2,000 video IDs per upload, sent in a single request.** Only IDs leave the device. Play counts and timestamps never do.

@@ -5,6 +5,8 @@ import { parseTakeoutInWorker, type WorkerParseResult } from "@/lib/takeout/clie
 import { lookupWatchTime } from "@/lib/takeout/durationsClient";
 import type { WatchTimeEstimate } from "@/lib/takeout/watchTime";
 import { isTakeoutError, type ProgressInfo } from "@/lib/takeout/types";
+import { en } from "@/copy/en";
+import { errorMessage, fill } from "@/copy/format";
 
 export function TakeoutDebug() {
   const [progress, setProgress] = useState<ProgressInfo | null>(null);
@@ -23,7 +25,7 @@ export function TakeoutDebug() {
       setWatchTime("loading");
       setWatchTime(await lookupWatchTime(r.stats));
     } catch (e) {
-      setError(isTakeoutError(e) ? `${e.code}: ${e.message}` : String(e));
+      setError(isTakeoutError(e) ? errorMessage(e.code) : String(e));
     }
   }
 
@@ -32,7 +34,7 @@ export function TakeoutDebug() {
       <input type="file" accept=".zip,application/zip" multiple onChange={(e) => onFiles(e.target.files)} />
       {progress && progress.phase !== "done" && !result && (
         <p>
-          {progress.phase}… counting {progress.watchCount.toLocaleString()} videos
+          {fill(en.crunching.counter, { n: progress.watchCount.toLocaleString("en-US") })}
         </p>
       )}
       {error && <p className="text-red-600">{error}</p>}

@@ -1,3 +1,5 @@
+import { en } from "@/copy/en";
+import { fill, type PeriodCopy } from "@/copy/format";
 import type { DateRange } from "@/lib/takeout/stats";
 
 const fmtCache = new Map<string, Intl.DateTimeFormat>();
@@ -11,16 +13,21 @@ function monthYear(d: Date, timeZone: string): string {
 }
 
 /**
- * '{Mon YYYY} – {Mon YYYY}' for rolling/custom ranges, '{year}' for a calendar year, 'All time'.
+ * Period label from Copywriter's en.period templates:
+ * '{startMonth} – {endMonth}' for rolling/custom ranges, '{year}' for a calendar year, 'All time'.
  * `end` is exclusive (as returned by computeStats().range).
  */
-export function formatPeriodLabel(range: DateRange, resolved: { start: Date; end: Date }, timeZone: string): string {
-  if (range.type === "allTime") return "All time";
-  if (range.type === "calendarYear") return String(range.year);
-  if (resolved.end.getTime() <= resolved.start.getTime()) return "No activity";
+export function formatPeriodLabel(
+  range: DateRange,
+  resolved: { start: Date; end: Date },
+  timeZone: string,
+  copy: PeriodCopy = en.period,
+): string {
+  if (range.type === "allTime") return copy.allTime;
+  if (range.type === "calendarYear") return fill(copy.year, { year: range.year });
   const a = monthYear(resolved.start, timeZone);
-  const b = monthYear(new Date(resolved.end.getTime() - 1), timeZone);
-  return a === b ? a : `${a} – ${b}`;
+  const b = resolved.end.getTime() > resolved.start.getTime() ? monthYear(new Date(resolved.end.getTime() - 1), timeZone) : a;
+  return a === b ? a : fill(copy.last12, { startMonth: a, endMonth: b });
 }
 
 export function rangeKey(r: DateRange): string {

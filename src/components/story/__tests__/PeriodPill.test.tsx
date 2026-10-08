@@ -26,22 +26,39 @@ describe("formatPeriodLabel", () => {
 });
 
 describe("PeriodPill", () => {
-  const resolved = { start: new Date("2023-03-31T17:00:00Z"), end: new Date("2024-03-10T12:00:00Z") };
+  const options = [
+    { range: { type: "last12Months" } as const, label: "Apr 2023 – Mar 2024" },
+    { range: { type: "calendarYear", year: 2024 } as const, label: "2024" },
+    { range: { type: "calendarYear", year: 2023 } as const, label: "2023" },
+    { range: { type: "allTime" } as const, label: "All time" },
+  ];
   it("opens a picker with last-12-months / years / all time and reports the choice", () => {
     const onChange = vi.fn();
     const onOpenChange = vi.fn();
-    render(<PeriodPill range={{ type: "last12Months" }} resolved={resolved} years={[2024, 2023]} timeZone={JKT} onChange={onChange} onOpenChange={onOpenChange} />);
-    const btn = screen.getByRole("button", { name: /Apr 2023 – Mar 2024/ });
+    render(<PeriodPill range={{ type: "last12Months" }} label="Apr 2023 – Mar 2024" options={options} onChange={onChange} onOpenChange={onOpenChange} />);
+    // aria label from en.player.periodPillAria
+    const btn = screen.getByRole("button", { name: "Change time period, currently Apr 2023 – Mar 2024" });
     expect(btn.getAttribute("aria-expanded")).toBe("false");
     fireEvent.click(btn);
     expect(onOpenChange).toHaveBeenLastCalledWith(true);
-    const opts = screen.getAllByRole("option").map((o) => o.textContent);
-    expect(opts).toEqual(["Last 12 months", "2024", "2023", "All time"]);
-    expect(screen.getByRole("option", { name: "Last 12 months" }).getAttribute("aria-selected")).toBe("true");
+    expect(screen.getAllByRole("option").map((o) => o.textContent)).toEqual(["Apr 2023 – Mar 2024", "2024", "2023", "All time"]);
+    expect(screen.getByRole("option", { name: "Apr 2023 – Mar 2024" }).getAttribute("aria-selected")).toBe("true");
     fireEvent.click(screen.getByRole("option", { name: "2023" }));
     expect(onChange).toHaveBeenCalledWith({ type: "calendarYear", year: 2023 });
     expect(screen.queryByRole("listbox")).toBeNull();
     expect(onOpenChange).toHaveBeenLastCalledWith(false);
+  });
+});
+
+describe("useStoryStats period labels/options come from en.period", () => {
+  function Labels({ events }: { events: TakeoutEvent[] }) {
+    const { periodLabel, periodOptions } = useStoryStats(events, { timeZone: JKT });
+    return <p data-testid="labels">{[periodLabel, ...periodOptions.map((o) => o.label)].join(" | ")}</p>;
+  }
+  it("labels the current period and every option", () => {
+    const e = (iso: string): TakeoutEvent => ({ kind: "watch", product: "youtube", title: "t", videoId: "VVVVVVVVVVV", timestamp: new Date(iso), isAd: false });
+    render(<Labels events={[e("2023-05-01T05:00:00Z"), e("2024-03-01T05:00:00Z")]} />);
+    expect(screen.getByTestId("labels").textContent).toBe("Apr 2023 – Mar 2024 | Apr 2023 – Mar 2024 | 2024 | 2023 | All time");
   });
 });
 
@@ -52,7 +69,7 @@ describe("period change re-runs stats without restarting the story", () => {
   const events = [ev("2023-05-01T05:00:00Z"), ev("2024-02-01T05:00:00Z"), ev("2024-03-01T05:00:00Z"), ev("2024-03-02T05:00:00Z", "music")];
 
   function Harness() {
-    const { stats, range, setRange, years, timeZone } = useStoryStats(events, { timeZone: JKT });
+    const { stats, range, setRange, periodLabel, periodOptions } = useStoryStats(events, { timeZone: JKT });
     const [open, setOpen] = useState(false);
     const s = [
       { id: "a", content: <p>A: {stats.totalVideos} videos</p> },
@@ -63,7 +80,7 @@ describe("period change re-runs stats without restarting the story", () => {
       <StoryPlayer
         slides={s}
         paused={open}
-        header={<PeriodPill range={range} resolved={stats.range} years={years} timeZone={timeZone} onChange={setRange} onOpenChange={setOpen} />}
+        header={<PeriodPill range={range} label={periodLabel} options={periodOptions} onChange={setRange} onOpenChange={setOpen} />}
       />
     );
   }

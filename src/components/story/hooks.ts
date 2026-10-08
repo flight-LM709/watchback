@@ -1,9 +1,11 @@
 "use client";
 
 import { useMemo, useState, useSyncExternalStore } from "react";
-import { availableYears, computeStats, type DateRange } from "@/lib/takeout/stats";
+import { availableYears, computeStats, resolveRange, type DateRange } from "@/lib/takeout/stats";
 import type { TakeoutEvent } from "@/lib/takeout/types";
 import { runtimeTimeZone } from "@/lib/takeout/tz";
+import { formatPeriodLabel } from "./format";
+import type { PeriodOption } from "./PeriodPill";
 
 const noopSubscribe = () => () => {};
 
@@ -37,5 +39,19 @@ export function useStoryStats(events: TakeoutEvent[], opts: { timeZone?: string;
   const [range, setRange] = useState<DateRange>(opts.initialRange ?? { type: "last12Months" });
   const years = useMemo(() => availableYears(events, timeZone), [events, timeZone]);
   const stats = useMemo(() => computeStats(events, { range, timeZone }), [events, range, timeZone]);
-  return { stats, range, setRange, years, timeZone };
+  const periodLabel = formatPeriodLabel(range, stats.range, timeZone);
+  // Picker options, labelled with the same copy templates as the pill.
+  const periodOptions = useMemo<PeriodOption[]>(() => {
+    const last12: DateRange = { type: "last12Months" };
+    const r = resolveRange(events, last12, timeZone);
+    return [
+      { range: last12, label: formatPeriodLabel(last12, { start: new Date(r.start), end: new Date(r.end) }, timeZone) },
+      ...years.map((year) => {
+        const yr: DateRange = { type: "calendarYear", year };
+        return { range: yr, label: formatPeriodLabel(yr, stats.range, timeZone) };
+      }),
+      { range: { type: "allTime" }, label: formatPeriodLabel({ type: "allTime" }, stats.range, timeZone) },
+    ];
+  }, [events, years, timeZone, stats.range]);
+  return { stats, range, setRange, years, timeZone, periodLabel, periodOptions };
 }

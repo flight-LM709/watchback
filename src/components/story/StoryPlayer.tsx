@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
+import { en } from "@/copy/en";
+import { fill, type PlayerCopy } from "@/copy/format";
 import { usePrefersReducedMotion } from "./hooks";
 
 export interface StorySlide {
@@ -29,6 +31,8 @@ export interface StoryPlayerProps {
   onEnd?: () => void;
   className?: string;
   ariaLabel?: string;
+  /** Hints and accessible labels. Defaults to Copywriter's en.player. */
+  copy?: PlayerCopy;
 }
 
 const INTERACTIVE = 'button, a, input, select, textarea, [role="listbox"], [role="option"], [data-story-interactive]';
@@ -48,7 +52,8 @@ export function StoryPlayer({
   onIndexChange,
   onEnd,
   className = "",
-  ariaLabel = "Your year in review",
+  ariaLabel = en.appName,
+  copy = en.player,
 }: StoryPlayerProps) {
   const reducedMotion = usePrefersReducedMotion();
   const [pos, setPos] = useState<{ id: string | undefined; index: number }>({ id: slides[0]?.id, index: 0 });
@@ -56,6 +61,7 @@ export function StoryPlayer({
   const [userPaused, setUserPaused] = useState(false);
   const [ended, setEnded] = useState(false);
   const [restart, setRestart] = useState(0);
+  const [interacted, setInteracted] = useState(false);
 
   // Resolve the current slide by id; if it disappeared (e.g. a period change dropped it), stay at the same position.
   const found = slides.findIndex((s) => s.id === pos.id);
@@ -69,6 +75,7 @@ export function StoryPlayer({
     (i: number) => {
       if (i < 0 || i >= slides.length) return;
       setEnded(false);
+      setInteracted(true);
       setPos({ id: slides[i].id, index: i });
       setRestart((r) => r + 1);
       onIndexChange?.(i, slides[i].id);
@@ -114,7 +121,7 @@ export function StoryPlayer({
   const onPointerDown = (e: PointerEvent<HTMLDivElement>) => {
     if (e.button > 0 || isInteractive(e.target)) return;
     clearPress();
-    const p = { held: false, timer: setTimeout(() => { p.held = true; setHolding(true); }, holdDelayMs) };
+    const p = { held: false, timer: setTimeout(() => { p.held = true; setHolding(true); setInteracted(true); }, holdDelayMs) };
     press.current = p;
   };
   const onPointerUp = (e: PointerEvent<HTMLDivElement>) => {
@@ -139,7 +146,7 @@ export function StoryPlayer({
     if (isInteractive(e.target)) return;
     if (e.key === "ArrowRight") { e.preventDefault(); next(); }
     else if (e.key === "ArrowLeft") { e.preventDefault(); prev(); }
-    else if (e.key === " " || e.key === "Spacebar") { e.preventDefault(); setUserPaused((v) => !v); }
+    else if (e.key === " " || e.key === "Spacebar") { e.preventDefault(); setInteracted(true); setUserPaused((v) => !v); }
   };
 
   const rootRef = useRef<HTMLDivElement>(null);
@@ -192,8 +199,41 @@ export function StoryPlayer({
         {current?.content}
       </div>
 
+      {/* First-slide hints (gesture everywhere, keyboard only with a fine pointer) */}
+      {index === 0 && !interacted && (
+        <div className="pointer-events-none absolute inset-x-0 bottom-14 z-20 flex flex-col items-center gap-1 px-6 text-center text-xs text-(--story-muted)" data-testid="story-hints">
+          <p>{copy.firstSlideHint}</p>
+          <p className="pointer-coarse:hidden">{copy.keyboardHint}</p>
+        </div>
+      )}
+
+      {/* Reduced motion: no auto-advance, so say how to move on */}
+      {autoAdvance && !timed && !ended && index < slides.length - 1 && (
+        <p className="pointer-events-none absolute inset-x-0 bottom-6 z-20 text-center text-sm font-medium" data-testid="tap-to-continue">
+          {copy.tapToContinue}
+        </p>
+      )}
+
+      {/* Screen-reader / keyboard controls (visually hidden until focused) */}
+      <div className="absolute bottom-2 left-1/2 z-30 flex -translate-x-1/2 gap-2">
+        <button type="button" className="sr-only rounded bg-(--story-pill-bg) px-2 py-1 text-xs focus:not-sr-only" aria-label={copy.ariaPrev} onClick={prev}>
+          ‹
+        </button>
+        <button
+          type="button"
+          className="sr-only rounded bg-(--story-pill-bg) px-2 py-1 text-xs focus:not-sr-only"
+          aria-label={paused && !ended ? copy.ariaPlay : copy.ariaPause}
+          onClick={() => { setInteracted(true); setUserPaused((v) => !v); }}
+        >
+          {paused && !ended ? "▶" : "❚❚"}
+        </button>
+        <button type="button" className="sr-only rounded bg-(--story-pill-bg) px-2 py-1 text-xs focus:not-sr-only" aria-label={copy.ariaNext} onClick={next}>
+          ›
+        </button>
+      </div>
+
       <p className="sr-only" aria-live="polite">
-        {slides.length ? `Slide ${index + 1} of ${slides.length}${paused && !ended ? ", paused" : ""}` : "No slides"}
+        {fill(copy.ariaProgress, { current: slides.length ? index + 1 : 0, total: slides.length })}
       </p>
     </div>
   );

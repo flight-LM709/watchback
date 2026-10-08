@@ -2,51 +2,78 @@
 
 import { useMemo, useState, type ReactNode } from "react";
 import { PeriodPill, StoryPlayer, planSlides, useHydrated, useStoryStats, type SlideKind, type StorySlide } from "@/components/story";
+import { en } from "@/copy/en";
+import { badgeName, fill, fillNodes, periodVariant, type PeriodVariant } from "@/copy/format";
 import type { WatchStats } from "@/lib/takeout/stats";
 import { buildDurationSample, estimateWatchTime, type WatchTimeEstimate } from "@/lib/takeout/watchTime";
 import { fakeDurations, makeDemoEvents } from "./demo-data";
 
-const DEMO_SLIDES: SlideKind[] = ["total-videos", "watch-time", "top-creators", "favorite-video", "peak-hour-badge", "top-songs"];
+const DEMO_SLIDES: SlideKind[] = [
+  "total-videos",
+  "watch-time",
+  "top-creators",
+  "favorite-video",
+  "busiest-month",
+  "peak-hour-badge",
+  "top-songs",
+  "share",
+];
 
-const BADGE_LABEL: Record<string, string> = {
-  "early-bird": "Early bird",
-  "coffee-break": "Coffee-break watcher",
-  "lunch-break": "Lunch-break binger",
-  "afternoon-drifter": "Afternoon drifter",
-  "evening-regular": "Evening regular",
-  "night-owl": "Night owl",
-};
+const S = en.slides;
+const num = (n: number) => n.toLocaleString("en-US");
+const monthName = (month: number) => new Date(Date.UTC(2000, month - 1, 15)).toLocaleString("en-US", { month: "long", timeZone: "UTC" });
 
-/** Placeholder layouts only. Real slide designs come from Designer + Copywriter. */
-function renderSlide(kind: SlideKind, s: WatchStats, wt: WatchTimeEstimate | null) {
-  const wrap = (children: ReactNode) => (
-    <div className="flex flex-1 flex-col justify-center gap-4 px-6 pb-10">{children}</div>
+/** Small tap-to-reveal tooltip; a button, so the story player ignores taps on it. */
+function InfoChip({ label, text, testId }: { label: string; text: string; testId?: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <span className="relative inline-flex flex-col items-start gap-2">
+      <button
+        type="button"
+        className="rounded-full bg-(--story-pill-bg) px-3 py-1 text-xs"
+        aria-expanded={open}
+        onClick={() => setOpen(!open)}
+        data-testid={testId}
+      >
+        {label} ⓘ
+      </button>
+      {open && <span role="note" className="max-w-72 rounded-lg bg-(--story-menu-bg) p-3 text-xs text-(--story-menu-fg)">{text}</span>}
+    </span>
   );
+}
+
+/** Placeholder layouts only (visual direction not chosen); all words come from src/copy/en.ts. */
+function renderSlide(kind: SlideKind, s: WatchStats, wt: WatchTimeEstimate | null, period: PeriodVariant) {
+  const wrap = (children: ReactNode) => <div className="flex flex-1 flex-col justify-center gap-4 px-6 pb-16">{children}</div>;
   switch (kind) {
     case "total-videos":
       return wrap(
         <>
-          <h2 className="text-3xl font-bold">You pressed play on {s.totalVideos.toLocaleString()} videos.</h2>
-          <p className="text-(--story-muted)">That&apos;s about {s.avgVideosPerDay.toFixed(1)} a day.</p>
+          <h2 className="text-3xl font-bold">{fill(S.totalVideos.headline, { n: num(s.totalVideos) })}</h2>
+          <p className="text-(--story-muted)">{fill(S.totalVideos.sub, { perDay: s.avgVideosPerDay.toFixed(1) })}</p>
+          {!wt && <InfoChip label="⏱" text={S.watchTime.unavailableTooltip} testId="watch-time-unavailable" />}
         </>,
       );
-    case "watch-time":
+    case "watch-time": {
+      const secs = wt?.seconds ?? 0;
       return wrap(
         <>
-          <h2 className="text-3xl font-bold">≈ {Math.round((wt?.seconds ?? 0) / 3600).toLocaleString()} hours of watching.</h2>
-          <p className="text-(--story-muted)">Estimate · {Math.round((wt?.coverage ?? 0) * 100)}% of plays looked up</p>
+          <h2 className="text-3xl font-bold">{fill(S.watchTime.headline, { hours: num(Math.round(secs / 3600)) })}</h2>
+          <p className="text-(--story-muted)">{fill(S.watchTime.sub, { days: num(Math.floor(secs / 86400)) })}</p>
+          <InfoChip label={S.watchTime.chip} text={S.watchTime.chipExplainer} />
         </>,
       );
+    }
     case "top-creators":
       return wrap(
         <>
-          <h2 className="text-2xl font-bold">Your top 5 creators</h2>
+          <h2 className="text-2xl font-bold">{S.topCreators.headline}</h2>
           <ol className="space-y-2">
             {s.topCreators.map((c, i) => (
               <li key={c.url ?? c.name} className="flex items-baseline gap-3">
                 <span className="w-5 shrink-0 text-(--story-accent)">{i + 1}</span>
                 <span className="clamp-name min-w-0 flex-1">{c.name}</span>
-                <span className="shrink-0 text-(--story-muted)">{c.count}</span>
+                <span className="shrink-0 text-(--story-muted)">{fill(S.topCreators.item, { n: num(c.count) })}</span>
               </li>
             ))}
           </ol>
@@ -55,22 +82,39 @@ function renderSlide(kind: SlideKind, s: WatchStats, wt: WatchTimeEstimate | nul
     case "favorite-video":
       return wrap(
         <>
-          <h2 className="text-2xl font-bold">You couldn&apos;t stop rewatching this one.</h2>
-          <p className="clamp-title text-xl">{s.favoriteVideo?.title}</p>
-          <p className="text-(--story-muted)">watched {s.favoriteVideo?.count} times</p>
+          <h2 className="text-2xl font-bold">{S.favoriteVideo.headline}</h2>
+          <p className="text-xl">
+            {fillNodes(S.favoriteVideo.sub, {
+              title: <span className="clamp-title">{s.favoriteVideo?.title}</span>,
+              n: num(s.favoriteVideo?.count ?? 0),
+            })}
+          </p>
         </>,
       );
-    case "peak-hour-badge":
+    case "busiest-month": {
+      const b = s.busiestMonth!;
       return wrap(
         <>
-          <h2 className="text-3xl font-bold">{BADGE_LABEL[s.peakHourBadge!.badge]}</h2>
-          <p className="text-(--story-muted)">{s.peakHourBadge!.pct}% of your plays happened in this window.</p>
+          <h2 className="text-3xl font-bold">{fill(S.busiestMonth.headline[period], { month: monthName(b.month), year: b.year })}</h2>
+          <p className="text-(--story-muted)">{fill(S.busiestMonth.sub, { n: num(b.count) })}</p>
         </>,
       );
+    }
+    case "peak-hour-badge": {
+      const p = s.peakHourBadge!;
+      const name = badgeName(p.badge);
+      return wrap(
+        <>
+          <p className="text-sm uppercase tracking-wide text-(--story-muted)">{S.primeTime.peakLabel}</p>
+          <h2 className="text-3xl font-bold">{name}</h2>
+          <p className="text-(--story-muted)">{fill(S.primeTime.badgeShare, { badge: name, pct: p.pct })}</p>
+        </>,
+      );
+    }
     case "top-songs":
       return wrap(
         <>
-          <h2 className="text-2xl font-bold">Your top 5 songs (on repeat)</h2>
+          <h2 className="text-2xl font-bold">{S.topSongs.headline}</h2>
           <ol className="space-y-2">
             {s.topSongs.map((t, i) => (
               <li key={t.videoId ?? t.title} className="flex items-baseline gap-3">
@@ -84,6 +128,23 @@ function renderSlide(kind: SlideKind, s: WatchStats, wt: WatchTimeEstimate | nul
           </ol>
         </>,
       );
+    case "share": {
+      const year = s.range.type === "calendarYear" ? new Date(s.range.end.getTime() - 1).getUTCFullYear() : "";
+      return wrap(
+        <>
+          <p className="self-start -rotate-6 rounded border-2 border-(--story-accent) px-2 py-0.5 text-xs font-bold uppercase tracking-widest text-(--story-accent)" data-testid="share-stamp">
+            {en.appName}
+          </p>
+          <h2 className="text-3xl font-bold">{fill(S.share.headline[period], { year })}</h2>
+          <div className="flex flex-wrap gap-2 text-sm">
+            <button type="button" className="rounded-full bg-(--story-fg) px-4 py-2 text-(--story-bg)">{S.share.saveStory}</button>
+            <button type="button" className="rounded-full bg-(--story-pill-bg) px-4 py-2">{S.share.saveSquare}</button>
+            <button type="button" className="rounded-full px-4 py-2 underline">{S.share.startOver}</button>
+          </div>
+          <p className="text-xs text-(--story-muted)">{en.disclaimer}</p>
+        </>,
+      );
+    }
     default:
       return wrap(<h2 className="text-2xl font-bold">{kind}</h2>);
   }
@@ -91,9 +152,10 @@ function renderSlide(kind: SlideKind, s: WatchStats, wt: WatchTimeEstimate | nul
 
 function Story() {
   const events = useMemo(() => makeDemoEvents(), []);
-  const { stats, range, setRange, years, timeZone } = useStoryStats(events);
+  const { stats, range, setRange, periodLabel, periodOptions } = useStoryStats(events);
   const [durationsOk, setDurationsOk] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
+  const period = periodVariant(range);
 
   const watchTime = useMemo(() => {
     if (!durationsOk) return null;
@@ -104,7 +166,7 @@ function Story() {
   const slides: StorySlide[] = planSlides(stats, { watchTime, only: DEMO_SLIDES }).map((kind) => ({
     id: kind,
     label: kind,
-    content: renderSlide(kind, stats, watchTime),
+    content: renderSlide(kind, stats, watchTime, period),
   }));
 
   return (
@@ -112,13 +174,11 @@ function Story() {
       <StoryPlayer
         slides={slides}
         paused={menuOpen}
-        header={
-          <PeriodPill range={range} resolved={stats.range} years={years} timeZone={timeZone} onChange={setRange} onOpenChange={setMenuOpen} />
-        }
+        header={<PeriodPill range={range} label={periodLabel} options={periodOptions} onChange={setRange} onOpenChange={setMenuOpen} />}
       />
       <label className="flex items-center gap-2 text-xs text-neutral-300">
         <input type="checkbox" checked={!durationsOk} onChange={(e) => setDurationsOk(!e.target.checked)} />
-        Simulate the durations endpoint returning nothing (drops the watch-time slide)
+        Demo only: simulate the durations endpoint returning nothing
       </label>
     </div>
   );

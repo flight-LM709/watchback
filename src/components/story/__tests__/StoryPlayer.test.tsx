@@ -118,6 +118,40 @@ describe("StoryPlayer", () => {
     expect(screen.getByText("Slide content 0")).toBeTruthy();
   });
 
+  it("uses Copywriter's player copy: live region, SR controls, hints, tap-to-continue", () => {
+    setReducedMotion(true);
+    render(<StoryPlayer slides={slides(3)} />);
+    expect(screen.getByText("Slide 1 of 3")).toBeTruthy(); // ariaProgress
+    expect(screen.getByText("Tap right for next, left to go back. Hold to pause.")).toBeTruthy();
+    expect(screen.getByText("Use ← and → to move, space to pause.")).toBeTruthy();
+    expect(screen.getByTestId("tap-to-continue").textContent).toBe("Tap to continue");
+    // SR buttons
+    fireEvent.click(screen.getByRole("button", { name: "Next slide" }));
+    expect(screen.getByText("Slide content 1")).toBeTruthy();
+    expect(screen.queryByTestId("story-hints")).toBeNull(); // hints go away after first interaction
+    fireEvent.click(screen.getByRole("button", { name: "Previous slide" }));
+    expect(screen.getByText("Slide content 0")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Pause" }));
+    expect(region().dataset.paused).toBe("true");
+    fireEvent.click(screen.getByRole("button", { name: "Play" }));
+    expect(region().dataset.paused).toBe("false");
+    // last slide: no tap-to-continue
+    fireEvent.keyDown(region(), { key: "ArrowRight" });
+    fireEvent.keyDown(region(), { key: "ArrowRight" });
+    expect(screen.queryByTestId("tap-to-continue")).toBeNull();
+  });
+
+  it("no tap-to-continue prompt when auto-advance is running", () => {
+    render(<StoryPlayer slides={slides(3)} />);
+    expect(screen.queryByTestId("tap-to-continue")).toBeNull();
+  });
+
+  it("accepts a copy override", () => {
+    render(<StoryPlayer slides={slides(2)} copy={{ tapToContinue: "x", firstSlideHint: "x", keyboardHint: "x", ariaNext: "Berikutnya", ariaPrev: "Sebelumnya", ariaPause: "Jeda", ariaPlay: "Putar", ariaProgress: "Slide {current} dari {total}", periodPillAria: "x" }} />);
+    expect(screen.getByText("Slide 1 dari 2")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Berikutnya" })).toBeTruthy();
+  });
+
   it("keeps the current slide by id when the slide list changes", () => {
     const { rerender } = render(<StoryPlayer slides={slides(4)} />);
     fireEvent.keyDown(region(), { key: "ArrowRight" });
