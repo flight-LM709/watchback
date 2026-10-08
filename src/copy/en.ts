@@ -38,7 +38,7 @@ export const en = {
 
   crunching: {
     counter: "Counting {n} videos…",
-    // Shown instead of "Counting 0 videos…" while the zip is opened and inflated (nothing counted yet). NEW — pending Copywriter OK.
+    // Shown instead of "Counting 0 videos…" while the zip is opened and inflated (nothing counted yet). Copywriter-approved.
     unzipping: "Unzipping your Takeout…",
     rotating: [
       "Rewinding the tape…",
