@@ -5,8 +5,9 @@ import { useHydrated } from "@/components/story";
 import { errorMessage } from "@/copy/format";
 import { parseTakeoutInWorker, type WorkerParseResult } from "@/lib/takeout/client";
 import { MAX_DURATION_IDS, fetchDurations } from "@/lib/takeout/durationsClient";
+import { progressFraction } from "@/lib/takeout/progress";
 import type { WatchStats } from "@/lib/takeout/stats";
-import { isTakeoutError } from "@/lib/takeout/types";
+import { isTakeoutError, type ProgressPhase } from "@/lib/takeout/types";
 import { buildDurationSample, estimateWatchTime, type DurationsResponse } from "@/lib/takeout/watchTime";
 import { Crunching, Landing, Upload } from "./screens";
 import { WatchbackStory } from "./WatchbackStory";
@@ -14,20 +15,22 @@ import { WatchbackStory } from "./WatchbackStory";
 type Screen = { name: "landing" } | { name: "upload"; error: string | null } | { name: "crunching" } | { name: "story"; result: WorkerParseResult; durations: DurationsResponse };
 
 const noop = () => () => {};
+const START = { count: 0, fraction: 0, phase: "unzipping" as ProgressPhase };
 
 /** Landing → upload → crunching → story. Everything is parsed in a Web Worker; only video IDs leave the device. */
 export function WatchbackApp() {
   const hydrated = useHydrated();
   const [screen, setScreen] = useState<Screen>({ name: "landing" });
-  const [progress, setProgress] = useState({ count: 0, fraction: 0 });
+  const [progress, setProgress] = useState<{ count: number; fraction: number; phase: ProgressPhase }>(START);
   const host = useSyncExternalStore(noop, () => window.location.host, () => "");
 
   const onFiles = async (files: File[]) => {
     setScreen({ name: "crunching" });
-    setProgress({ count: 0, fraction: 0 });
+    setProgress(START);
     try {
       const result = await parseTakeoutInWorker(files, {
-        onProgress: (p) => setProgress({ count: p.watchCount, fraction: p.phase === "done" ? 1 : p.total ? p.processed / p.total : 0 }),
+        // Bar only moves forward: a later file's "reading" phase must not pull it back.
+        onProgress: (p) => setProgress((prev) => ({ count: p.watchCount, fraction: Math.max(prev.fraction, progressFraction(p)), phase: p.phase })),
       });
       // One request, ≤ 2,000 IDs (sampled from the default period). Any failure drops the watch-time slide.
       const sample = buildDurationSample(result.stats, { cap: MAX_DURATION_IDS });
@@ -55,7 +58,7 @@ export function WatchbackApp() {
     case "upload":
       return <Upload onFiles={onFiles} error={screen.error} />;
     case "crunching":
-      return <Crunching count={progress.count} fraction={progress.fraction} />;
+      return <Crunching count={progress.count} fraction={progress.fraction} phase={progress.phase} />;
     case "story":
       return (
         <div className="flex min-h-dvh items-center justify-center">

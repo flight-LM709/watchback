@@ -3,6 +3,7 @@
  * Usage: new Worker(new URL("./worker.ts", import.meta.url), { type: "module" })
  * (see client.ts).
  */
+import { throttleProgress } from "./progress";
 import type { WorkerRequest, WorkerResponse } from "./protocol";
 import { computeStats } from "./stats";
 import { isTakeoutError } from "./types";
@@ -18,15 +19,11 @@ ctx.onmessage = async (e) => {
   const req = e.data;
   if (req.type !== "parse") return;
   try {
-    let last = 0;
     const { events, diagnostics } = await parseTakeoutZip(req.files, {
       fallbackTimeZone: req.timeZone,
-      onProgress: (progress) => {
-        const now = Date.now();
-        if (progress.phase === "parsing" && now - last < 50) return; // ~20 updates/s max
-        last = now;
-        ctx.postMessage({ type: "progress", progress });
-      },
+      // ≤ ~20 posts/s; counts arrive every 500 entries so the counter ticks smoothly even on fast devices.
+      progressEvery: 500,
+      onProgress: throttleProgress((progress) => ctx.postMessage({ type: "progress", progress })),
     });
     const stats = computeStats(events, { timeZone: req.timeZone, range: req.range });
     ctx.postMessage({ type: "result", events, diagnostics, stats });

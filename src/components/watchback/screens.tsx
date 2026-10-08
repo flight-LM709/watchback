@@ -4,6 +4,8 @@ import { useEffect, useId, useState, type DragEvent, type ReactNode } from "reac
 import { Lock, Sparkle, Star, Sticker, TapeStrip, Underline } from "@/components/paper";
 import { usePrefersReducedMotion } from "@/components/story";
 import { en } from "@/copy/en";
+import { isPreparing } from "@/lib/takeout/progress";
+import type { ProgressPhase } from "@/lib/takeout/types";
 import { Cassette } from "./charts";
 import { num, splitAround } from "./fmt";
 import { Brand } from "./WatchbackStory";
@@ -181,7 +183,7 @@ export function Upload({ onFiles, error }: { onFiles: (files: File[]) => void; e
 }
 
 /** 02b Crunching: spinning cassette, live "Counting {n} videos…", tape bar, rotating lines. */
-export function Crunching({ count, fraction }: { count: number; fraction: number }) {
+export function Crunching({ count, fraction, phase = "parsing" }: { count: number; fraction: number; phase?: ProgressPhase }) {
   const rm = usePrefersReducedMotion();
   const lines = en.crunching.rotating;
   const [i, setI] = useState(0);
@@ -190,6 +192,8 @@ export function Crunching({ count, fraction }: { count: number; fraction: number
     return () => clearInterval(t);
   }, [lines.length]);
   const [before, after] = splitAround(en.crunching.counter, "n");
+  // Nothing is counted while the zip is opened/inflated, so say that instead of a frozen "Counting 0 videos…".
+  const preparing = isPreparing(phase, count);
   return (
     <Page className="items-center text-center">
       <div className="self-start">
@@ -198,11 +202,18 @@ export function Crunching({ count, fraction }: { count: number; fraction: number
       <div className="mt-14 w-[78%] rotate-[-3deg]" aria-hidden="true">
         <Cassette label={<Wordmark />} spinning />
       </div>
-      <p className="mt-12" role="status" aria-live="polite">
-        <span className="sr-only">{`${before}${num(count)}${after}`}</span>
-        <span aria-hidden="true" className="block font-serif text-headline font-semibold">{before.trim()}</span>
-        <span aria-hidden="true" className="hero-num block text-[96px] tracking-[-0.075em]">{num(count)}</span>
-        <span aria-hidden="true" className="block font-serif text-[24px] italic">{after.trim()}</span>
+      {/* Fixed height = the three-line counter, so switching from the phase label doesn't shift the page. */}
+      <p className="mt-12 flex min-h-[166px] flex-col justify-center" role="status" aria-live="polite">
+        {preparing ? (
+          <span className="block font-serif text-headline font-semibold">{en.crunching.unzipping}</span>
+        ) : (
+          <>
+            <span className="sr-only">{`${before}${num(count)}${after}`}</span>
+            <span aria-hidden="true" className="block font-serif text-headline font-semibold">{before.trim()}</span>
+            <span aria-hidden="true" className="hero-num block text-[96px] tracking-[-0.075em]">{num(count)}</span>
+            <span aria-hidden="true" className="block font-serif text-[24px] italic">{after.trim()}</span>
+          </>
+        )}
       </p>
       <div className="mt-6 h-3 w-[80%] overflow-hidden rounded-full border-2 border-ink bg-paper-2" aria-hidden="true">
         <div className="h-full bg-reel transition-[width] duration-300 motion-reduce:transition-none" style={{ width: `${Math.round(Math.min(1, Math.max(0, fraction)) * 100)}%` }} />
