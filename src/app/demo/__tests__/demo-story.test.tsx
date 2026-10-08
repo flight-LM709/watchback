@@ -12,9 +12,9 @@ const slide = () => region().querySelector('[aria-roledescription="slide"]') as 
 const h2 = () => slide().querySelector("h2")?.textContent ?? "";
 
 describe("/demo: Paper Mixtape story", () => {
-  it("12 slides, copy from en.ts, peak-hour badge on the prime-time slide, heroes ≥ 96px, no banned contrast pairs", () => {
+  it("14 slides, copy from en.ts, peak-hour badge on the prime-time slide, heroes ≥ 96px, no banned contrast pairs", () => {
     render(<DemoStory />);
-    expect(screen.getAllByTestId("story-progress")).toHaveLength(12);
+    expect(screen.getAllByTestId("story-progress")).toHaveLength(14);
     const heroes: number[] = [];
     const violations: string[] = [];
     const seen: string[] = [];
@@ -36,7 +36,31 @@ describe("/demo: Paper Mixtape story", () => {
     fireEvent.keyDown(sheet, { key: "Escape" });
     expect(screen.queryByRole("dialog")).toBeNull();
 
-    next(); // 3: #1 creator, monogram + hero, no runners-up list
+    next(); // 3: Shorts vs long-form, two 96px heroes, tapes, sub, chip + note
+    check();
+    expect(h2()).toBe(en.slides.shortsVsLong.headline);
+    expect(slide().getAttribute("aria-label")).toMatch(/^Quick scrolls vs\. long watches\. Shorts: about [\d,]+ videos, .+\. Long-form: about [\d,]+ videos, .+\.$/);
+    expect(within(slide()).getByTestId("format-card-shorts")).toBeTruthy();
+    expect(within(slide()).getByTestId("format-card-long")).toBeTruthy();
+    expect(slide().querySelectorAll("[data-hero-px='96']").length).toBeGreaterThanOrEqual(2);
+    expect(within(slide()).getAllByTestId("tape-label").map((t) => t.textContent)).toEqual([en.deco.shortsTape, en.deco.longTape]);
+    expect(Object.values(en.slides.shortsVsLong.subs).map((x) => x.replaceAll("\u2011", "-"))).toContain(within(slide()).getByTestId("shorts-sub").textContent);
+    expect(within(slide()).getByTestId("shorts-note").textContent).toBe(en.slides.shortsVsLong.note);
+    fireEvent.click(within(slide()).getByRole("button", { name: /Estimate/ }));
+    const sheet2 = screen.getByRole("dialog", { name: en.slides.shortsVsLong.chip });
+    expect(sheet2.textContent).toContain(en.slides.shortsVsLong.chipExplainer);
+    expect(region().dataset.paused).toBe("true");
+    fireEvent.keyDown(sheet2, { key: "Escape" });
+
+    next(); // 4: creators by format, two columns, #1 monograms at 64px
+    check();
+    expect(h2()).toBe(en.slides.topCreatorsSplit.headline.replaceAll("\u2011", "-"));
+    for (const col of ["shorts", "long"]) {
+      const c = within(slide()).getByTestId(`creator-column-${col}`);
+      expect(c.querySelector('[role="img"]')!.getAttribute("style")).toMatch(/width: 64px/);
+    }
+
+    next(); // 5: #1 creator, monogram + hero, no runners-up list
     check();
     expect(h2()).toMatch(/^Your #1 creator was .+\.$/);
     const creator = h2().replace("Your #1 creator was ", "").replace(/\.$/, "");
@@ -45,12 +69,12 @@ describe("/demo: Paper Mixtape story", () => {
     expect(slide().querySelectorAll("li")).toHaveLength(0);
     expect(slide().querySelector("[data-hero-px]")!.getAttribute("data-hero-px")).toBe("120");
 
-    next(); // 4: top 5 list with monograms
+    next(); // 6: top 5 list with monograms
     check();
     expect(h2()).toBe(en.slides.topCreators.headline);
     expect(slide().querySelectorAll("li")).toHaveLength(5);
 
-    next(); // 5: favorite video; demo thumbnail can't render in jsdom -> placeholder
+    next(); // 7: favorite video; demo thumbnail can't render in jsdom -> placeholder
     check();
     expect(h2()).toBe(en.slides.favoriteVideo.headline);
     expect(within(slide()).getByTestId("video-thumb")).toBeTruthy();
@@ -81,7 +105,7 @@ describe("/demo: Paper Mixtape story", () => {
     expect(h2()).toBe(en.slides.share.headline.last12);
     expect(within(slide()).getAllByTestId("share-stamp")[0].textContent).toBe(en.appName);
 
-    expect(new Set(seen).size).toBe(12);
+    expect(new Set(seen).size).toBe(14);
     expect(heroes.length).toBeGreaterThanOrEqual(7);
     expect(Math.min(...heroes)).toBeGreaterThanOrEqual(96);
     expect(violations).toEqual([]);
@@ -94,9 +118,22 @@ describe("/demo: Paper Mixtape story", () => {
     expect(h2()).toBe(en.slides.share.headline.allTime);
   });
 
-  it("durations failing drops the watch-time slide (11 slides); share card swaps to the peak-hour tile", () => {
+  it("zero Shorts: slide 3 shows the noShorts line, slide 4 is skipped (13 slides)", () => {
     render(<DemoStory />);
-    fireEvent.click(screen.getByRole("checkbox"));
+    fireEvent.click(screen.getByRole("checkbox", { name: /zero Shorts/ }));
+    expect(screen.getAllByTestId("story-progress")).toHaveLength(13);
+    next();
+    next();
+    expect(h2()).toBe(en.slides.shortsVsLong.headline);
+    expect(within(slide()).getByTestId("no-shorts").textContent).toContain(en.slides.shortsVsLong.noShorts.replaceAll("\u2011", "-"));
+    expect(within(slide()).queryByTestId("format-card-shorts")).toBeNull();
+    next();
+    expect(h2()).toMatch(/^Your #1 creator was/);
+  });
+
+  it("durations failing drops the watch-time and both Shorts slides (11 slides); share card swaps to the peak-hour tile", () => {
+    render(<DemoStory />);
+    fireEvent.click(screen.getByRole("checkbox", { name: /durations endpoint/ }));
     expect(screen.getAllByTestId("story-progress")).toHaveLength(11);
     next();
     expect(h2()).toMatch(/^Your #1 creator was/);
