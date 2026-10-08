@@ -131,6 +131,27 @@ describe("/demo: Paper Mixtape story", () => {
     expect(h2()).toMatch(/^Your #1 creator was/);
   });
 
+  it("unknown Shorts time: em dash on the Shorts card, plays-only sub, 'watch time unknown' for screen readers", () => {
+    render(<DemoStory />);
+    fireEvent.click(screen.getByRole("checkbox", { name: /unknown Shorts watch time/ }));
+    expect(screen.getAllByTestId("story-progress")).toHaveLength(14);
+    next();
+    next();
+    expect(within(within(slide()).getByTestId("format-card-shorts")).getByTestId("time-unknown").textContent).toBe("—");
+    expect(within(slide()).getByTestId("shorts-sub").textContent).toBe(en.slides.shortsVsLong.subs.longPlaysOnly.replaceAll("\u2011", "-"));
+    expect(slide().getAttribute("aria-label")).toContain("watch time unknown");
+  });
+
+  it("no Shorts creators: slide 4 keeps the Shorts column with the centered empty line", () => {
+    render(<DemoStory />);
+    fireEvent.click(screen.getByRole("checkbox", { name: /no Shorts creators/ }));
+    for (let i = 0; i < 3; i++) next();
+    const col = within(slide()).getByTestId("creator-column-shorts");
+    expect(within(col).queryByTestId("split-top-name")).toBeNull();
+    expect(within(col).getByTestId("split-empty")).toBeTruthy();
+    expect(within(within(slide()).getByTestId("creator-column-long")).getByTestId("split-top-name")).toBeTruthy();
+  });
+
   it("durations failing drops the watch-time and both Shorts slides (11 slides); share card swaps to the peak-hour tile", () => {
     render(<DemoStory />);
     fireEvent.click(screen.getByRole("checkbox", { name: /durations endpoint/ }));

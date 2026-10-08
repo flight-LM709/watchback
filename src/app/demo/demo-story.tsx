@@ -14,6 +14,8 @@ function Story() {
   const events = useMemo(() => makeDemoEvents(), []);
   const [durationsOk, setDurationsOk] = useState(true);
   const [zeroShorts, setZeroShorts] = useState(false);
+  const [unknownShortsTime, setUnknownShortsTime] = useState(false);
+  const [noShortsCreators, setNoShortsCreators] = useState(false);
   const [run, setRun] = useState(0);
   const host = useSyncExternalStore(noop, () => window.location.host, () => "");
 
@@ -32,14 +34,21 @@ function Story() {
       const flags = fakeIsShort(sample.ids);
       // Demo only: every looked-up video reads as long-form (the demo history has no /shorts/ links).
       if (zeroShorts) for (const id in flags) if (flags[id]) flags[id] = false;
-      return estimateShortsSplit(stats, flags, fakeDurations(sample.ids), sample);
+      const durations = fakeDurations(sample.ids);
+      // Demo only: no length came back for any Short → that side's time is unknown (em dash, plays-only sub).
+      if (unknownShortsTime) for (const id in flags) if (flags[id]) durations[id] = null;
+      // Demo only: Shorts with no channel info → empty Shorts creator column.
+      const input = noShortsCreators
+        ? { ...stats, videoPlays: stats.videoPlays.map((r) => (flags[r.videoId] ? { ...r, channel: undefined } : r)) }
+        : stats;
+      return estimateShortsSplit(input, flags, durations, sample);
     },
-    [durationsOk, zeroShorts],
+    [durationsOk, zeroShorts, unknownShortsTime, noShortsCreators],
   );
 
   return (
     <div className="flex flex-col items-center gap-3">
-      <WatchbackStory key={`${run}-${zeroShorts}`} events={events} watchTimeFor={watchTimeFor} shortsSplitFor={shortsSplitFor} thumbLoader={demoThumbnail} onExit={() => setRun((r) => r + 1)} host={host} />
+      <WatchbackStory key={`${run}-${zeroShorts}-${unknownShortsTime}-${noShortsCreators}`} events={events} watchTimeFor={watchTimeFor} shortsSplitFor={shortsSplitFor} thumbLoader={demoThumbnail} onExit={() => setRun((r) => r + 1)} host={host} />
       <label className="flex min-h-11 items-center gap-2 px-4 font-mono text-xs text-ink-2">
         <input type="checkbox" checked={!durationsOk} onChange={(e) => setDurationsOk(!e.target.checked)} />
         Demo only: simulate the durations endpoint returning nothing
@@ -47,6 +56,14 @@ function Story() {
       <label className="flex min-h-11 items-center gap-2 px-4 font-mono text-xs text-ink-2">
         <input type="checkbox" checked={zeroShorts} onChange={(e) => setZeroShorts(e.target.checked)} />
         Demo only: simulate zero Shorts
+      </label>
+      <label className="flex min-h-11 items-center gap-2 px-4 font-mono text-xs text-ink-2">
+        <input type="checkbox" checked={unknownShortsTime} onChange={(e) => setUnknownShortsTime(e.target.checked)} />
+        Demo only: simulate unknown Shorts watch time
+      </label>
+      <label className="flex min-h-11 items-center gap-2 px-4 font-mono text-xs text-ink-2">
+        <input type="checkbox" checked={noShortsCreators} onChange={(e) => setNoShortsCreators(e.target.checked)} />
+        Demo only: simulate no Shorts creators
       </label>
     </div>
   );
