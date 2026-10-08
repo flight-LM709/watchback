@@ -26,3 +26,4 @@ export {
   type DurationsResponse,
   type WatchTimeEstimate,
 } from "./watchTime";
+export { fetchDurations, lookupWatchTime, MAX_DURATION_IDS, type FetchDurationsResult } from "./durationsClient";
