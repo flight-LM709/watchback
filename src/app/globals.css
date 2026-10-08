@@ -5,6 +5,12 @@
     @slot;
   }
 }
+/* Short PHONES only (not the desktop frame): e.g. 360×740, where a 2-line sub must still leave room for the note. */
+@custom-variant short-phone {
+  @media (max-height: 760px) and (max-aspect-ratio: 3 / 4) {
+    @slot;
+  }
+}
 
 /* ==========================================================================
    Paper Mixtape tokens: copied from design/tokens.css (Designer's file, the source of truth,

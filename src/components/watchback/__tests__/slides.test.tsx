@@ -175,6 +175,8 @@ describe("Shorts slides (SPEC §9)", () => {
     expect(screen.getByTestId("format-card-long").textContent).toContain("≈ 1,836 hours");
     expect(screen.getByTestId("shorts-sub").textContent).toBe("Shorts got most of your plays. Long-form got most of your time.");
     expect(screen.getByTestId("shorts-note").textContent).toBe(en.slides.shortsVsLong.note);
+    // spacing above the sub: 16px, 10px on short screens + the desktop frame, 4px on short phones only (360×740 note fit)
+    expect(screen.getByTestId("shorts-sub").className.split(" ")).toEqual(expect.arrayContaining(["mt-4", "short:mt-2.5", "short-phone:mt-1"]));
     expect(root.textContent).not.toContain("\u2011");
     expect(contrastViolations(root)).toEqual([]);
   });

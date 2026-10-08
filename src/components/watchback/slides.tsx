@@ -714,7 +714,7 @@ function ShortsVsLong({ ctx }: { ctx: SlideContext }) {
             <FormatCard format="long" side={split.long} />
           </div>
           {split.sub && (
-            <p className="mt-4 font-serif text-[18px] font-semibold italic leading-[1.3] short:mt-2.5 short:text-[16px]" data-testid="shorts-sub">
+            <p className="mt-4 font-serif text-[18px] font-semibold italic leading-[1.3] short:mt-2.5 short:text-[16px] short-phone:mt-1" data-testid="shorts-sub">
               <NoBreakHyphens text={SV.subs[split.sub]} />
             </p>
           )}
