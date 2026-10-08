@@ -147,7 +147,10 @@ export const en = {
       countOne: "≈ 1 video", // when the rounded count is 1
       time: "≈ {hours} hours",
       timeOne: "≈ 1 hour", // when hours rounds to exactly 1
-      timeMinutes: "≈ {minutes} min", // when the total is under 1 hour
+      // Under 1 hour, use minutes instead of hours so nothing reads "≈ 0 hours".
+      timeMinutes: "≈ {minutes} minutes",
+      timeOneMinute: "≈ 1 minute",
+      timeUnderMinute: "under a minute",
       share: "{pct}% of your plays",
       subs: {
         shortsBoth: "Shorts won on plays and on time.",
