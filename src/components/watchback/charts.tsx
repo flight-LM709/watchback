@@ -1,7 +1,6 @@
 "use client";
 
 import type { CSSProperties, ReactNode } from "react";
-import { Arrow } from "@/components/paper";
 import type { MonthBucket } from "@/lib/takeout/stats";
 import { dayNarrow, dayShort, hourLabel, monthInitial, monthLongYear, monthShortYear, num } from "./fmt";
 
@@ -18,20 +17,8 @@ export function Heatmap({ heatmap, peak, header, note }: { heatmap: number[][]; 
   const peakLeft = peak ? `calc(30px + (100% - 30px) * ${(peak.hour + 0.5) / 24})` : "0";
   return (
     <div className="relative">
-      <div className="mb-2 flex items-end justify-between">
-        <p className="font-mono text-label font-bold uppercase tracking-[0.08em]">{header}</p>
-      </div>
+      <p className="mb-2 font-mono text-label font-bold uppercase tracking-[0.08em]" data-testid="heatmap-header">{header}</p>
       <div className="relative" aria-hidden="true">
-        {peak && (
-          <span
-            className="pointer-events-none absolute -top-9 flex items-end gap-0.5 whitespace-nowrap font-hand text-[22px] font-bold leading-none text-tomato"
-            style={peak.hour >= 12 ? { right: `calc(100% - ${peakLeft} - 4px)` } : { left: `calc(${peakLeft} - 4px)` }}
-          >
-            {peak.hour < 12 && <Arrow className="size-5 -scale-x-100" />}
-            {note}
-            {peak.hour >= 12 && <Arrow className="size-5" />}
-          </span>
-        )}
         <div className="grid gap-[2px]" style={{ gridTemplateColumns: "30px repeat(24, minmax(0, 1fr))" }}>
           {MON_FIRST.map((dow) => (
             <Row key={dow} label={dayShort(dow)}>
@@ -56,11 +43,36 @@ export function Heatmap({ heatmap, peak, header, note }: { heatmap: number[][]; 
         </div>
         <div className="relative mt-1.5 h-4 font-mono text-[10px] font-bold" style={{ marginLeft: 30 }}>
           {[0, 6, 12, 18].map((h) => (
-            <span key={h} className="absolute" style={{ left: `${(h / 24) * 100}%` }}>
+            // Paper halo so the note's arrow can pass behind a tick label without hiding it.
+            <span key={h} className="absolute z-[1] [text-shadow:0_0_2px_var(--color-paper-2),0_0_3px_var(--color-paper-2),0_0_4px_var(--color-paper-2)]" style={{ left: `${(h / 24) * 100}%` }}>
               {hourLabel(h)}
             </span>
           ))}
         </div>
+        {peak && (
+          // Hand note under the hour axis, below the peak column, arrow pointing up at the outlined cell
+          // (kept off the header so the tz label stays readable).
+          <div className="relative h-[36px]" data-testid="heatmap-note">
+            <svg
+              viewBox="0 0 14 44"
+              width="14"
+              height="44"
+              fill="none"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="pointer-events-none absolute -top-[25px] overflow-visible text-tomato"
+              style={{ left: `calc(${peakLeft} - 7px)` }}
+            >
+              <path d="M8 43 C 3 31, 11 18, 7 3 M2.5 8 L7 2.5 L11.5 7.5" stroke="currentColor" strokeWidth="2" />
+            </svg>
+            <span
+              className="pointer-events-none absolute top-[12px] whitespace-nowrap font-hand text-[22px] font-bold leading-none text-tomato"
+              style={peak.hour >= 12 ? { right: `calc(100% - ${peakLeft} + 12px)` } : { left: `calc(${peakLeft} + 12px)` }}
+            >
+              {note}
+            </span>
+          </div>
+        )}
       </div>
       <table className="sr-only">
         <caption>{header}</caption>

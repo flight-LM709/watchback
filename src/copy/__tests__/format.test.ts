@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createElement } from "react";
 import { en } from "../en";
-import { badgeName, errorMessage, fill, fillNodes, periodVariant } from "../format";
+import { badgeDetail, badgeName, badgeShareLine, errorMessage, fill, fillNodes, peakValue, periodVariant, primeTimeHeadline, siteLabel } from "../format";
 import { PEAK_HOUR_WINDOWS } from "@/lib/takeout/stats";
 
 describe("copy helpers", () => {
@@ -27,5 +27,20 @@ describe("copy helpers", () => {
   it("error codes map to Copywriter's messages", () => {
     expect(errorMessage("NOT_TAKEOUT_ZIP")).toBe(en.errors.notTakeout);
     expect(errorMessage("NO_WATCH_HISTORY")).toBe(en.errors.noHistory);
+  });
+  it("prime time: plural day names (getDay order), peak value, badge detail + one-liner", () => {
+    expect(en.slides.primeTime.headline).not.toContain("{day}s");
+    expect(primeTimeHeadline(0, "6 PM")).toBe("Prime time: Sundays at 6 PM.");
+    expect(primeTimeHeadline(6, "10 PM")).toBe("Prime time: Saturdays at 10 PM.");
+    expect(peakValue(0, "5 AM")).toBe("Sun 5 AM");
+    expect(peakValue(3, "11 PM")).toBe("Wed 11 PM");
+    expect(badgeDetail({ badge: "early-bird", pct: 19 })).toBe("19% of plays between 5 and 9 AM");
+    expect(badgeShareLine({ badge: "night-owl", pct: 41 })).toBe("Night owl: 41% of plays between 10 PM and 5 AM");
+  });
+  it("share-card site: host without www.", () => {
+    expect(siteLabel("www.watchback.app")).toBe("watchback.app");
+    expect(siteLabel("watchback.app")).toBe("watchback.app");
+    expect(siteLabel("localhost:3005")).toBe("localhost:3005");
+    expect(siteLabel("")).toBe("");
   });
 });

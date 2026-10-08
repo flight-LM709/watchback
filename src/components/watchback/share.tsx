@@ -3,17 +3,22 @@
 import { forwardRef, useRef, useState, type ReactNode } from "react";
 import { CassetteIcon, EstimateChip, InfoIcon, VHSStripe } from "@/components/paper";
 import { en } from "@/copy/en";
-import { fill, fillNodes, type PeriodVariant } from "@/copy/format";
+import { fill, fillNodes, peakValue, siteLabel, type PeriodVariant } from "@/copy/format";
 import type { WatchStats } from "@/lib/takeout/stats";
 import type { WatchTimeEstimate } from "@/lib/takeout/watchTime";
-import { dayName, hourLabel, monthName, num, perDay, splitAround } from "./fmt";
+import { hourLabel, monthName, num, perDay, splitAround } from "./fmt";
 import { shareYear } from "./slides";
 
 /** Share-image layouts in CSS px (SPEC §2 ShareCard), exported at pixelRatio 3 → 1080×1920 / 1080×1080. */
 export const SHARE_SIZES = { story: { width: 360, height: 640 }, square: { width: 360, height: 360 } } as const;
 export const EXPORT_PIXEL_RATIO = 3;
 export const PREVIEW_WIDTH = 342;
-const CARD_BG = "#FBF6EC";
+/** `paper` token: the card colour under the grain tile (SPEC "Share export: grain"). */
+export const CARD_PAPER = "#F3EBDD";
+/** Raster grain (design/assets/grain-tile.png, copied to public/). SVG feTurbulence exports as a black box. */
+export const GRAIN_TILE_URL = "/grain-tile.png";
+export const GRAIN_TILE_SIZE = "128px";
+export const cardBackground = { backgroundColor: CARD_PAPER, backgroundImage: `url("${GRAIN_TILE_URL}")`, backgroundSize: GRAIN_TILE_SIZE, backgroundRepeat: "repeat" } as const;
 export type ShareVariant = keyof typeof SHARE_SIZES;
 
 /** html-to-image node filter: anything marked data-export-exclude (the ⓘ button) never reaches the PNG. */
@@ -34,10 +39,9 @@ export async function renderCardPng(node: HTMLElement, variant: ShareVariant, to
     pixelRatio: EXPORT_PIXEL_RATIO,
     filter: exportFilter,
     cacheBust: false,
-    backgroundColor: CARD_BG, // paper-2; the PNG is never transparent
-    // No grain in the PNG: the feTurbulence SVG doesn't survive html-to-image's foreignObject
-    // rendering (it comes out as a solid black rect), so the export uses flat paper-2.
-    style: { transform: "none", margin: "0", backgroundImage: "none" },
+    backgroundColor: CARD_PAPER, // the PNG is never transparent
+    // The card root carries the raster grain tile (cardBackground), which html-to-image inlines.
+    style: { transform: "none", margin: "0" },
   });
 }
 
@@ -95,8 +99,8 @@ function PeakTile({ s, onInfo, infoOpen, infoId }: { s: WatchStats; onInfo?: () 
   return (
     <Tile tone="mustard" className="pr-9">
       <Label>{en.slides.primeTime.peakLabel}</Label>
-      <p className="mt-1 font-mono text-[27px] font-bold leading-none tracking-[-0.06em]">{peak ? hourLabel(peak.hour) : "–"}</p>
-      {peak && <p className="mt-1 font-serif text-[11.5px] italic">{dayName(peak.day)}s</p>}
+      <p className="mt-1 whitespace-nowrap font-mono text-[21px] font-bold leading-none tracking-[-0.06em]">{peak ? peakValue(peak.day, hourLabel(peak.hour)) : "–"}</p>
+      {peak && <p className="mt-1 font-hand text-[17px] font-bold leading-none">{fill(en.slides.topCreators.item, { n: num(peak.count) })}</p>}
       {onInfo && (
         <button
           type="button"
@@ -134,9 +138,13 @@ function CardHeader({ s, period, periodLabel, size }: { s: WatchStats; period: P
 }
 
 function Footer({ host }: { host: string }) {
+  const site = siteLabel(host);
   return (
     <div className="mt-auto border-t-2 border-ink px-4 py-2.5">
-      {host && <p className="font-mono text-[9.5px] font-bold">{host}</p>}
+      <p className="flex items-baseline justify-between gap-2 font-mono text-[9.5px]">
+        <span className="font-bold" data-testid="share-site">{site}</span>
+        <span className="text-ink-2" data-testid="share-sources">{C.sources}</span>
+      </p>
       <p className="mt-0.5 font-mono text-[8.5px] text-ink-2">{en.disclaimer}</p>
     </div>
   );
@@ -153,8 +161,8 @@ export const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(function Sha
     <div
       ref={ref}
       data-share-card={variant}
-      className="relative flex shrink-0 flex-col overflow-hidden border-2 border-ink bg-paper-2 text-ink"
-      style={{ width, height, backgroundImage: "var(--grain-card)", fontFamily: "var(--font-serif)" }}
+      className="relative flex shrink-0 flex-col overflow-hidden border-2 border-ink text-ink"
+      style={{ width, height, ...cardBackground, fontFamily: "var(--font-serif)" }}
     >
       <VHSStripe />
       <CardHeader s={s} period={period} periodLabel={periodLabel} size={variant === "story" ? "lg" : "sm"} />

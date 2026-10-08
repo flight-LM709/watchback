@@ -4,9 +4,13 @@ import { createPortal } from "react-dom";
 import { useEffect, useId, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from "react";
 import { usePrefersReducedMotion } from "@/components/story/hooks";
 import { monogram } from "@/lib/monogram";
+import { en } from "@/copy/en";
+import { fill } from "@/copy/format";
 import { InfoIcon, TapeStrip, VHSStripe, XScribble } from "./deco";
+import { HERO_MAX_WIDTH, HERO_MIN_PX, compactNumber, exactNumber, fitHero, heroTrackingEm } from "./heroFit";
 
 export * from "./deco";
+export * from "./heroFit";
 
 /** Paper sticker: paper-2, 2px ink border, hard shadow, small rotation. Slaps in. */
 export function Sticker({
@@ -82,30 +86,49 @@ export function useCountUp(target: number, ms = 600): number {
 /**
  * The one hero number per slide. Space Mono 700, ≥ 96px (never smaller, per vedrico), nowrap,
  * tabular figures; width is reserved for the final value so the roll-up doesn't jitter.
- * Screen readers get the final value only.
+ * If the exact figure won't fit at 360px (see heroFit.ts) it's abbreviated ("12.4K") with
+ * en.numbers.exactCaption under it. Screen readers get the exact value only.
  */
 export function HeroNumber({
   value,
-  size = 96,
+  size = HERO_MIN_PX,
+  maxWidth = HERO_MAX_WIDTH,
   className = "",
-  format = (n: number) => n.toLocaleString("en-US"),
+  captionClassName = "",
   animate = true,
 }: {
   value: number;
   size?: number;
+  /** Width available to the number on a 360px-wide screen. */
+  maxWidth?: number;
   className?: string;
-  format?: (n: number) => string;
+  captionClassName?: string;
   animate?: boolean;
 }) {
-  const px = Math.max(96, size);
+  const fit = fitHero(value, { size, maxWidth });
   const shown = useCountUp(animate ? value : 0, 600);
-  const final = format(value);
-  const tracking = final.length >= 7 ? "-0.1em" : "-0.075em";
+  const draw = (n: number) => (fit.abbreviated ? compactNumber(n) : exactNumber(n));
+  const number = (
+    <span className={`hero-num inline-grid ${className}`} style={{ fontSize: fit.px, letterSpacing: `${heroTrackingEm(fit.text)}em` }} data-hero-px={fit.px} data-abbreviated={fit.abbreviated || undefined}>
+      <span className="sr-only">{fit.exact}</span>
+      <span aria-hidden="true" className="invisible col-start-1 row-start-1">{fit.text}</span>
+      <span aria-hidden="true" className="col-start-1 row-start-1 text-right">{animate ? draw(shown) : fit.text}</span>
+    </span>
+  );
+  if (!fit.abbreviated) return number;
   return (
-    <span className={`hero-num inline-grid ${className}`} style={{ fontSize: px, letterSpacing: tracking }} data-hero-px={px}>
-      <span className="sr-only">{final}</span>
-      <span aria-hidden="true" className="invisible col-start-1 row-start-1">{final}</span>
-      <span aria-hidden="true" className="col-start-1 row-start-1 text-right">{animate ? format(shown) : final}</span>
+    <span className="inline-flex flex-col items-center">
+      {number}
+      <ExactCaption exact={fit.exact} className={captionClassName} />
+    </span>
+  );
+}
+
+/** "Exactly 12,412" under an abbreviated hero (the exact value is already in the hero's sr-only text). */
+export function ExactCaption({ exact, className = "" }: { exact: string; className?: string }) {
+  return (
+    <span aria-hidden="true" data-testid="exact-caption" className={`mt-1 block font-mono text-[13px] font-bold tracking-[0.02em] text-ink-2 ${className}`}>
+      {fill(en.numbers.exactCaption, { n: exact })}
     </span>
   );
 }

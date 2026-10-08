@@ -1,14 +1,14 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { EstimateChip, HandCircle, HeroNumber, MonogramSticker, Sparkle, Star, Sticker, TapeStrip, Underline, VHSLabel, Arrow, Lock } from "@/components/paper";
+import { EstimateChip, ExactCaption, HandCircle, HeroNumber, MonogramSticker, Sparkle, Star, Sticker, TapeStrip, Underline, VHSLabel, Arrow, Lock, fitCounter } from "@/components/paper";
 import type { SlideKind } from "@/components/story/slides";
 import { en } from "@/copy/en";
-import { badgeName, fill, fillNodes, type PeriodVariant } from "@/copy/format";
+import { badgeDetail, badgeName, badgeShareLine, fill, fillNodes, peakValue, primeTimeHeadline, type PeriodVariant } from "@/copy/format";
 import type { PeakHourBadge, WatchStats } from "@/lib/takeout/stats";
 import type { WatchTimeEstimate } from "@/lib/takeout/watchTime";
-import { BarChart, Cassette, Heatmap, StreakCalendar, chartMonths } from "./charts";
-import { dayName, hourLabel, monthName, num, perDay, shortDate, splitAround, tzLabel } from "./fmt";
+import { BarChart, Cassette, Heatmap, StreakCalendar, chartMonths, streakMonths } from "./charts";
+import { hourLabel, monthName, num, perDay, shortDate, splitAround, tzLabel } from "./fmt";
 import type { ThumbState } from "./useThumbnailCache";
 import { VideoThumb } from "./VideoThumb";
 
@@ -43,7 +43,7 @@ export function slideHeadline(kind: SlideKind, ctx: SlideContext): string {
     case "busiest-month":
       return fill(S.busiestMonth.headline[ctx.period], { month: monthName(s.busiestMonth?.month ?? 1), year: s.busiestMonth?.year ?? "" });
     case "prime-time":
-      return fill(S.primeTime.headline, { day: dayName(s.peak?.day ?? 0), hour: hourLabel(s.peak?.hour ?? 0) });
+      return primeTimeHeadline(s.peak?.day ?? 0, hourLabel(s.peak?.hour ?? 0));
     case "streak":
       return fill(S.bingeStreak.headline, { n: num(s.longestStreak?.days ?? 0) });
     case "top-searches":
@@ -80,6 +80,9 @@ function underlineTail(text: string): ReactNode {
   );
 }
 
+/** Inner width of a VHS label that bleeds 8px past the slide padding, on a 360px screen. */
+const VHS_INNER = 308;
+
 const Wrap = ({ children, className = "" }: { children: ReactNode; className?: string }) => (
   <div className={`rise relative flex min-h-0 flex-1 flex-col px-6 pb-20 ${className}`}>{children}</div>
 );
@@ -95,7 +98,7 @@ function TotalVideos({ ctx }: { ctx: SlideContext }) {
         <TapeStrip className="-left-3 -top-3" angle={-24} />
         <TapeStrip variant="clear" className="-right-3 -top-2" angle={24} />
         <VHSLabel left={en.deco.vhsLabel} right={`● ${en.deco.vhsRec}`}>
-          <HeroNumber value={s.totalVideos} size={100} />
+          <HeroNumber value={s.totalVideos} size={100} maxWidth={VHS_INNER} />
         </VHSLabel>
       </div>
       <p aria-hidden="true" className="mt-4 self-end font-serif text-[32px] font-semibold italic">{after.trim()}</p>
@@ -112,7 +115,9 @@ function WatchTime({ ctx }: { ctx: SlideContext }) {
   const hours = Math.round((ctx.watchTime?.seconds ?? 0) / 3600);
   const days = Math.floor((ctx.watchTime?.seconds ?? 0) / 86400);
   const [before, after] = splitAround(S.watchTime.headline, "hours");
-  const groups = num(hours);
+  // At most 4 digit boxes fit at 360px; beyond that the counter shows "12.4K" and an exact caption.
+  const counter = fitCounter(hours);
+  const groups = counter.text;
   return (
     <Wrap className="pt-12">
       <SrHeadline>{slideHeadline("watch-time", ctx)}</SrHeadline>
@@ -121,7 +126,7 @@ function WatchTime({ ctx }: { ctx: SlideContext }) {
         {/* Tape counter: each digit in a 58×112 paper box with a 96px digit, flipping in 60ms apart. */}
         <span className="flex min-w-0 items-end gap-1" data-hero-px={96}>
           {[...groups].map((ch, i) =>
-            ch === "," ? (
+            ch === "," || ch === "." ? (
               <span key={i} className="-mx-0.5 font-mono text-[40px] font-bold leading-none">,</span>
             ) : (
               <span key={i} className="relative grid h-[112px] min-w-0 max-w-[62px] flex-1 basis-[62px] place-items-center overflow-hidden rounded-[6px] border-2 border-ink bg-paper-2 shadow-chip">
@@ -132,6 +137,7 @@ function WatchTime({ ctx }: { ctx: SlideContext }) {
           )}
         </span>
       </div>
+      {counter.abbreviated && <ExactCaption exact={counter.exact} className="ml-[42px]" />}
       <p aria-hidden="true" className="mt-4 font-serif text-[32px] font-semibold italic leading-tight">{after.trim()}</p>
       <div className="mt-3">
         <EstimateChip label={S.watchTime.chip} onClick={ctx.openExplainer} expanded={ctx.explainerOpen} controls={ctx.explainerId} />
@@ -162,7 +168,7 @@ function TopCreator({ ctx }: { ctx: SlideContext }) {
         <HandCircle className="-inset-x-7 -inset-y-5" />
         <span aria-hidden="true" className="absolute -right-9 -top-3 grid size-[72px] rotate-12 place-items-center">
           <Star className="absolute inset-0 size-full text-mustard" />
-          <span className="relative font-mono text-[15px] font-bold text-ink">#1</span>
+          <span className="relative font-mono text-[15px] font-bold text-ink">{S.topCreator.rankSticker}</span>
         </span>
       </div>
       <p aria-hidden="true" className="mt-5 flex w-full min-w-0 justify-center font-serif text-[32px] font-bold leading-tight tracking-[-0.02em]">
@@ -173,7 +179,7 @@ function TopCreator({ ctx }: { ctx: SlideContext }) {
         <TapeStrip className="-left-3 -top-2" angle={-22} />
         <TapeStrip variant="clear" className="-bottom-2 -right-3" angle={-18} />
         <VHSLabel rotate={-2}>
-          <HeroNumber value={c.count} size={120} className="text-tomato" />
+          <HeroNumber value={c.count} size={120} maxWidth={VHS_INNER} className="text-tomato" />
         </VHSLabel>
       </div>
       <p className="relative mt-5 font-serif text-[22px] font-semibold italic">
@@ -295,42 +301,44 @@ function PrimeTime({ ctx }: { ctx: SlideContext }) {
   const s = ctx.stats;
   const peak = s.peak!;
   const badge = s.peakHourBadge!;
-  const day = dayName(peak.day);
   const hour = hourLabel(peak.hour);
-  // "Prime time: {day}s at {hour}." -> "Prime time:" / "{day}s at" / "{hour}."
-  const [beforeHour, afterHour] = splitAround(S.primeTime.headline, "hour", { day });
-  const [line1] = splitAround(S.primeTime.headline, "day");
+  const days = S.primeTime.daysPlural[peak.day];
+  // "Prime time: {days} at {hour}." -> "Prime time:" / "{days} at" / "{hour}."
+  const [line1] = splitAround(S.primeTime.headline, "days");
+  const [beforeHour, afterHour] = splitAround(S.primeTime.headline, "hour", { days });
   const line2 = beforeHour.slice(line1.length);
-  const [, peakAfter] = splitAround(S.topCreators.item, "n");
-  const name = badgeName(badge.badge);
   return (
     <Wrap className="pt-3">
       <SrHeadline>{slideHeadline("prime-time", ctx)}</SrHeadline>
       <div aria-hidden="true" className="leading-none">
         <p className="font-serif text-[30px] font-semibold tracking-[-0.02em]">{line1.trim()}</p>
         <p className="mt-1 font-serif text-[44px] font-extrabold tracking-[-0.03em]">{line2.trim()}</p>
-        <p data-hero-px={96} className="relative mt-2 inline-block whitespace-nowrap px-2 font-serif text-[96px] font-bold italic leading-[0.95] tracking-[-0.04em] text-tomato">
+        <p data-hero-px={96} className="relative mt-2 inline-block whitespace-nowrap px-2 font-serif text-[96px] font-bold italic leading-[0.95] tracking-[-0.05em] text-tomato">
           {hour}
           {afterHour}
           <HandCircle className="-inset-x-4 -inset-y-3" />
         </p>
       </div>
       <p className="mt-3 font-serif text-sub italic">{S.primeTime.sub}</p>
-      <Sticker tone="grid" rotate={0.8} className="mt-4 px-3 pb-2 pt-3" style={{ backgroundImage: "linear-gradient(rgb(30 107 102 / .08) 1px, transparent 1px), linear-gradient(90deg, rgb(30 107 102 / .08) 1px, transparent 1px)", backgroundSize: "10px 10px" }}>
-        <TapeStrip className="-bottom-6 -right-4" angle={-24} />
+      <Sticker tone="grid" rotate={0.8} className="mt-4 px-3 pb-1 pt-3" style={{ backgroundImage: "linear-gradient(rgb(30 107 102 / .08) 1px, transparent 1px), linear-gradient(90deg, rgb(30 107 102 / .08) 1px, transparent 1px)", backgroundSize: "10px 10px" }}>
+        <TapeStrip className="-right-7 -top-6" width={60} angle={32} />
         <Heatmap heatmap={s.heatmap} peak={peak} header={fill(S.primeTime.heatmapHeader, { tz: tzLabel(s.timeZone, s.range.end) })} note={en.deco.heatmapArrow} />
       </Sticker>
-      <div className="mt-4 grid grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] gap-3">
+      <div className="mt-4 grid grid-cols-2 gap-3">
         <Sticker rotate={-1} className="px-3 py-2.5">
-          <p className="font-mono text-label font-bold uppercase tracking-[0.08em]">{S.primeTime.peakLabel}</p>
-          <p className="mt-1 font-mono text-[26px] font-bold leading-none">{num(peak.count)}</p>
-          <p className="font-serif text-[15px] italic">{peakAfter.trim()}</p>
+          <p className="font-mono text-label font-bold uppercase leading-tight tracking-[0.08em]">{S.primeTime.peakLabel}</p>
+          <p className="mt-1.5 whitespace-nowrap font-mono text-[22px] font-bold leading-none tracking-[-0.04em]" data-testid="peak-value">{peakValue(peak.day, hour)}</p>
+          <p className="mt-1 font-hand text-[22px] font-bold leading-none">{fill(S.topCreators.item, { n: num(peak.count) })}</p>
         </Sticker>
-        <Sticker tone="mustard" rotate={1.2} className="flex items-center gap-2 px-3 py-2.5">
-          <svg viewBox="0 0 24 24" className="size-5 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <Sticker tone="mustard" rotate={1.2} className="flex items-start gap-2 px-3 py-2.5">
+          <svg viewBox="0 0 24 24" className="mt-0.5 size-5 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d={BADGE_ICON[badge.badge]} />
           </svg>
-          <p className="font-serif text-[19px] font-bold leading-tight text-ink" data-testid="badge-share">{fill(S.primeTime.badgeShare, { badge: name, pct: badge.pct })}</p>
+          <div className="min-w-0 text-ink">
+            <p className="sr-only" data-testid="badge-share">{badgeShareLine(badge)}</p>
+            <p aria-hidden="true" className="font-serif text-[19px] font-bold leading-tight">{badgeName(badge.badge)}</p>
+            <p aria-hidden="true" className="mt-0.5 font-serif text-[13px] italic leading-snug [text-wrap:balance]" data-testid="badge-detail">{badgeDetail(badge)}</p>
+          </div>
         </Sticker>
       </div>
     </Wrap>
@@ -340,6 +348,7 @@ function PrimeTime({ ctx }: { ctx: SlideContext }) {
 function Streak({ ctx }: { ctx: SlideContext }) {
   const st = ctx.stats.longestStreak!;
   const [, after] = splitAround(S.bingeStreak.headline, "n");
+  const truncated = streakMonths(st.start, st.end).length === 1 && st.start.slice(0, 7) !== st.end.slice(0, 7);
   return (
     <Wrap className="pt-4">
       <SrHeadline>{slideHeadline("streak", ctx)}</SrHeadline>
@@ -349,6 +358,12 @@ function Streak({ ctx }: { ctx: SlideContext }) {
       </p>
       <p className="mt-2 font-serif text-sub italic text-ink-2">{fill(S.bingeStreak.sub, { start: shortDate(st.start), end: shortDate(st.end) })}</p>
       <div className="relative mt-5 self-start">
+        {truncated && (
+          // Only the end month is drawn for long streaks; the range keeps the length readable.
+          <p className="mb-2 font-mono text-[13px] font-bold uppercase tracking-[0.06em]" data-testid="streak-range">
+            {fill(S.bingeStreak.range, { start: shortDate(st.start), end: shortDate(st.end) })}
+          </p>
+        )}
         <Sticker rotate={-1.5} className="p-4">
           <TapeStrip className="-right-4 -top-2" angle={24} />
           <StreakCalendar start={st.start} end={st.end} />

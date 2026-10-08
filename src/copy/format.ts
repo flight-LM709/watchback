@@ -55,3 +55,34 @@ export function badgeName(badge: PeakHourBadge, copy: Copy = en): string {
 export function errorMessage(code: string, copy: Copy = en): string {
   return code === "NOT_TAKEOUT_ZIP" ? copy.errors.notTakeout : copy.errors.noHistory;
 }
+
+/** "between 5 and 9 AM" etc. for a badge. */
+export function badgeWindow(badge: PeakHourBadge, copy: Copy = en): string {
+  return copy.slides.primeTime.badgeWindows[BADGE_KEYS[badge]];
+}
+
+/** Second line of the badge sticker: "19% of plays between 5 and 9 AM". */
+export function badgeDetail(b: { badge: PeakHourBadge; pct: number }, copy: Copy = en): string {
+  return fill(copy.slides.primeTime.badgeDetail, { pct: b.pct, window: badgeWindow(b.badge, copy) });
+}
+
+/** One-line badge (screen readers): "Early bird: 19% of plays between 5 and 9 AM". */
+export function badgeShareLine(b: { badge: PeakHourBadge; pct: number }, copy: Copy = en): string {
+  return fill(copy.slides.primeTime.badgeShare, { badge: badgeName(b.badge, copy), pct: b.pct, window: badgeWindow(b.badge, copy) });
+}
+
+/** "Prime time: Sundays at 6 PM." `day` is a Date.getDay() index; `hour` is already formatted. */
+export function primeTimeHeadline(day: number, hour: string, copy: Copy = en): string {
+  return fill(copy.slides.primeTime.headline, { days: copy.slides.primeTime.daysPlural[day] ?? "", hour });
+}
+
+/** Peak tile value: "Sun 5 AM". */
+export function peakValue(day: number, hour: string, copy: Copy = en): string {
+  return fill(copy.slides.primeTime.peakValue, { day: copy.slides.primeTime.daysShort[day] ?? "", hour });
+}
+
+/** Share-card footer URL from location.host, without a leading "www.". Empty host → empty string. */
+export function siteLabel(host: string, copy: Copy = en): string {
+  const h = host.trim().replace(/^www\./i, "");
+  return h ? fill(copy.shareCard.site, { host: h }) : "";
+}

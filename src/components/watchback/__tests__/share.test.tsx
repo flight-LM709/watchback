@@ -2,10 +2,12 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { en } from "@/copy/en";
+import { fill } from "@/copy/format";
 import { computeStats } from "@/lib/takeout/stats";
 import { makeDemoEvents } from "@/app/demo/demo-data";
 import { contrastViolations } from "@/test-utils/contrast";
-import { EXPORT_PIXEL_RATIO, SHARE_SIZES, ShareSlide, exportFilter, renderCardPng } from "../share";
+import { CARD_PAPER, EXPORT_PIXEL_RATIO, GRAIN_TILE_URL, SHARE_SIZES, ShareSlide, exportFilter, renderCardPng } from "../share";
+import { readFileSync } from "node:fs";
 
 afterEach(cleanup);
 const stats = computeStats(makeDemoEvents(), { timeZone: "Asia/Jakarta" });
@@ -64,5 +66,36 @@ describe("share images", () => {
     const square = (renderPng.mock.calls[1] as unknown as [HTMLElement])[0];
     expect(square.dataset.shareCard).toBe("square");
     expect(square.querySelector("[data-export-exclude]")).toBeNull();
+  });
+
+  it("grain: raster tile on the card root at 128px over paper (no SVG filter, no flat-paper override in the export)", async () => {
+    render(<ShareSlide stats={stats} watchTime={wt} period="last12" periodLabel="p" host="www.watchback.test" />);
+    for (const variant of ["story", "square"]) {
+      const card = document.querySelector<HTMLElement>(`[data-share-card="${variant}"]`)!;
+      expect(card.style.backgroundImage).toBe(`url("${GRAIN_TILE_URL}")`);
+      expect(card.style.backgroundSize).toBe("128px");
+      expect(card.style.backgroundColor).toBe("rgb(243, 235, 221)"); // paper #F3EBDD
+      expect(card.outerHTML).not.toContain("feTurbulence");
+    }
+    expect(CARD_PAPER).toBe("#F3EBDD");
+    const toPng = vi.fn(async () => "data:,");
+    await renderCardPng(document.createElement("div"), "story", toPng);
+    const opts = (toPng.mock.calls[0] as unknown as [HTMLElement, { style: Record<string, string>; backgroundColor: string }])[1];
+    expect(opts.style.backgroundImage).toBeUndefined();
+    expect(opts.backgroundColor).toBe(CARD_PAPER);
+    // public copy is byte-identical to Designer's asset
+    expect(readFileSync("public/grain-tile.png").equals(readFileSync("design/assets/grain-tile.png"))).toBe(true);
+  });
+
+  it("footer: shareCard.site from the host without www., plus shareCard.sources; peak tile = label / 'Sun 5 AM' / count", () => {
+    const patched = { ...stats, peak: { day: 0, hour: 5, count: 12 } };
+    render(<ShareSlide stats={patched} watchTime={null} period="last12" periodLabel="p" host="www.watchback.test" />);
+    const card = document.querySelector<HTMLElement>('[data-share-card="story"]')!;
+    expect(card.querySelector('[data-testid="share-site"]')!.textContent).toBe("watchback.test");
+    expect(card.querySelector('[data-testid="share-sources"]')!.textContent).toBe(en.shareCard.sources);
+    expect(card.textContent).toContain(en.slides.primeTime.peakLabel);
+    expect(card.textContent).toContain("Sun 5 AM");
+    expect(card.textContent).toContain(fill(en.slides.topCreators.item, { n: 12 }));
+    expect(card.textContent).not.toMatch(/Sundays/);
   });
 });
