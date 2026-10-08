@@ -94,7 +94,7 @@ describe("share images", () => {
     expect(card.querySelector('[data-testid="share-site"]')!.textContent).toBe("watchback.test");
     expect(card.querySelector('[data-testid="share-sources"]')!.textContent).toBe(en.shareCard.sources);
     expect(card.textContent).toContain(en.slides.primeTime.peakLabel);
-    expect(card.textContent).toContain("Sun 5 AM");
+    expect(card.textContent).toContain("Sun 5\u00a0AM");
     expect(card.textContent).toContain(fill(en.slides.topCreators.item, { n: 12 }));
     expect(card.textContent).not.toMatch(/Sundays/);
   });

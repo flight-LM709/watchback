@@ -24,8 +24,11 @@ export const monthLongYear = (year: number, month: number) => MONTH_YEAR.format(
 export const dayName = (dow: number) => WEEKDAY_LONG.format(utc(2024, 1, 7 + dow));
 export const dayShort = (dow: number) => WEEKDAY_SHORT.format(utc(2024, 1, 7 + dow));
 export const dayNarrow = (dow: number) => WEEKDAY_NARROW.format(utc(2024, 1, 7 + dow));
-/** "10 PM" */
-export const hourLabel = (h: number) => HOUR.format(new Date(Date.UTC(2024, 0, 1, h)));
+/**
+ * "10 PM" with a U+00A0 no-break space before AM/PM. ICU (Chrome, newer Node) emits U+202F there,
+ * which Fraunces/Space Mono don't have and which reads as a cramped "6PM" at hero size.
+ */
+export const hourLabel = (h: number) => HOUR.format(new Date(Date.UTC(2024, 0, 1, h))).replace(/[\s\u202f\u2009\u200a]+(?=[AP]M$)/u, "\u00a0");
 /** "2025-04-13" -> "Apr 13" (SPEC §5: dates as "Mar 3"). */
 export const shortDate = (iso: string) => {
   const [y, m, d] = iso.split("-").map(Number);

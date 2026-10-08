@@ -1,11 +1,11 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { EstimateChip, ExactCaption, HandCircle, HeroNumber, MonogramSticker, Sparkle, Star, Sticker, TapeStrip, Underline, VHSLabel, Arrow, Lock, fitCounter } from "@/components/paper";
+import { EstimateChip, ExactCaption, HandCircle, HeroNumber, MonogramSticker, NoBreakHyphens, Sparkle, Star, Sticker, TapeStrip, Underline, VHSLabel, Arrow, Lock, fitCounter, plainHyphens } from "@/components/paper";
 import type { SlideKind } from "@/components/story/slides";
 import { en } from "@/copy/en";
 import { badgeDetail, badgeName, badgeShareLine, fill, fillNodes, peakValue, primeTimeHeadline, type PeriodVariant } from "@/copy/format";
-import type { PeakHourBadge, WatchStats } from "@/lib/takeout/stats";
+import type { PeakHourBadge, PeakHourBadgeResult, WatchStats } from "@/lib/takeout/stats";
 import type { WatchTimeEstimate } from "@/lib/takeout/watchTime";
 import { BarChart, Cassette, Heatmap, StreakCalendar, chartMonths, streakMonths } from "./charts";
 import { hourLabel, monthName, num, perDay, shortDate, splitAround, tzLabel } from "./fmt";
@@ -297,6 +297,42 @@ const BADGE_ICON: Record<PeakHourBadge, string> = {
   "night-owl": "M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z",
 };
 
+/**
+ * Badge sticker: icon on its own line, name at 22px (max two lines), detail under it.
+ * Width: the longest unbreakable name word ("Coffee-break", ≈143px at 22px Fraunces 700) needs
+ * ≥ 150px of text, so at 360px the row bleeds 8px past the slide padding and the badge column is
+ * ≥ 178px (verified for all six names by /workspace/shot-tools/badges.mjs and /demo/badges).
+ */
+export function BadgeSticker({ badge, className = "" }: { badge: PeakHourBadgeResult; className?: string }) {
+  const name = badgeName(badge.badge);
+  return (
+    <Sticker tone="mustard" rotate={1.2} className={`px-3 py-2.5 text-ink ${className}`}>
+      <p className="sr-only" data-testid="badge-share">{plainHyphens(badgeShareLine(badge))}</p>
+      <svg viewBox="0 0 24 24" className="block size-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" data-testid="badge-icon">
+        <path d={BADGE_ICON[badge.badge]} />
+      </svg>
+      <p aria-hidden="true" className="clamp-title mt-1 font-serif text-[22px] font-bold leading-[1.15]" data-testid="badge-name">
+        <NoBreakHyphens text={name} />
+      </p>
+      <p aria-hidden="true" className="mt-1 font-serif text-[13px] italic leading-snug [text-wrap:balance]" data-testid="badge-detail">{badgeDetail(badge)}</p>
+    </Sticker>
+  );
+}
+
+/** Peak tile + badge sticker row under the heatmap. */
+export function PrimeTimeTiles({ peak, badge, className = "" }: { peak: NonNullable<WatchStats["peak"]>; badge: PeakHourBadgeResult; className?: string }) {
+  return (
+    <div className={`-mx-2 grid grid-cols-[minmax(0,1fr)_minmax(178px,1.3fr)] items-start gap-3 ${className}`} data-testid="prime-tiles">
+      <Sticker rotate={-1} className="px-3 py-2.5">
+        <p className="font-mono text-label font-bold uppercase leading-tight tracking-[0.08em]">{S.primeTime.peakLabel}</p>
+        <p className="mt-1.5 whitespace-nowrap font-mono text-[20px] font-bold leading-none tracking-[-0.04em]" data-testid="peak-value">{peakValue(peak.day, hourLabel(peak.hour))}</p>
+        <p className="mt-1 font-hand text-[22px] font-bold leading-none">{fill(S.topCreators.item, { n: num(peak.count) })}</p>
+      </Sticker>
+      <BadgeSticker badge={badge} />
+    </div>
+  );
+}
+
 function PrimeTime({ ctx }: { ctx: SlideContext }) {
   const s = ctx.stats;
   const peak = s.peak!;
@@ -324,23 +360,7 @@ function PrimeTime({ ctx }: { ctx: SlideContext }) {
         <TapeStrip className="-right-7 -top-6" width={60} angle={32} />
         <Heatmap heatmap={s.heatmap} peak={peak} header={fill(S.primeTime.heatmapHeader, { tz: tzLabel(s.timeZone, s.range.end) })} note={en.deco.heatmapArrow} />
       </Sticker>
-      <div className="mt-4 grid grid-cols-2 gap-3">
-        <Sticker rotate={-1} className="px-3 py-2.5">
-          <p className="font-mono text-label font-bold uppercase leading-tight tracking-[0.08em]">{S.primeTime.peakLabel}</p>
-          <p className="mt-1.5 whitespace-nowrap font-mono text-[22px] font-bold leading-none tracking-[-0.04em]" data-testid="peak-value">{peakValue(peak.day, hour)}</p>
-          <p className="mt-1 font-hand text-[22px] font-bold leading-none">{fill(S.topCreators.item, { n: num(peak.count) })}</p>
-        </Sticker>
-        <Sticker tone="mustard" rotate={1.2} className="flex items-start gap-2 px-3 py-2.5">
-          <svg viewBox="0 0 24 24" className="mt-0.5 size-5 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d={BADGE_ICON[badge.badge]} />
-          </svg>
-          <div className="min-w-0 text-ink">
-            <p className="sr-only" data-testid="badge-share">{badgeShareLine(badge)}</p>
-            <p aria-hidden="true" className="font-serif text-[19px] font-bold leading-tight">{badgeName(badge.badge)}</p>
-            <p aria-hidden="true" className="mt-0.5 font-serif text-[13px] italic leading-snug [text-wrap:balance]" data-testid="badge-detail">{badgeDetail(badge)}</p>
-          </div>
-        </Sticker>
-      </div>
+      <PrimeTimeTiles peak={peak} badge={badge} className="mt-4" />
     </Wrap>
   );
 }
@@ -357,7 +377,9 @@ function Streak({ ctx }: { ctx: SlideContext }) {
         <Italic className="text-[30px] font-semibold">{after.trim()}</Italic>
       </p>
       <p className="mt-2 font-serif text-sub italic text-ink-2">{fill(S.bingeStreak.sub, { start: shortDate(st.start), end: shortDate(st.end) })}</p>
-      <div className="relative mt-5 self-start">
+      {/* "No skips" (64px) hangs off the card's bottom edge (bottom -56px, right -12px): it only overlaps the card's
+          16px bottom padding, so it never covers a date in 5- or 6-week months. */}
+      <div className="relative mb-14 mt-5 self-start">
         {truncated && (
           // Only the end month is drawn for long streaks; the range keeps the length readable.
           <p className="mb-2 font-mono text-[13px] font-bold uppercase tracking-[0.06em]" data-testid="streak-range">
@@ -368,7 +390,7 @@ function Streak({ ctx }: { ctx: SlideContext }) {
           <TapeStrip className="-right-4 -top-2" angle={24} />
           <StreakCalendar start={st.start} end={st.end} />
         </Sticker>
-        <span aria-hidden="true" className="slap absolute -bottom-6 -right-8 grid size-[78px] rotate-[-12deg] place-items-center rounded-full border-2 border-ink bg-tomato text-center font-hand text-[22px] font-bold leading-none text-paper-2 shadow-chip">
+        <span aria-hidden="true" data-testid="streak-sticker" className="slap absolute -bottom-14 -right-3 grid size-16 rotate-[-12deg] place-items-center rounded-full border-2 border-ink bg-tomato text-center font-hand text-[19px] font-bold leading-none text-paper-2 shadow-chip">
           {en.deco.streakSticker}
         </span>
       </div>

@@ -61,7 +61,7 @@ describe("/demo: Paper Mixtape story", () => {
     expect(h2()).toMatch(/^[A-Z][a-z]+ was your biggest month\.$/);
     next(); // 7: prime time with heatmap header + badge
     check();
-    expect(h2()).toMatch(/^Prime time: [A-Z][a-z]+days at \d{1,2} (AM|PM)\.$/);
+    expect(h2()).toMatch(/^Prime time: [A-Z][a-z]+days at \d{1,2}\u00a0(AM|PM)\.$/);
     expect(slide().textContent).toMatch(/Day × hour · /);
     expect(within(slide()).getByTestId("badge-share").textContent).toMatch(new RegExp(`^(${Object.values(en.slides.primeTime.badges).join("|")}): \\d+% of plays (${Object.values(en.slides.primeTime.badgeWindows).join("|")})$`));
     next(); // 8

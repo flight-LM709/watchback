@@ -133,6 +133,33 @@ export function ExactCaption({ exact, className = "" }: { exact: string; classNa
   );
 }
 
+const NB_HYPHEN = "\u2011";
+const NB_WORD = /(\S*\u2011\S*)/;
+
+/**
+ * Copy uses U+2011 (non-breaking hyphen) in badge names, but none of our fonts has that glyph
+ * (Fraunces' Google subsets and the full upstream Fraunces[SOFT,WONK,opsz,wght].ttf only map U+002D),
+ * so the browser would draw it from a fallback font. Render a normal U+002D inside a nowrap span
+ * instead: same no-break behaviour, Fraunces' own hyphen.
+ */
+export const plainHyphens = (s: string) => s.replaceAll(NB_HYPHEN, "-");
+export function NoBreakHyphens({ text }: { text: string }) {
+  if (!text.includes(NB_HYPHEN)) return <>{text}</>;
+  return (
+    <>
+      {text.split(NB_WORD).map((part, i) =>
+        part.includes(NB_HYPHEN) ? (
+          <span key={i} className="whitespace-nowrap" data-nb-word>
+            {plainHyphens(part)}
+          </span>
+        ) : (
+          part
+        ),
+      )}
+    </>
+  );
+}
+
 /** Creator avatar (SPEC §8). Round paper sticker with up to two initials; colour + tilt hashed from the name. */
 export function MonogramSticker({ name, size, tape = false, className = "" }: { name: string; size: number; tape?: boolean; className?: string }) {
   const m = monogram(name);

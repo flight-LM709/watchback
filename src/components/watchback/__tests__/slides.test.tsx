@@ -7,7 +7,8 @@ import { makeDemoEvents } from "@/app/demo/demo-data";
 import { computeStats, type WatchStats } from "@/lib/takeout/stats";
 import { contrastViolations } from "@/test-utils/contrast";
 import type { SlideKind } from "@/components/story/slides";
-import { SlideView, type SlideContext } from "../slides";
+import { BadgeSticker, SlideView, type SlideContext } from "../slides";
+import { PEAK_HOUR_WINDOWS } from "@/lib/takeout/stats";
 
 afterEach(cleanup);
 const base = computeStats(makeDemoEvents(), { timeZone: "Asia/Jakarta" });
@@ -33,10 +34,10 @@ function show(kind: SlideKind, patch: Partial<WatchStats> = {}, extra: Partial<S
 describe("prime-time slide", () => {
   it("headline uses daysPlural; peak tile = peakLabel / peakValue / {n} videos; badge name + detail, badgeShare for SR", () => {
     const root = show("prime-time", { peak: { day: 0, hour: 5, count: 12 }, peakHourBadge: { badge: "early-bird", pct: 19, plays: 40 } });
-    expect(screen.getByRole("heading", { level: 2 }).textContent).toBe("Prime time: Sundays at 5 AM.");
+    expect(screen.getByRole("heading", { level: 2 }).textContent).toBe("Prime time: Sundays at 5\u00a0AM.");
     expect(root.textContent).not.toMatch(/Sundayss|Sundays at.*Sundays at.*Sundays at/);
     expect(root.textContent).toContain(P.peakLabel);
-    expect(screen.getByTestId("peak-value").textContent).toBe("Sun 5 AM");
+    expect(screen.getByTestId("peak-value").textContent).toBe("Sun 5\u00a0AM");
     expect(screen.getByTestId("peak-value").nextElementSibling!.textContent).toBe(fill(en.slides.topCreators.item, { n: 12 }));
     expect(screen.getByTestId("badge-share").textContent).toBe("Early bird: 19% of plays between 5 and 9 AM");
     expect(screen.getByTestId("badge-share").className).toContain("sr-only");
@@ -89,3 +90,38 @@ describe("hero abbreviation on slides", () => {
     expect(within(root).getByText(en.slides.topCreator.rankSticker)).toBeTruthy();
   });
 });
+
+describe("badge sticker", () => {
+  it("icon on its own line above the name; name 22px, clamped to two lines; U+2011 drawn as a nowrap U+002D", () => {
+    for (const w of PEAK_HOUR_WINDOWS) {
+      const { container, unmount } = render(<BadgeSticker badge={{ badge: w.badge, pct: 20, plays: 9 }} />);
+      const icon = within(container).getByTestId("badge-icon");
+      const name = within(container).getByTestId("badge-name");
+      expect(icon.getAttribute("class")).toContain("block");
+      expect(icon.compareDocumentPosition(name) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      expect(icon.contains(name) || name.contains(icon)).toBe(false);
+      expect(name.className).toContain("text-[22px]");
+      expect(name.className).toContain("clamp-title"); // 2-line clamp
+      expect(name.textContent).not.toContain("\u2011");
+      expect(name.textContent).toBe(Object.values(en.slides.primeTime.badges)[PEAK_HOUR_WINDOWS.indexOf(w)].replaceAll("\u2011", "-"));
+      const nb = name.querySelector("[data-nb-word]");
+      if (/[‑]/.test(en.slides.primeTime.badges[(["earlyBird", "coffeeBreak", "lunchBreak", "afternoonDrifter", "eveningRegular", "nightOwl"] as const)[PEAK_HOUR_WINDOWS.indexOf(w)]])) {
+        expect(nb!.className).toContain("whitespace-nowrap");
+        expect(nb!.textContent).toMatch(/^\w+-\w+$/);
+      }
+      unmount();
+    }
+  });
+});
+
+describe("streak sticker", () => {
+  it("'No skips' hangs below the calendar card (64px, bottom -56px, right -12px) instead of over the dates", () => {
+    show("streak", { longestStreak: { days: 29, start: "2024-02-04", end: "2024-03-03" } });
+    const sticker = screen.getByTestId("streak-sticker");
+    expect(sticker.className).toContain("-bottom-14");
+    expect(sticker.className).toContain("size-16");
+    expect(sticker.className).toContain("-right-3");
+    expect(sticker.textContent).toBe(en.deco.streakSticker);
+  });
+});
+
