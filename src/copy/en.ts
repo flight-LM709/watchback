@@ -37,7 +37,8 @@ export const en = {
   },
 
   crunching: {
-    counter: "Counting {n} videos…",
+    // Counts every history entry (ads, music, older items), so it can exceed the slide-1 total. Don't say "videos" here.
+    counter: "Reading {n} history entries…",
     // Shown instead of "Counting 0 videos…" while the zip is opened and inflated (nothing counted yet). Copywriter-approved.
     unzipping: "Unzipping your Takeout…",
     rotating: [
