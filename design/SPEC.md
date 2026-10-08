@@ -7,7 +7,20 @@ For Frontend Dev. Direction B, picked by vedrico. Mockups: `B/*.png` (story orde
 - Fonts come from `next/font/google`: Fraunces (opsz axis, 400/600/700/800 + italics), Space Mono 400/700, and Caveat 600/700. Caveat is only for decorative annotations, which are `aria-hidden`.
 - Every number uses Space Mono 700 with tight tracking (`-0.075em` on heroes). Headlines and body use Fraunces.
 - Each slide gets the paper grain and gradients (`--paper-bg`) from `tokens.css`. Never animate the grain.
-- Contrast pairs are in the `tokens.css` header. Never put tomato text on mustard (2.76). On mustard, ranks and labels are ink.
+- Contrast pairs are in the `tokens.css` header. - **Do not use these pairs for text** (they fail AA). Use the alternative:
+
+  | Fails | Ratio | Use instead |
+  |---|---|---|
+  | tomato on mustard | 2.76 | ink on mustard (7.99). Ranks and labels on mustard rows are ink. |
+  | ink on teal | 2.73 | paper-2 on teal (5.82). Cassette shell marks (".ZIP ▲") and song cards use paper or white. |
+  | ink-2 on teal | 1.57 | paper-2 on teal (5.82) |
+  | ink on teal-dark | 1.47 | paper-2 on teal-dark (10.82) |
+  | ink on heat-8 / tomato | 2.89 | paper-2 on tomato (5.50). Applies to a labelled peak heatmap cell, the peak bar, streak start/end days, and tomato stickers. |
+  | ink-2 on tomato | 1.67 | paper-2 on tomato (5.50) |
+  | any text on heat-6 / heat-7 | ≤4.26 | No text inside these fills. Put the label outside the cell or bar. |
+  | mustard on paper | 1.81 | Mustard is only ever a fill. |
+
+  The cassette *label* is a paper-2 sticker, so ink text on it is fine (15.89). In the mockups the peak heatmap cell is ink with no text, and the peak-bar value sits above the bar in tomato on grid paper (5.6).
 
 ## 2. Components
 | Component | Notes |
