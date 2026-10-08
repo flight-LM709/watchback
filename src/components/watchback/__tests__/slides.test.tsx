@@ -9,6 +9,7 @@ import { contrastViolations } from "@/test-utils/contrast";
 import type { SlideKind } from "@/components/story/slides";
 import { BadgeSticker, SlideView, type SlideContext } from "../slides";
 import { PEAK_HOUR_WINDOWS } from "@/lib/takeout/stats";
+import type { ShortsSplitEstimate } from "@/lib/takeout/shortsSplit";
 
 afterEach(cleanup);
 const base = computeStats(makeDemoEvents(), { timeZone: "Asia/Jakarta" });
@@ -149,3 +150,58 @@ describe("song titles and the prime-time hour", () => {
   });
 });
 
+
+describe("Shorts slides (SPEC §9)", () => {
+  const c = (name: string, count: number) => ({ name, url: `u:${name}`, count });
+  const split = (patch: Partial<ShortsSplitEstimate> = {}): ShortsSplitEstimate => ({
+    isEstimate: true,
+    shorts: { count: 8620, seconds: 84 * 3600, pct: 69, topCreators: [c("Alpha", 476), c("Beta", 391), c("Gamma", 302)], showEmptyState: false },
+    long: { count: 3860, seconds: 1836 * 3600, pct: 31, topCreators: [c("Delta", 1150)], showEmptyState: true },
+    noShorts: false,
+    slides: { shortsVsLong: true, creatorsByFormat: true },
+    playsWinner: "shorts", timeWinner: "long", sub: "shortsPlaysLongTime", sameTopCreator: null, unknownPlays: 0, coverage: 1,
+    ...patch,
+  });
+
+  it("16: two cards with ≈ heroes, time + share, the matching sub, chip + note; 4-digit counts fit at 96px", () => {
+    const root = show("shorts-vs-long", {}, { shortsSplit: split() });
+    const shorts = screen.getByTestId("format-card-shorts");
+    expect(shorts.textContent).toContain("8,620");
+    expect(shorts.textContent).toContain("≈ 84 hours");
+    expect(shorts.textContent).toContain("69% of your plays");
+    expect(shorts.querySelector("[data-hero-px]")!.getAttribute("data-hero-px")).toBe("96");
+    expect(shorts.querySelector("[data-abbreviated]")).toBeNull();
+    expect(screen.getByTestId("format-card-long").textContent).toContain("≈ 1,836 hours");
+    expect(screen.getByTestId("shorts-sub").textContent).toBe("Shorts got most of your plays. Long-form got most of your time.");
+    expect(screen.getByTestId("shorts-note").textContent).toBe(en.slides.shortsVsLong.note);
+    expect(root.textContent).not.toContain("\u2011");
+    expect(contrastViolations(root)).toEqual([]);
+  });
+
+  it("16: under an hour uses timeMinutes; 5-digit counts abbreviate with the exact caption", () => {
+    show("shorts-vs-long", {}, { shortsSplit: split({ shorts: { count: 12412, seconds: 35 * 60, pct: 70, topCreators: [], showEmptyState: true } }) });
+    const card = screen.getByTestId("format-card-shorts");
+    expect(card.textContent).toContain("≈ 35 min");
+    expect(within(card).getByTestId("exact-caption").textContent).toBe("Exactly 12,412");
+  });
+
+  it("16: zero Shorts → noShorts line instead of the cards, no sub", () => {
+    show("shorts-vs-long", {}, { shortsSplit: split({ noShorts: true, sub: null }) });
+    expect(screen.getByTestId("no-shorts").textContent).toContain("No Shorts at all. You kept it long-form.");
+    expect(screen.queryByTestId("format-card-shorts")).toBeNull();
+    expect(screen.queryByTestId("shorts-sub")).toBeNull();
+  });
+
+  it("17: #1 + runners per column, empty state under 2 creators, sameTop line", () => {
+    const root = show("creators-by-format", {}, { shortsSplit: split({ sameTopCreator: "Alpha" }) });
+    const s = screen.getByTestId("creator-column-shorts");
+    expect(within(s).getByTestId("split-top-name").textContent).toBe("Alpha");
+    expect(s.querySelectorAll("li")).toHaveLength(2);
+    expect(s.textContent).toContain("≈ 391 videos");
+    const l = screen.getByTestId("creator-column-long");
+    expect(within(l).getByTestId("split-empty").textContent).toBe(en.slides.topCreatorsSplit.emptyLong.replaceAll("\u2011", "-"));
+    expect(l.textContent).toContain("Top long-form creators");
+    expect(screen.getByTestId("same-top").textContent).toBe("Alpha topped both lists.");
+    expect(contrastViolations(root)).toEqual([]);
+  });
+});

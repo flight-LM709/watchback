@@ -41,6 +41,18 @@ describe("client ↔ /api/durations contract", () => {
     expect(r.estimate!.coverage).toBeGreaterThan(0);
   });
 
+  it("gets isShort (true/false/null mix) from the backend mock, and the split from it", async () => {
+    const { f } = backendFetch();
+    const ids = Array.from({ length: 600 }, (_, i) => id(i));
+    const r = await fetchDurations(ids, { fetchImpl: f });
+    const vals = Object.values(r.isShort ?? {});
+    expect(vals).toHaveLength(600);
+    expect(vals).toContain(true);
+    expect(vals).toContain(false);
+    expect(vals).toContain(null);
+    for (const x of ids) if (r.isShort![x] === true) expect(r.durations[x]).toBeLessThanOrEqual(180);
+  });
+
   it("mock livestreams (4h+) are capped at 3h per play", async () => {
     // find IDs the backend mock reports as > 3h
     const { f } = backendFetch();

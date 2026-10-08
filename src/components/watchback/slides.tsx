@@ -6,6 +6,7 @@ import type { SlideKind } from "@/components/story/slides";
 import { en } from "@/copy/en";
 import { badgeDetail, badgeName, badgeShareLine, fill, fillNodes, peakValue, primeTimeHeadline, type PeriodVariant } from "@/copy/format";
 import type { PeakHourBadge, PeakHourBadgeResult, WatchStats } from "@/lib/takeout/stats";
+import type { ShortsSplitEstimate, ShortsSplitSide } from "@/lib/takeout/shortsSplit";
 import type { WatchTimeEstimate } from "@/lib/takeout/watchTime";
 import { BarChart, Cassette, Heatmap, StreakCalendar, chartMonths, streakMonths } from "./charts";
 import { hourLabel, monthName, num, perDay, shortDate, songDisplayTitle, splitAround, tzLabel } from "./fmt";
@@ -24,6 +25,28 @@ export interface SlideContext {
   explainerOpen: boolean;
   explainerId: string;
   share: ReactNode;
+  /** Shorts vs long-form estimate (slides 3–4); absent/null means those slides aren't planned. */
+  shortsSplit?: ShortsSplitEstimate | null;
+  /** Opens the Shorts estimate sheet (`shortsVsLong.chipExplainer`). */
+  openShortsExplainer?: () => void;
+  shortsExplainerOpen?: boolean;
+  shortsExplainerId?: string;
+}
+
+const SV = S.shortsVsLong;
+const TC = S.topCreatorsSplit;
+
+/** "≈ 84 hours", or "≈ 35 min" under an hour; null when the time is unknown. */
+export function splitTimeText(seconds: number | null): string | null {
+  if (seconds === null) return null;
+  if (seconds < 3600) return fill(SV.timeMinutes, { minutes: num(Math.max(1, seconds / 60)) });
+  return fill(SV.time, { hours: num(seconds / 3600) });
+}
+
+/** shortsVsLong.aria with both sides filled ("about 1,234 videos, ≈ 12 hours"). */
+export function shortsAria(split: ShortsSplitEstimate): string {
+  const t = (side: ShortsSplitSide) => splitTimeText(side.seconds)?.replace(/^≈\s*/, "") ?? "";
+  return fill(SV.aria, { shortsCount: num(split.shorts.count), shortsTime: t(split.shorts), longCount: num(split.long.count), longTime: t(split.long) });
 }
 
 /** Accessible name per slide (also the headline for screen readers). */
@@ -34,6 +57,10 @@ export function slideHeadline(kind: SlideKind, ctx: SlideContext): string {
       return fill(S.totalVideos.headline, { n: num(s.totalVideos) });
     case "watch-time":
       return fill(S.watchTime.headline, { hours: num((ctx.watchTime?.seconds ?? 0) / 3600) });
+    case "shorts-vs-long":
+      return ctx.shortsSplit && !ctx.shortsSplit.noShorts ? `${SV.headline} ${plainHyphens(shortsAria(ctx.shortsSplit))}` : `${SV.headline} ${plainHyphens(SV.noShorts)}`;
+    case "creators-by-format":
+      return plainHyphens(TC.headline);
     case "top-creator":
       return fill(S.topCreator.headline, { creator: s.topCreators[0]?.name ?? "" });
     case "top-creators":
@@ -513,12 +540,231 @@ function TopSongs({ ctx }: { ctx: SlideContext }) {
   );
 }
 
+/** Caveat label on a strip of tape ("Singles" / "Long play"), decorative. */
+function TapeLabel({ text, variant, className = "", angle }: { text: string; variant: "mustard" | "clear"; className?: string; angle: number }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={`slap absolute z-10 whitespace-nowrap px-3 pb-[3px] pt-px font-hand text-[22px] font-bold leading-[1.1] text-ink shadow-tape ${variant === "clear" ? "border border-ink/10" : ""} ${className}`}
+      style={{ background: variant === "mustard" ? "var(--tape-mustard)" : "var(--tape-clear)", transform: `rotate(${angle}deg)`, ["--slap-to" as string]: `${angle}deg`, animationDelay: "220ms" }}
+      data-testid="tape-label"
+    >
+      {text}
+    </span>
+  );
+}
+
+/** Vertical phone (Shorts) / 16:9 frame (long-form) motifs from the mockup. */
+function PhoneMotif({ className = "" }: { className?: string }) {
+  return (
+    <svg aria-hidden="true" width="40" height="68" viewBox="0 0 44 74" className={className}>
+      <rect x="1.5" y="1.5" width="41" height="71" rx="8" fill="#1F1B16" />
+      <rect x="5" y="9" width="34" height="52" rx="3" fill="#FBF6EC" />
+      <rect x="9" y="14" width="26" height="22" rx="2" fill="#E2A72E" />
+      <rect x="9" y="41" width="20" height="4" rx="2" fill="#1F1B16" />
+      <rect x="9" y="49" width="14" height="4" rx="2" fill="#4A4238" />
+      <path d="M33 52 l3 -4 l3 4" fill="none" stroke="#B33A24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <rect x="17" y="65" width="10" height="3" rx="1.5" fill="#FBF6EC" />
+    </svg>
+  );
+}
+function ScreenMotif({ className = "" }: { className?: string }) {
+  return (
+    <svg aria-hidden="true" width="80" height="50" viewBox="0 0 86 54" className={className}>
+      <rect x="1.5" y="1.5" width="83" height="51" rx="5" fill="#1F1B16" />
+      <rect x="6" y="6" width="74" height="38" rx="2" fill="#1E6B66" />
+      <circle cx="58" cy="22" r="7" fill="#E2A72E" />
+      <path d="M6 44 L24 28 L36 36 L50 24 L80 42 L80 44 Z" fill="#123F3C" />
+      <rect x="30" y="47" width="26" height="3" rx="1.5" fill="#4A4238" />
+    </svg>
+  );
+}
+
+/**
+ * Format card width at 360px: the card bleeds 8px past the slide padding (like the VHS labels),
+ * so 328px − 2×14px padding − the "≈" (48px mono ≈ 29px + 6px gap) leaves 265px for the hero:
+ * "8,620" fits at 96px; 5+ digits abbreviate ("12.4K" + "Exactly 12,412").
+ */
+const FORMAT_HERO_MAX = 265;
+
+function FormatCard({ format, side, className = "" }: { format: "shorts" | "long"; side: ShortsSplitSide; className?: string }) {
+  const shorts = format === "shorts";
+  const [, unit] = splitAround(SV.count, "n");
+  const time = splitTimeText(side.seconds);
+  return (
+    <div className={`relative ${className}`} data-testid={`format-card-${format}`}>
+      <TapeLabel text={shorts ? en.deco.shortsTape : en.deco.longTape} variant={shorts ? "mustard" : "clear"} angle={shorts ? -5 : 3} className="-left-3 -top-7" />
+      <Sticker rotate={shorts ? -1.2 : 1} className="px-3.5 pb-3">
+        <p className={`-mx-3.5 flex h-[30px] items-center border-b-2 border-ink px-3.5 font-serif text-[16px] font-bold tracking-[-0.01em] text-paper-2 ${shorts ? "bg-tomato" : "bg-teal-dark"}`}>
+          <NoBreakHyphens text={shorts ? SV.shortsLabel : SV.longLabel} />
+        </p>
+        {shorts ? <PhoneMotif className="absolute -top-[18px] right-5 rotate-[8deg]" /> : <ScreenMotif className="absolute -top-3.5 right-3.5 -rotate-6" />}
+        <div aria-hidden="true" className={`mt-2 flex items-end gap-1.5 ${shorts ? "text-tomato" : "text-ink"}`}>
+          <span className="pb-3 font-mono text-[48px] font-bold leading-none">≈</span>
+          <HeroNumber value={side.count} size={96} maxWidth={FORMAT_HERO_MAX} captionClassName="text-ink-2" />
+        </div>
+        <p aria-hidden="true" className="-mt-0.5 font-serif text-[22px] font-semibold italic">{unit.trim()}</p>
+        <p aria-hidden="true" className="mt-2 flex items-baseline justify-between gap-2 whitespace-nowrap border-t border-dashed border-rule pt-2 font-mono text-[14px] font-bold">
+          <span>{time ?? ""}</span>
+          <span>{fill(SV.share, { pct: side.pct })}</span>
+        </p>
+      </Sticker>
+    </div>
+  );
+}
+
+/** "Quick scrolls vs. long watches." → tomato italic + hand underline on the part after "vs. " (else after the last comma). */
+function versusTail(text: string): ReactNode {
+  const i = text.indexOf(" vs. ");
+  if (i < 0) return underlineTail(text);
+  return (
+    <>
+      {text.slice(0, i + 5)}
+      <span className="relative inline-block italic text-tomato">
+        {text.slice(i + 5)}
+        <Underline className="absolute -bottom-1.5 left-0 h-2.5 w-full" />
+      </span>
+    </>
+  );
+}
+
+function ShortsChipRow({ ctx, note = true }: { ctx: SlideContext; note?: boolean }) {
+  return (
+    <div className="mt-3 flex items-center gap-2.5">
+      <span className="shrink-0">
+        <EstimateChip label={SV.chip} onClick={ctx.openShortsExplainer} expanded={ctx.shortsExplainerOpen} controls={ctx.shortsExplainerId} />
+      </span>
+      {note && <p className="font-serif text-[13px] italic leading-[1.35] text-ink-2" data-testid="shorts-note">{SV.note}</p>}
+    </div>
+  );
+}
+
+function ShortsVsLong({ ctx }: { ctx: SlideContext }) {
+  const split = ctx.shortsSplit!;
+  return (
+    <Wrap className="pt-3">
+      <Headline className="leading-[1.12]">{versusTail(SV.headline)}</Headline>
+      {split.noShorts ? (
+        <div className="relative mt-12" data-testid="no-shorts">
+          <TapeLabel text={en.deco.longTape} variant="clear" angle={3} className="-left-2 -top-7" />
+          <Sticker rotate={1} className="px-4 pb-5 pt-6">
+            <ScreenMotif className="absolute -top-3.5 right-3.5 -rotate-6" />
+            <p className="font-serif text-[26px] font-semibold italic leading-snug [text-wrap:balance]">
+              <NoBreakHyphens text={SV.noShorts} />
+            </p>
+          </Sticker>
+        </div>
+      ) : (
+        <>
+          <p className="sr-only">{plainHyphens(shortsAria(split))}</p>
+          <div className="-mx-2 mt-9 flex flex-col gap-8">
+            <FormatCard format="shorts" side={split.shorts} />
+            <FormatCard format="long" side={split.long} />
+          </div>
+          {split.sub && (
+            <p className="mt-4 font-serif text-[18px] font-semibold italic leading-[1.3]" data-testid="shorts-sub">
+              <NoBreakHyphens text={SV.subs[split.sub]} />
+            </p>
+          )}
+        </>
+      )}
+      <ShortsChipRow ctx={ctx} />
+    </Wrap>
+  );
+}
+
+/** "Your top creators, short and long." → "short" tomato italic, "long." teal italic. */
+function shortLongHeadline(text: string): ReactNode {
+  const m = /^(.*?)\b(short)\b(.*?)\b(long\.?)$/.exec(text);
+  if (!m) return text;
+  return (
+    <>
+      {m[1]}
+      <Italic className="text-tomato">{m[2]}</Italic>
+      {m[3]}
+      <Italic className="text-teal">{m[4]}</Italic>
+    </>
+  );
+}
+
+function CreatorColumn({ format, side }: { format: "shorts" | "long"; side: ShortsSplitSide }) {
+  const shorts = format === "shorts";
+  const [top, ...runners] = side.topCreators;
+  const [itemBefore, itemAfter] = splitAround(TC.item, "n");
+  return (
+    <div className="relative min-w-0" data-testid={`creator-column-${format}`}>
+      <TapeLabel text={shorts ? en.deco.shortsTape : en.deco.longTape} variant={shorts ? "mustard" : "clear"} angle={shorts ? -5 : 4} className={shorts ? "-left-3 -top-7" : "-right-3 -top-7"} />
+      <Sticker rotate={shorts ? -1.5 : 1.5} className="flex h-full flex-col px-3 pb-1 text-center">
+        <p className={`-mx-3 flex min-h-[46px] items-center justify-center border-b-2 border-ink px-2.5 py-1 font-serif text-[15px] font-bold leading-[1.15] text-paper-2 [text-wrap:balance] ${shorts ? "bg-tomato" : "bg-teal-dark"}`}>
+          <span><NoBreakHyphens text={shorts ? TC.shortsColumn : TC.longColumn} /></span>
+        </p>
+        {top ? (
+          <>
+            <span className="mt-4 flex justify-center" aria-hidden="true">
+              <MonogramSticker name={top.name} size={64} />
+            </span>
+            {/* The one exception to the 1-line creator rule: the #1 may wrap to 2 lines in these narrow columns. */}
+            <p className="clamp-title mt-2.5 min-h-[42px] font-serif text-[18px] font-bold leading-[1.18] [text-wrap:balance]" data-testid="split-top-name">{top.name}</p>
+            <p className="mt-1.5 whitespace-nowrap font-mono text-[22px] font-bold">
+              <span className="sr-only">{fill(TC.item, { n: num(top.count) })}</span>
+              <span aria-hidden="true">
+                {itemBefore.trim()} <b className={`text-[34px] tracking-[-0.06em] ${shorts ? "text-tomato" : "text-ink"}`}>{num(top.count)}</b>
+                <span className="mt-0.5 block font-serif text-[16px] font-semibold italic">{itemAfter.trim()}</span>
+              </span>
+            </p>
+          </>
+        ) : null}
+        <div className="mt-3 border-t-[1.5px] border-ink text-left">
+          {side.showEmptyState ? (
+            <p className="py-2 font-serif text-[14px] italic leading-snug text-ink-2" data-testid="split-empty"><NoBreakHyphens text={shorts ? TC.emptyShorts : TC.emptyLong} /></p>
+          ) : (
+            <ol start={2}>
+              {runners.map((c, i) => (
+                <li key={c.url ?? c.name} className="flex items-baseline gap-[7px] border-b border-dashed border-rule py-[7px] last:border-b-0">
+                  <span className="shrink-0 font-mono text-[11px] font-bold text-tomato">{String(i + 2).padStart(2, "0")}</span>
+                  <span className="min-w-0 flex-1">
+                    <span className="clamp-name font-serif text-[15px] font-bold leading-[1.2]">{c.name}</span>
+                    <span className="mt-px block font-mono text-[11.5px] font-bold text-ink-2">{fill(TC.item, { n: num(c.count) })}</span>
+                  </span>
+                </li>
+              ))}
+            </ol>
+          )}
+        </div>
+      </Sticker>
+    </div>
+  );
+}
+
+function CreatorsByFormat({ ctx }: { ctx: SlideContext }) {
+  const split = ctx.shortsSplit!;
+  return (
+    <Wrap className="pt-3">
+      <Headline className="leading-[1.12]">{shortLongHeadline(plainHyphens(TC.headline))}</Headline>
+      <div className="mt-12 grid grid-cols-2 items-stretch gap-4">
+        <CreatorColumn format="shorts" side={split.shorts} />
+        <CreatorColumn format="long" side={split.long} />
+      </div>
+      {split.sameTopCreator && (
+        <p className="mt-4 font-serif text-[16px] font-semibold italic" data-testid="same-top">{fill(TC.sameTop, { creator: split.sameTopCreator })}</p>
+      )}
+      <ShortsChipRow ctx={ctx} note={false} />
+      <Star className="absolute bottom-24 right-8 size-8 text-mustard" />
+      <Sparkle className="absolute bottom-16 left-[45%] size-4 text-tomato" />
+    </Wrap>
+  );
+}
+
 export function SlideView({ kind, ctx }: { kind: SlideKind; ctx: SlideContext }) {
   switch (kind) {
     case "total-videos":
       return <TotalVideos ctx={ctx} />;
     case "watch-time":
       return <WatchTime ctx={ctx} />;
+    case "shorts-vs-long":
+      return <ShortsVsLong ctx={ctx} />;
+    case "creators-by-format":
+      return <CreatorsByFormat ctx={ctx} />;
     case "top-creator":
       return <TopCreator ctx={ctx} />;
     case "top-creators":
