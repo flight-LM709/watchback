@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import nextConfig from "../../next.config";
+import { config as proxyConfig } from "../proxy";
 
 describe("next.config headers", () => {
   it("security headers on every route, X-Robots-Tag on /demo and below, no HSTS", async () => {
@@ -16,5 +17,11 @@ describe("next.config headers", () => {
       expect(rules.find((r) => r.source === source)!.headers).toEqual([{ key: "X-Robots-Tag", value: "noindex, nofollow" }]);
     }
     expect(JSON.stringify(rules)).not.toMatch(/Strict-Transport-Security/i);
+  });
+});
+
+describe("dev-only proxy", () => {
+  it("matches /demo/badges and /debug", () => {
+    expect(proxyConfig.matcher).toEqual(["/demo/badges", "/debug"]);
   });
 });
