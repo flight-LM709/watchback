@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { en } from "@/copy/en";
 import { contrastViolations } from "@/test-utils/contrast";
 import { MonogramSticker } from "@/components/paper";
-import { Landing, Upload } from "../screens";
+import { Crunching, Landing, Upload } from "../screens";
 
 afterEach(cleanup);
 
@@ -48,5 +48,16 @@ describe("pre-story screens", () => {
     const img = screen.getByRole("img", { name: "見本チャンネル" });
     expect(img.textContent).toBe("見");
     expect(Number(img.dataset.palette)).toBeGreaterThanOrEqual(0);
+  });
+
+  it("crunching: phase label while unzipping/reading with nothing counted, then the live counter", () => {
+    const { rerender } = render(<Crunching count={0} fraction={0.2} phase="reading" />);
+    const status = screen.getByRole("status");
+    expect(status.textContent).toBe(en.crunching.unzipping);
+    expect(status.textContent).not.toMatch(/\b0\b/);
+    rerender(<Crunching count={12500} fraction={0.7} phase="parsing" />);
+    expect(screen.getByRole("status").textContent).toContain(en.crunching.counter.replace("{n}", "12,500"));
+    rerender(<Crunching count={100000} fraction={1} phase="reading" />); // a later file (search history) inflating
+    expect(screen.getByRole("status").textContent).toContain("100,000");
   });
 });

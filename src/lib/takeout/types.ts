@@ -63,11 +63,15 @@ export interface ParseResult {
   diagnostics: ParseDiagnostics;
 }
 
-export type ProgressPhase = "unzipping" | "locating" | "parsing" | "done";
+/**
+ * unzipping → locating → (reading → parsing) per file → done.
+ * "reading" covers inflating one file (processed = percent); JSON.parse right after it is synchronous and silent.
+ */
+export type ProgressPhase = "unzipping" | "locating" | "reading" | "parsing" | "done";
 
 export interface ProgressInfo {
   phase: ProgressPhase;
-  /** Work done in the current phase. Use processed/total as a fraction (units: entries for JSON, characters for HTML, percent while unzipping). */
+  /** Work done in the current phase. Use processed/total as a fraction (units: entries for JSON, characters for HTML, percent while unzipping/reading). */
   processed: number;
   total: number;
   /** Running count of watch events found so far — use it for the "Counting {n} videos…" screen. */

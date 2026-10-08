@@ -139,7 +139,10 @@ export async function parseTakeoutZip(input: ZipInput | ZipInput[], options: Par
   const parsed: ParsedSource[] = [];
   let watchSoFar = 0;
   for (const c of all) {
-    const text = await c.file.async("string");
+    // Inflating a big watch-history.json is a large share of the parse time; report it so the UI isn't stuck at 0.
+    const text = await c.file.async("string", (meta) =>
+      onProgress?.({ phase: "reading", processed: Math.round(meta.percent), total: 100, watchCount: watchSoFar, file: c.path }),
+    );
     let result: FileParseResult | null = null;
     const fileOpts = {
       role: c.nameRole ?? "activity",
