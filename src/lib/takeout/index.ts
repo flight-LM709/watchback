@@ -6,3 +6,11 @@ export { parseTakeoutDate, detectNumericOrder } from "./dates";
 export { computeStats, resolveRange, availableYears, type DateRange, type StatsOptions, type WatchStats } from "./stats";
 export { VIDEO_ID_PATTERN, extractVideoId } from "./normalize";
 export { runtimeTimeZone } from "./tz";
+export {
+  buildDurationSample,
+  estimateWatchTime,
+  type DurationSample,
+  type DurationSampleOptions,
+  type DurationsResponse,
+  type WatchTimeEstimate,
+} from "./watchTime";

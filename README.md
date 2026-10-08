@@ -51,15 +51,30 @@ pnpm build
 * "Visited YouTube Music" entries are dropped and counted in `diagnostics.visitEntries`.
 * "Watched" ≠ finished. Each entry counts as one play.
 
-## For Backend Dev: video ID list for the duration lookup
+## For Backend Dev: duration lookup (watch-time estimate)
 
-`computeStats(...).uniqueVideoIds: string[]` is a list of unique, non-ad YouTube **and** YouTube Music video IDs in the selected range, most-played first. Every ID matches `/^[A-Za-z0-9_-]{11}$/` (exported as `VIDEO_ID_PATTERN`). A heavy user can have tens of thousands of IDs per year.
-
-Proposed contract (only IDs leave the device, never counts or timestamps):
+**Hard cap: 2,000 video IDs per upload, sent in a single request.** Only IDs leave the device. Play counts and timestamps never do.
 
 ```
-POST /api/durations        { "ids": ["dQw4w9WgXcQ", ...] }    // client sends chunks of <= 1000
-200                        { "durations": { "dQw4w9WgXcQ": 213, "xxxxxxxxxxx": null } }  // seconds; null = unknown/private
+POST /api/durations     { "ids": ["dQw4w9WgXcQ", ...] }        // 1..2000 unique IDs, one request
+200                     { "durations": { "dQw4w9WgXcQ": 213, "xxxxxxxxxxx": null } }   // seconds; null = unknown/private/removed
 ```
 
-The client computes `watchSeconds ≈ Σ durations[id] × stats.playCountsById[id]`. `playCountsById` stays client-side.
+* Every ID matches `/^[A-Za-z0-9_-]{11}$/` (exported as `VIDEO_ID_PATTERN`). Please reject requests with more than 2,000 IDs or any malformed ID, and don't log or store the IDs (the privacy copy depends on it).
+* An ID missing from `durations` is treated the same as `null`.
+
+Client side (`src/lib/takeout/watchTime.ts`):
+
+```ts
+const stats = computeStats(events);
+const sample = buildDurationSample(stats, { cap: 2000 });           // { ids, topIds, sampleIds, scale, ... }
+const { durations } = await (await fetch("/api/durations", { method: "POST", body: JSON.stringify({ ids: sample.ids }) })).json();
+const wt = estimateWatchTime(durations, stats.playCountsById, sample); // { seconds, isEstimate: true, coverage, exactSeconds } | null
+// wt === null -> no durations came back -> drop the watch-time slide
+```
+
+* **At or under 2,000 unique IDs**: every ID is sent, `scale = 1`, and the result is exact apart from null durations.
+* **Over 2,000**: we send the top 1,000 most-played IDs (counted exactly) plus a uniform random sample of 1,000 from the rest (seedable via `seed`). The rest is extrapolated: `sampledSeconds × restPlays / (plays of sampled IDs that returned a duration)`.
+* Null durations among the top IDs are filled in at the top group's average seconds per play. If a whole group has no durations, it borrows the other group's average.
+* `coverage` is the share of plays whose duration was actually looked up. On a synthetic 40k-ID history the estimate came within about 0.3–2.6% of the true total across 5 seeds.
+* Every play counts as watched to the end, so 10-hour livestreams can inflate the total. A per-play cap would be a product decision; none is applied right now.
