@@ -144,7 +144,9 @@ export const en = {
       shortsLabel: "Shorts",
       longLabel: "Long‑form",
       count: "≈ {n} videos",
+      countOne: "≈ 1 video", // when the rounded count is 1
       time: "≈ {hours} hours",
+      timeOne: "≈ 1 hour", // when hours rounds to exactly 1
       timeMinutes: "≈ {minutes} min", // when the total is under 1 hour
       share: "{pct}% of your plays",
       subs: {
@@ -166,6 +168,7 @@ export const en = {
       shortsColumn: "Top Shorts creators",
       longColumn: "Top long‑form creators",
       item: "≈ {n} videos",
+      itemOne: "≈ 1 video",
       sameTop: "{creator} topped both lists.", // optional line when #1 is the same on both sides
       emptyShorts: "Not enough Shorts to rank.",
       emptyLong: "Not enough long‑form to rank.",
