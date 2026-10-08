@@ -42,7 +42,7 @@ For Frontend Dev. Direction B, picked by vedrico. Mockups: `B/*.png` (story orde
 | **ShareCard** | Lay it out at **360×640 CSS px** for story and **360×360** for square, and export with `pixelRatio: 3` → **1080×1920** and **1080×1080** PNGs (`html-to-image` or canvas). The in-app preview scales it to 342px wide. Use web fonts only once `document.fonts.ready` resolves. Contents: stripe header, cassette icon + `WATCHBACK` stamp, the period headline from `share.headline`, range + "YouTube + YouTube Music", the Videos tile, the Watch-time tile (or the peak-hour tile, see §6), top 5 creators (square: #1 only), the top song with `Now playing`, and a footer with the URL and the disclaimer. The "Example data" tags exist in mockups only. Buttons sit below the card: `Save story` (secondary) and `Save square` (primary), with a `Start over` text link (44px tall) under them. |
 
 ## 3. Slide order and layout
-Pre-story screens: **00-landing → 01-upload → 02b-crunching**. Story (**14 slides** when everything is present. Without Shorts it's 12; see §9):
+Pre-story screens: **00-landing → 01-upload → 02b-crunching**. Story (**14 slides** when everything is present. With zero Shorts it's 13: slide 16 stays with the no-Shorts line, slide 17 is skipped; see §9):
 
 | # | File | Copy keys | Layout notes |
 |---|---|---|---|
@@ -94,8 +94,8 @@ All enters are ≤600ms and staggered by 60–80ms per element. The default easi
 - **No Music data** (`totalSongs === 0`): skip slides 12–13 (`11-music-total`, `12-top5-songs`). The share card drops the Top-song block and lets the creator list breathe (larger row padding). The square swaps the Top-song tile for the busiest-month tile (`{month}` + `{n} videos`). If watch time is also unavailable, the square's tiles are Videos, Your peak hour, #1 creator, and Busiest month.
 - **Durations unavailable** (`/api/durations` 429 or empty): drop slide 2 (watch time). On the share card the watch-time tile becomes `primeTime.peakLabel` with the peak hour (mono 27px) and the day ("Sundays"), plus a 44px ⓘ button that opens a tooltip with `watchTime.unavailableTooltip` (ink bg, paper text, 8px radius, caret toward the ⓘ). The tooltip lives in the app UI only and is never baked into the exported image. Same swap on the square.
 - Slides without enough data are skipped by `planSlides()` (already built). Progress bars reflect the planned count, not a fixed 14.
-- **No Shorts detected** (`shortsCount === 0`): skip **both** slides 3 and 4 (`16-shorts-vs-long`, `17-creators-by-format`). `shortsVsLong.noShorts` stays unused in v1 (reserved for a possible one-line mention elsewhere). If Shorts exist but there's no long-form (`longCount === 0`), also skip both. The split is only interesting with two sides.
-- **Durations unavailable**: also skip slides 3–4. Shorts detection needs lengths and orientation from `/api/durations`, except for `/shorts/` links, and a partial split would mislead.
+- **No Shorts detected** (`shortsCount === 0`): **keep** slide 3 (`16-shorts-vs-long`) and show Copywriter's `shortsVsLong.noShorts` line instead of the two format cards; **skip** slide 4 (`17-creators-by-format`). If Shorts exist but there's no long-form (`longCount === 0`), still show slide 3 with both cards (long-form at ≈ 0) and skip slide 4 only when that column would be empty — prefer showing the split whenever Shorts exist.
+- **Durations unavailable** (`/api/durations` 429 or empty): skip **both** slides 3 and 4. Shorts detection needs lengths and orientation from the API (except pure `/shorts/` links), and a partial split would mislead.
 - Favorite video with count < 2 is skipped (already built).
 
 ## 7. Notes
@@ -201,3 +201,5 @@ Copy lives in `src/copy/en.ts` on `copy/en` (draft commit `b834d58`, chip explai
 **Motion.** The cards/columns use the standard `rise` with an 80ms stagger. The tape labels "slap" in after their card. Counts roll up (≤600ms). Reduced motion: fade only, final numbers shown.
 
 **Hit areas.** The EstimateChip has a 44px hit area. Nothing else on these slides is interactive.
+
+**Skip rules (authoritative).** Zero Shorts → show slide 16 with `noShorts`, skip slide 17. Durations unavailable → skip both. Matches Project Lead's call (over Copywriter keys remaining available).
