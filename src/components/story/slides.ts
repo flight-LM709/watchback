@@ -51,8 +51,9 @@ export interface PlanOptions {
   /** Result of estimateWatchTime(); null/undefined drops the watch-time slide. */
   watchTime?: WatchTimeEstimate | null;
   /**
-   * Result of estimateShortsSplit(). null/undefined (durations or isShort unavailable) drops both
-   * Shorts slides; zero Shorts keeps shorts-vs-long (noShorts copy) and drops creators-by-format.
+   * Result of estimateShortsSplit(), or estimateShortsSplitLinksOnly() when the lookup failed (both
+   * plan the same way). null/undefined drops both Shorts slides; zero Shorts keeps shorts-vs-long
+   * (noShorts copy) and drops creators-by-format.
    */
   shortsSplit?: ShortsSplitEstimate | null;
   /** Restrict to (and order by) this subset. */

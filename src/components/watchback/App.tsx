@@ -6,7 +6,7 @@ import { errorMessage } from "@/copy/format";
 import { parseTakeoutInWorker, type WorkerParseResult } from "@/lib/takeout/client";
 import { MAX_DURATION_IDS, fetchDurations, type IsShortResponse } from "@/lib/takeout/durationsClient";
 import { progressFraction } from "@/lib/takeout/progress";
-import { estimateShortsSplit } from "@/lib/takeout/shortsSplit";
+import { estimateShortsSplit, estimateShortsSplitLinksOnly } from "@/lib/takeout/shortsSplit";
 import type { WatchStats } from "@/lib/takeout/stats";
 import { isTakeoutError, type ProgressPhase } from "@/lib/takeout/types";
 import { buildDurationSample, estimateWatchTime, type DurationsResponse } from "@/lib/takeout/watchTime";
@@ -35,7 +35,7 @@ export function WatchbackApp() {
         onProgress: (p) => setProgress((prev) => ({ count: p.watchCount, fraction: Math.max(prev.fraction, progressFraction(p)), phase: p.phase })),
       });
       // One request, ≤ 2,000 IDs (sampled from the default period). Any failure drops the watch-time
-      // and Shorts slides. Same seed as SAMPLE below, so the default period's estimates use exactly
+      // slide; the Shorts slides fall back to links-only (see shortsSplitFor). Same seed as SAMPLE below, so the default period's estimates use exactly
       // the IDs that were looked up.
       const sample = buildDurationSample(result.stats, SAMPLE);
       const { durations, isShort } = await fetchDurations(sample.ids, { timeoutMs: 10_000 });
@@ -57,8 +57,11 @@ export function WatchbackApp() {
   );
   const shortsSplitFor = useCallback(
     (stats: WatchStats) => {
-      if (!durations || !isShort) return null;
-      return estimateShortsSplit(stats, isShort, durations, buildDurationSample(stats, SAMPLE));
+      if (!durations) return null;
+      // Lookup first; whenever it can't give a split (429/503/timeout/network → empty durations,
+      // no isShort map, or estimateShortsSplit() returns null), fall back to /shorts/ links only.
+      const lookup = isShort ? estimateShortsSplit(stats, isShort, durations, buildDurationSample(stats, SAMPLE)) : null;
+      return lookup ?? estimateShortsSplitLinksOnly(stats);
     },
     [durations, isShort],
   );

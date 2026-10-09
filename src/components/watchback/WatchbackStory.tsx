@@ -11,7 +11,7 @@ import type { TakeoutEvent } from "@/lib/takeout/types";
 import type { WatchTimeEstimate } from "@/lib/takeout/watchTime";
 import { fetchThumbnail, type ThumbLoader } from "@/lib/thumb/client";
 import { ShareSlide } from "./share";
-import { SlideView, slideHeadline, type SlideContext } from "./slides";
+import { SlideView, shortsChipExplainer, slideHeadline, type SlideContext } from "./slides";
 import { useThumbnailCache } from "./useThumbnailCache";
 
 export interface WatchbackStoryProps {
@@ -95,7 +95,7 @@ export function WatchbackStory({ events, timeZone, initialRange, watchTimeFor, s
       </BottomSheet>
       <BottomSheet open={shortsExplainerOpen} onClose={() => setShortsExplainerOpen(false)} title={en.slides.shortsVsLong.chip} closeLabel={en.periodSheet.close}>
         <div id={shortsExplainerId}>
-          <p className="font-serif text-body leading-relaxed">{en.slides.shortsVsLong.chipExplainer}</p>
+          <p className="font-serif text-body leading-relaxed">{shortsChipExplainer(shortsSplit)}</p>
           <p className="mt-4 flex items-center gap-2 font-serif text-[15px] font-semibold text-teal">
             <Lock className="size-4" />
             {en.landing.privacyLine}

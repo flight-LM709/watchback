@@ -21,6 +21,10 @@
  * need not add up exactly to its total.
  * Watch time per side: every play counts min(duration, 3h); that side's plays with no duration
  * (e.g. /shorts/ plays of IDs not looked up) are filled at that side's own average.
+ *
+ * Links-only fallback (estimateShortsSplitLinksOnly, `basis: "linksOnly"`): when the lookup fails
+ * (429/503/timeout/network, no usable duration, no `isShort` map, or estimateShortsSplit() returns
+ * null), slides 16 and 17 still show, counted from /shorts/ links alone. See that function.
  */
 import type { IsShortResponse } from "./durationsClient";
 import { mergeByName, type CountedName, type WatchStats } from "./stats";
@@ -129,8 +133,17 @@ export interface ShortsSplitSide {
   showEmptyState: boolean;
 }
 
+/**
+ * How the split was worked out.
+ *  - "lookup": the /api/durations rule (classifyShortsPlay with the API's isShort), sampled + scaled.
+ *  - "linksOnly": the lookup failed; /shorts/ links only, exact counts, time unknown on both sides.
+ *    Slide 16 swaps `note` / `chipExplainer` for `noteLinksOnly` / `chipExplainerLinksOnly`.
+ */
+export type ShortsSplitBasis = "lookup" | "linksOnly";
+
 export interface ShortsSplitEstimate {
   isEstimate: true;
+  basis: ShortsSplitBasis;
   shorts: ShortsSplitSide;
   long: ShortsSplitSide;
   /** shortsCount === 0 → slide 16 shows `slides.shortsVsLong.noShorts`, slide 17 is skipped. */
@@ -312,6 +325,7 @@ export function estimateShortsSplit(
 
   return {
     isEstimate: true,
+    basis: "lookup",
     shorts,
     long,
     noShorts,
@@ -324,5 +338,79 @@ export function estimateShortsSplit(
     sameTopCreator,
     unknownPlays: Math.max(0, Math.round(stats.totalVideos - S - L)),
     coverage: stats.totalVideos > 0 ? directPlays / stats.totalVideos : 0,
+  };
+}
+
+/**
+ * No-lookup fallback for slides 16 and 17 (Designer + Copywriter's spec), used whenever the lookup
+ * result is null. Rule: a play is a Short only if it was opened from a /shorts/ link; every other
+ * non-ad YouTube (non-Music) play with a video ID counts as long-form (what `noteLinksOnly` /
+ * `chipExplainerLinksOnly` tell the user, so the real Shorts number is likely higher).
+ *
+ *  - Counts are exact (no sampling, no scaling): per video row, Shorts += shortsUrlPlays,
+ *    long-form += plays − shortsUrlPlays. Creator counts are exact too (top `topN` each).
+ *  - Time: null (unknown → em dash + plays-only sub) for any side with plays; 0 for a side with no
+ *    plays (nothing was watched there, which is known without lengths).
+ *  - unknownPlays: plays left out = plays with no video ID (removed videos), which videoPlays omits.
+ *    coverage: share of YouTube plays the link rule classified ((Shorts + long-form) / totalVideos).
+ *    Neither is shown on a slide; they're kept honest for /debug and QA.
+ *  - Zero Shorts → `noShorts` (slide 16 shows the noShorts line, slide 17 is skipped), same as lookup.
+ *
+ * Returns null only when there are no YouTube plays with an ID at all (nothing to split).
+ */
+export function estimateShortsSplitLinksOnly(stats: SplitStats, options: ShortsSplitOptions = {}): ShortsSplitEstimate | null {
+  const topN = options.topN ?? 3;
+  const side: Record<SplitSideKey, { plays: number; creators: Map<string, CountedName> }> = {
+    shorts: { plays: 0, creators: new Map() },
+    long: { plays: 0, creators: new Map() },
+  };
+  const credit = (f: SplitSideKey, channel: string | undefined, n: number) => {
+    if (n <= 0) return;
+    side[f].plays += n;
+    if (channel === undefined) return;
+    const c = side[f].creators.get(channel);
+    if (c) c.count += n;
+    else {
+      const info = stats.channels[channel];
+      side[f].creators.set(channel, { name: info?.name ?? channel, ...(info?.url ? { url: info.url } : {}), count: n });
+    }
+  };
+  for (const r of stats.videoPlays) {
+    const shortsPlays = Math.max(0, Math.min(r.shortsUrlPlays, r.plays));
+    credit("shorts", r.channel, shortsPlays);
+    credit("long", r.channel, r.plays - shortsPlays);
+  }
+  const S = side.shorts.plays, L = side.long.plays;
+  if (S + L <= 0) return null;
+
+  const creators = (m: Map<string, CountedName>): CountedName[] =>
+    [...mergeByName(m).values()].sort((a, b) => b.count - a.count || a.name.localeCompare(b.name)).slice(0, topN);
+  const noShorts = S === 0;
+  const shortsPct = noShorts ? 0 : Math.round((S / (S + L)) * 100);
+  const mkSide = (f: SplitSideKey, pct: number): ShortsSplitSide => {
+    const topCreators = creators(side[f].creators);
+    return { count: side[f].plays, seconds: side[f].plays > 0 ? null : 0, pct, topCreators, showEmptyState: topCreators.length < 2 };
+  };
+  const shorts = mkSide("shorts", shortsPct);
+  const long = mkSide("long", 100 - shortsPct);
+  const { playsWinner, playsTie, timeWinner, timeTie, sub } = shortsVerdict(shorts, long, noShorts);
+  const s0 = shorts.topCreators[0], l0 = long.topCreators[0];
+  const sameTopCreator = s0 && l0 && s0.name.trim().toLowerCase() === l0.name.trim().toLowerCase() ? l0.name : null;
+
+  return {
+    isEstimate: true,
+    basis: "linksOnly",
+    shorts,
+    long,
+    noShorts,
+    slides: shortsSlides({ noShorts }),
+    playsWinner,
+    playsTie,
+    timeWinner,
+    timeTie,
+    sub,
+    sameTopCreator,
+    unknownPlays: Math.max(0, stats.totalVideos - S - L),
+    coverage: stats.totalVideos > 0 ? (S + L) / stats.totalVideos : 0,
   };
 }

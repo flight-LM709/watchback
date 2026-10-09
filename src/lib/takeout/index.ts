@@ -30,10 +30,12 @@ export {
 export { fetchDurations, lookupWatchTime, parseIsShort, MAX_DURATION_IDS, type FetchDurationsResult, type IsShortResponse } from "./durationsClient";
 export {
   estimateShortsSplit,
+  estimateShortsSplitLinksOnly,
   shortsVerdict,
   splitTimeDisplay,
   type ShortsVerdict,
   type SplitTimeDisplay,
+  type ShortsSplitBasis,
   type ShortsSplitEstimate,
   type ShortsSplitSide,
   type ShortsSplitOptions,

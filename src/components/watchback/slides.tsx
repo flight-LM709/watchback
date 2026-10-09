@@ -676,13 +676,19 @@ function versusTail(text: string): ReactNode {
   );
 }
 
+/** Slide 16 note: `noteLinksOnly` when the split was counted from /shorts/ links only (lookup failed). */
+export const shortsNote = (split: Pick<ShortsSplitEstimate, "basis"> | null | undefined) => (split?.basis === "linksOnly" ? SV.noteLinksOnly : SV.note);
+/** Shorts estimate sheet text: `chipExplainerLinksOnly` in links-only mode. */
+export const shortsChipExplainer = (split: Pick<ShortsSplitEstimate, "basis"> | null | undefined) =>
+  split?.basis === "linksOnly" ? SV.chipExplainerLinksOnly : SV.chipExplainer;
+
 function ShortsChipRow({ ctx, note = true }: { ctx: SlideContext; note?: boolean }) {
   return (
     <div className="mt-3 flex items-center gap-2.5 short:mt-2">
       <span className="shrink-0">
         <EstimateChip label={SV.chip} onClick={ctx.openShortsExplainer} expanded={ctx.shortsExplainerOpen} controls={ctx.shortsExplainerId} />
       </span>
-      {note && <p className="font-serif text-[13px] italic leading-[1.35] text-ink-2" data-testid="shorts-note">{SV.note}</p>}
+      {note && <p className="font-serif text-[13px] italic leading-[1.35] text-ink-2" data-testid="shorts-note">{shortsNote(ctx.shortsSplit)}</p>}
     </div>
   );
 }

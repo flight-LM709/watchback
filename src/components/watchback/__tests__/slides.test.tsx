@@ -156,6 +156,7 @@ describe("Shorts slides (SPEC §9)", () => {
   const c = c1;
   const split = (patch: Partial<ShortsSplitEstimate> = {}): ShortsSplitEstimate => ({
     isEstimate: true,
+    basis: "lookup",
     shorts: { count: 8620, seconds: 84 * 3600, pct: 69, topCreators: [c("Alpha", 476), c("Beta", 391), c("Gamma", 302)], showEmptyState: false },
     long: { count: 3860, seconds: 1836 * 3600, pct: 31, topCreators: [c("Delta", 1150)], showEmptyState: true },
     noShorts: false,

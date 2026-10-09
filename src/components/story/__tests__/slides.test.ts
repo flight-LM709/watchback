@@ -11,7 +11,7 @@ const w = (iso: string, extra: Partial<TakeoutEvent> = {}): TakeoutEvent => ({
 const est = { seconds: 3600, isEstimate: true as const, coverage: 1, exactSeconds: 3600 };
 const side = (count: number) => ({ count, seconds: count * 60, pct: 50, topCreators: [], showEmptyState: true });
 const split = (shorts: number): ShortsSplitEstimate => ({
-  isEstimate: true, shorts: side(shorts), long: side(10), noShorts: shorts === 0,
+  isEstimate: true, basis: "lookup", shorts: side(shorts), long: side(10), noShorts: shorts === 0,
   slides: { shortsVsLong: true, creatorsByFormat: shorts > 0 },
   playsWinner: "long", playsTie: false, timeWinner: "long", timeTie: false, sub: shorts ? "longBoth" : null, sameTopCreator: null, unknownPlays: 0, coverage: 1,
 });
