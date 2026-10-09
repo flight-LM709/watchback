@@ -177,8 +177,8 @@ export const en = {
       // Lookup-failed card: shown once in place of slides 16 and 17 when the length lookup fails.
       // Use `unavailableSoon` for a 502 or a retry-after of 15 minutes or less, and `unavailableLater` for anything longer.
       unavailableTitle: "No split this time.",
-      unavailableSoon: "We couldn't check your video lengths this time, so we left out the Shorts vs. long‑form split. Try again in a few minutes.",
-      unavailableLater: "We couldn't check your video lengths this time, so we left out the Shorts vs. long‑form split. Try again later.",
+      unavailableSoon: "We couldn't check your video lengths, so we left out the Shorts vs. long‑form split. Try again in a few minutes.",
+      unavailableLater: "We couldn't check your video lengths, so we left out the Shorts vs. long‑form split. Try again later.",
       // Screen-reader summary. Fill each slot with the aria* strings below (never the visible "≈" ones).
       aria: "Shorts: {shortsCount}, {shortsTime}. Long‑form: {longCount}, {longTime}.",
       ariaCount: "about {n} videos",
