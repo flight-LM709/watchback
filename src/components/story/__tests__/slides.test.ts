@@ -70,4 +70,19 @@ describe("planSlides", () => {
     expect(plan).toHaveLength(14);
     expect(full.peakHourBadge).not.toBeNull();
   });
+
+  it("lookup failed: skips 16/17 and the watch-time slide, plans one shorts-unavailable card where 16 would be", () => {
+    const s = computeStats(base, { timeZone: "UTC" });
+    const failed = planSlides(s, { watchTime: null, shortsSplit: null, shortsUnavailable: "soon" });
+    expect(failed.slice(0, 3)).toEqual(["total-videos", "shorts-unavailable", "top-creator"]);
+    expect(failed).not.toContain("shorts-vs-long");
+    expect(failed).not.toContain("creators-by-format");
+    expect(failed).not.toContain("watch-time");
+    expect(failed.filter((k) => k === "shorts-unavailable")).toHaveLength(1);
+    expect(planSlides(s, { watchTime: est, shortsSplit: null, shortsUnavailable: "later" }).slice(0, 3)).toEqual(["total-videos", "watch-time", "shorts-unavailable"]);
+    // no failure → no card (as before); a split wins over a stale failure flag
+    expect(planSlides(s, { watchTime: null, shortsSplit: null })).not.toContain("shorts-unavailable");
+    expect(planSlides(s, { watchTime: est, shortsSplit: split(2), shortsUnavailable: "later" })).not.toContain("shorts-unavailable");
+    expect(planSlides(s, { watchTime: est, shortsSplit: split(0), shortsUnavailable: "later" })).not.toContain("shorts-unavailable");
+  });
 });

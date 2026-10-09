@@ -7,7 +7,7 @@ import { makeDemoEvents } from "@/app/demo/demo-data";
 import { computeStats, type WatchStats } from "@/lib/takeout/stats";
 import { contrastViolations } from "@/test-utils/contrast";
 import type { SlideKind } from "@/components/story/slides";
-import { BadgeSticker, SlideView, itemText, shortsAria, slideHeadline, splitTimeAria, splitTimeText, type SlideContext } from "../slides";
+import { BadgeSticker, SlideView, itemText, shortsUnavailableText, shortsAria, slideHeadline, splitTimeAria, splitTimeText, type SlideContext } from "../slides";
 import { PEAK_HOUR_WINDOWS } from "@/lib/takeout/stats";
 import type { ShortsSplitEstimate } from "@/lib/takeout/shortsSplit";
 
@@ -349,5 +349,32 @@ describe("Shorts slides (SPEC §9)", () => {
     expect(reserve.parentElement!.firstElementChild).toBe(reserve); // floats only push lines that come after it
     expect(reserve.parentElement!.textContent).toBe("No Shorts at all. You kept it long-form.");
     expect(within(box).getByTestId("no-shorts-icon")).toBeTruthy();
+  });
+
+  it("lookup-failed card: same headline, paper 'Skipped' tape, title + soon/later body; no TV icon, no chip", () => {
+    for (const when of ["soon", "later"] as const) {
+      const root = show("shorts-unavailable", {}, { shortsUnavailable: when });
+      expect(root.querySelector("h2")!.textContent).toBe(en.slides.shortsVsLong.headline);
+      const card = screen.getByTestId("shorts-unavailable");
+      expect(card.dataset.when).toBe(when);
+      expect(screen.getByTestId("shorts-unavailable-title").textContent).toBe(en.slides.shortsVsLong.unavailableTitle);
+      expect(screen.getByTestId("shorts-unavailable-text").textContent).toBe(
+        (when === "soon" ? en.slides.shortsVsLong.unavailableSoon : en.slides.shortsVsLong.unavailableLater).replaceAll("\u2011", "-"),
+      );
+      const tape = within(card).getByTestId("tape-label");
+      expect(tape.textContent).toBe(en.deco.skippedTape);
+      expect(tape.dataset.variant).toBe("paper");
+      expect(tape.className).toContain("text-ink-2");
+      expect(card.innerHTML).not.toMatch(/tomato|teal/);
+      expect(screen.queryByTestId("no-shorts-icon")).toBeNull();
+      expect(screen.queryByRole("button", { name: /Estimate/ })).toBeNull();
+      expect(screen.queryByTestId("shorts-note")).toBeNull();
+      expect(contrastViolations(root)).toEqual([]);
+      expect(slideHeadline("shorts-unavailable", { shortsUnavailable: when } as SlideContext)).toBe(
+        `${en.slides.shortsVsLong.headline} ${en.slides.shortsVsLong.unavailableTitle} ${shortsUnavailableText(when).replaceAll("\u2011", "-")}`,
+      );
+      cleanup();
+    }
+    expect(shortsUnavailableText(null)).toBe(en.slides.shortsVsLong.unavailableLater);
   });
 });
