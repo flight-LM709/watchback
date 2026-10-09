@@ -38,13 +38,16 @@ describe("lookup-failed card: soon / later", () => {
     expect(shortsUnavailableFor(r)).toBe("later");
   });
 
-  it("network error, timeout, bad JSON → later (no info)", async () => {
+  it("network error and timeout → soon (no response, usually brief); bad JSON → later", async () => {
     const net = await lookup(async () => { throw new TypeError("Failed to fetch"); });
     expect([net.error, net.status]).toEqual(["network", undefined]);
-    expect(shortsUnavailableFor(net)).toBe("later");
+    expect(shortsUnavailableFor(net)).toBe("soon");
     const timeout = await fetchDurations([ID], { fetchImpl: (_u, init) => new Promise((_r, rej) => init?.signal?.addEventListener("abort", () => rej(init.signal!.reason))), timeoutMs: 5 });
     expect(timeout.error).toBe("timeout");
-    expect(shortsUnavailableFor(timeout)).toBe("later");
+    expect(shortsUnavailableFor(timeout)).toBe("soon");
+    const badOk = await lookup(async () => new Response("not json", { status: 200 }));
+    expect([badOk.status, badOk.error]).toEqual([200, "bad_response"]);
+    expect(shortsUnavailableFor(badOk)).toBe("later");
     const bad = await lookup(async () => new Response("<html>", { status: 502 }));
     expect([bad.status, bad.error]).toEqual([502, "bad_response"]);
     expect(shortsUnavailableFor(bad)).toBe("soon"); // a 502 is a 502
@@ -68,6 +71,11 @@ describe("lookup-failed card: soon / later", () => {
     expect(shortsUnavailableReason({ status: 500 })).toBe("later");
     expect(shortsUnavailableReason({ status: 429, retryAfterSec: 0 })).toBe("soon");
     expect(shortsUnavailableReason({})).toBe("later");
+    expect(shortsUnavailableReason({ error: "network" })).toBe("soon");
+    expect(shortsUnavailableReason({ error: "timeout" })).toBe("soon");
+    // a timeout/network code only counts when no response arrived
+    expect(shortsUnavailableReason({ status: 503, error: "network" })).toBe("later");
+    expect(shortsUnavailableReason({ error: "bad_response" })).toBe("later");
   });
 });
 

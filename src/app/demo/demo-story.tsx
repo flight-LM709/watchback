@@ -76,8 +76,8 @@ function Story() {
           onChange={(e) => setLookupFailing(e.target.value === "off" ? null : (e.target.value as ShortsUnavailable))}
         >
           <option value="off">off</option>
-          <option value="soon">soon (502 / wait ≤ 15 min)</option>
-          <option value="later">later (503 / longer / network)</option>
+          <option value="soon">soon (502 / network / wait ≤ 15 min)</option>
+          <option value="later">later (503 / longer wait)</option>
         </select>
       </label>
     </div>
