@@ -7,6 +7,7 @@ import { en } from "@/copy/en";
 import { periodVariant } from "@/copy/format";
 import type { DateRange, WatchStats } from "@/lib/takeout/stats";
 import type { ShortsSplitEstimate } from "@/lib/takeout/shortsSplit";
+import type { ShortsUnavailable } from "@/lib/takeout/shortsUnavailable";
 import type { TakeoutEvent } from "@/lib/takeout/types";
 import type { WatchTimeEstimate } from "@/lib/takeout/watchTime";
 import { fetchThumbnail, type ThumbLoader } from "@/lib/thumb/client";
@@ -22,6 +23,11 @@ export interface WatchbackStoryProps {
   watchTimeFor: (stats: WatchStats) => WatchTimeEstimate | null;
   /** Shorts vs long-form estimate for the current stats; null (or omitted) drops both Shorts slides. */
   shortsSplitFor?: (stats: WatchStats) => ShortsSplitEstimate | null;
+  /**
+   * shortsUnavailableFor(lookup): the length lookup was attempted and failed. When a period has no
+   * split but has YouTube plays, one lookup-failed ("No split this time.") card stands in for both Shorts slides.
+   */
+  shortsUnavailable?: ShortsUnavailable | null;
   /** Favorite-video thumbnail loader. Default: POST /api/thumb. */
   thumbLoader?: ThumbLoader;
   /** ✕ and Start over. */
@@ -43,10 +49,12 @@ export function Brand() {
 const noSplit = () => null;
 
 /** The whole Paper Mixtape story: period pill + sheet, 14 slides, explainer sheets, share images. */
-export function WatchbackStory({ events, timeZone, initialRange, watchTimeFor, shortsSplitFor = noSplit, thumbLoader = fetchThumbnail, onExit, host = "" }: WatchbackStoryProps) {
+export function WatchbackStory({ events, timeZone, initialRange, watchTimeFor, shortsSplitFor = noSplit, shortsUnavailable = null, thumbLoader = fetchThumbnail, onExit, host = "" }: WatchbackStoryProps) {
   const { stats, range, setRange, periodLabel, periodOptions } = useStoryStats(events, { timeZone, initialRange });
   const watchTime = useMemo(() => watchTimeFor(stats), [stats, watchTimeFor]);
   const shortsSplit = useMemo(() => shortsSplitFor(stats), [stats, shortsSplitFor]);
+  // Only when the split would have been attempted (YouTube plays with an ID in this period) and isn't there.
+  const shortsSkipped = !shortsSplit && stats.videoPlays.length > 0 ? shortsUnavailable : null;
   // Held at story level: survives the favorite slide unmounting and period switches; revoked when the story unmounts.
   const thumb = useThumbnailCache(stats.favoriteVideo?.videoId, thumbLoader);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -64,10 +72,10 @@ export function WatchbackStory({ events, timeZone, initialRange, watchTimeFor, s
   );
   const ctx: SlideContext = {
     stats, watchTime, period, periodLabel, thumb, openExplainer, explainerOpen, explainerId, share,
-    shortsSplit, openShortsExplainer, shortsExplainerOpen, shortsExplainerId,
+    shortsSplit, shortsUnavailable: shortsSkipped, openShortsExplainer, shortsExplainerOpen, shortsExplainerId,
   };
 
-  const slides: StorySlide[] = planSlides(stats, { watchTime, shortsSplit }).map((kind) => ({
+  const slides: StorySlide[] = planSlides(stats, { watchTime, shortsSplit, shortsUnavailable: shortsSkipped }).map((kind) => ({
     id: kind,
     label: slideHeadline(kind, ctx),
     content: <SlideView kind={kind} ctx={ctx} />,

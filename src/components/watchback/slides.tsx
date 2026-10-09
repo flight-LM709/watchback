@@ -7,6 +7,7 @@ import { en } from "@/copy/en";
 import { badgeDetail, badgeName, badgeShareLine, fill, fillNodes, peakValue, primeTimeHeadline, type PeriodVariant } from "@/copy/format";
 import type { PeakHourBadge, PeakHourBadgeResult, WatchStats } from "@/lib/takeout/stats";
 import { splitTimeDisplay, type ShortsSplitEstimate, type ShortsSplitSide } from "@/lib/takeout/shortsSplit";
+import type { ShortsUnavailable } from "@/lib/takeout/shortsUnavailable";
 import type { WatchTimeEstimate } from "@/lib/takeout/watchTime";
 import { BarChart, Cassette, Heatmap, StreakCalendar, chartMonths, streakMonths } from "./charts";
 import { hourLabel, monthName, num, perDay, shortDate, songDisplayTitle, splitAround, tzLabel } from "./fmt";
@@ -27,6 +28,8 @@ export interface SlideContext {
   share: ReactNode;
   /** Shorts vs long-form estimate (slides 3–4); absent/null means those slides aren't planned. */
   shortsSplit?: ShortsSplitEstimate | null;
+  /** Lookup failed: which lookup-failed line the `shorts-unavailable` card shows. */
+  shortsUnavailable?: ShortsUnavailable | null;
   /** Opens the Shorts estimate sheet (`shortsVsLong.chipExplainer`). */
   openShortsExplainer?: () => void;
   shortsExplainerOpen?: boolean;
@@ -109,6 +112,8 @@ export function slideHeadline(kind: SlideKind, ctx: SlideContext): string {
       return ctx.shortsSplit && !ctx.shortsSplit.noShorts ? `${SV.headline} ${plainHyphens(shortsAria(ctx.shortsSplit))}` : `${SV.headline} ${plainHyphens(SV.noShorts)}`;
     case "creators-by-format":
       return plainHyphens(TC.headline);
+    case "shorts-unavailable":
+      return `${SV.headline} ${SV.unavailableTitle} ${plainHyphens(shortsUnavailableText(ctx.shortsUnavailable))}`;
     case "top-creator":
       return fill(S.topCreator.headline, { creator: s.topCreators[0]?.name ?? "" });
     case "top-creators":
@@ -589,12 +594,14 @@ function TopSongs({ ctx }: { ctx: SlideContext }) {
 }
 
 /** Caveat label on a strip of tape ("Singles" / "Long play"), decorative. */
-function TapeLabel({ text, variant, className = "", angle }: { text: string; variant: "mustard" | "clear"; className?: string; angle: number }) {
+/** "paper": lighter-paper tape with ink-2 text (the "Skipped" card), neither red nor teal. */
+function TapeLabel({ text, variant, className = "", angle }: { text: string; variant: "mustard" | "clear" | "paper"; className?: string; angle: number }) {
   return (
     <span
       aria-hidden="true"
-      className={`slap absolute z-10 whitespace-nowrap px-3 pb-[3px] pt-px font-hand text-[22px] font-bold leading-[1.1] text-ink shadow-tape ${variant === "clear" ? "border border-ink/10" : ""} ${className}`}
-      style={{ background: variant === "mustard" ? "var(--tape-mustard)" : "var(--tape-clear)", transform: `rotate(${angle}deg)`, ["--slap-to" as string]: `${angle}deg`, animationDelay: "220ms" }}
+      className={`slap absolute z-10 whitespace-nowrap px-3 pb-[3px] pt-px font-hand text-[22px] font-bold leading-[1.1] shadow-tape ${variant === "paper" ? "text-ink-2" : "text-ink"} ${variant !== "mustard" ? "border border-ink/10" : ""} ${className}`}
+      data-variant={variant}
+      style={{ background: variant === "mustard" ? "var(--tape-mustard)" : variant === "paper" ? "var(--color-paper-2)" : "var(--tape-clear)", transform: `rotate(${angle}deg)`, ["--slap-to" as string]: `${angle}deg`, animationDelay: "220ms" }}
       data-testid="tape-label"
     >
       {text}
@@ -725,6 +732,40 @@ function ShortsVsLong({ ctx }: { ctx: SlideContext }) {
   );
 }
 
+/** `unavailableSoon` for "soon", `unavailableLater` otherwise (unknown → later). */
+export const shortsUnavailableText = (when: ShortsUnavailable | null | undefined) => (when === "soon" ? SV.unavailableSoon : SV.unavailableLater);
+
+/**
+ * Lookup-failed slide (`shorts-unavailable`), Designer's final: slide 16's zero-Shorts single-card layout
+ * with the same headline, a paper / ink-2 "Skipped" tape, `unavailableTitle` as the card heading and the
+ * soon/later line as the body. No TV icon, no ESTIMATE chip. One slide, one progress segment.
+ * All of the card's styling lives in ShortsUnavailableCard.
+ */
+export function ShortsUnavailableCard({ when }: { when: ShortsUnavailable }) {
+  return (
+    <div className="relative mt-12" data-testid="shorts-unavailable" data-when={when}>
+      <TapeLabel text={en.deco.skippedTape} variant="paper" angle={-3} className="-left-2 -top-7" />
+      <Sticker rotate={1} className="px-4 pb-5 pt-6">
+        <h3 className="font-serif text-[26px] font-semibold italic leading-snug [text-wrap:balance]" data-testid="shorts-unavailable-title">
+          {SV.unavailableTitle}
+        </h3>
+        <p className="mt-2 font-serif text-[17px] leading-[1.4] text-ink-2 [text-wrap:pretty]" data-testid="shorts-unavailable-text">
+          <NoBreakHyphens text={shortsUnavailableText(when)} />
+        </p>
+      </Sticker>
+    </div>
+  );
+}
+
+function ShortsUnavailableSlide({ ctx }: { ctx: SlideContext }) {
+  return (
+    <Wrap className="pt-3">
+      <Headline className="leading-[1.12]">{versusTail(SV.headline)}</Headline>
+      <ShortsUnavailableCard when={ctx.shortsUnavailable ?? "later"} />
+    </Wrap>
+  );
+}
+
 /** "Your top creators, short and long." → "short" tomato italic, "long." teal italic. */
 function shortLongHeadline(text: string): ReactNode {
   const m = /^(.*?)\b(short)\b(.*?)\b(long\.?)$/.exec(text);
@@ -823,6 +864,8 @@ export function SlideView({ kind, ctx }: { kind: SlideKind; ctx: SlideContext })
       return <ShortsVsLong ctx={ctx} />;
     case "creators-by-format":
       return <CreatorsByFormat ctx={ctx} />;
+    case "shorts-unavailable":
+      return <ShortsUnavailableSlide ctx={ctx} />;
     case "top-creator":
       return <TopCreator ctx={ctx} />;
     case "top-creators":

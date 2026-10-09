@@ -27,7 +27,7 @@ export {
   type DurationsResponse,
   type WatchTimeEstimate,
 } from "./watchTime";
-export { fetchDurations, lookupWatchTime, parseIsShort, MAX_DURATION_IDS, type FetchDurationsResult, type IsShortResponse } from "./durationsClient";
+export { fetchDurations, lookupWatchTime, parseIsShort, parseRetryAfter, MAX_DURATION_IDS, type FetchDurationsResult, type IsShortResponse } from "./durationsClient";
 export {
   estimateShortsSplit,
   shortsVerdict,
@@ -40,3 +40,4 @@ export {
   type ShortsVsLongSub,
   type SplitSideKey,
 } from "./shortsSplit";
+export { lookupFailed, shortsUnavailableFor, shortsUnavailableReason, SOON_MAX_RETRY_AFTER_SEC, type ShortsUnavailable } from "./shortsUnavailable";

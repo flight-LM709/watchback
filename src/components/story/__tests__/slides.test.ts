@@ -53,7 +53,7 @@ describe("planSlides", () => {
   });
 
   it("is 14 slides when everything is present, with the peak-hour badge on the prime-time slide (no separate badge slide)", () => {
-    expect(ALL_SLIDES).toHaveLength(14);
+    expect(ALL_SLIDES).toHaveLength(15); // incl. shorts-unavailable, which only stands in for 3 + 4
     expect(ALL_SLIDES).not.toContain("peak-hour-badge" as never);
     const music = (iso: string, id: string) => w(iso, { product: "music", channelName: "Queen - Topic", videoId: id, title: "Song" });
     const full = computeStats(
@@ -65,8 +65,8 @@ describe("planSlides", () => {
       ],
       { timeZone: "UTC" },
     );
-    const plan = planSlides(full, { watchTime: est, shortsSplit: split(3) });
-    expect(plan).toEqual([...ALL_SLIDES]);
+    const plan = planSlides(full, { watchTime: est, shortsSplit: split(3), shortsUnavailable: "later" });
+    expect(plan).toEqual(ALL_SLIDES.filter((k) => k !== "shorts-unavailable"));
     expect(plan).toHaveLength(14);
     expect(full.peakHourBadge).not.toBeNull();
   });
