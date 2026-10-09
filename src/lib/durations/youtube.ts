@@ -27,6 +27,17 @@ export class QuotaExceededError extends Error {
   }
 }
 
+/** Short-lived per-user/per-minute throttle from YouTube; not the daily quota. */
+export class UpstreamThrottledError extends Error {
+  constructor(reason: string) {
+    super(`YouTube API throttled (${reason})`);
+  }
+}
+
+/** Only these reasons mean the project's daily quota is gone. */
+const DAILY_QUOTA_REASONS = new Set(["quotaExceeded", "dailyLimitExceeded"]);
+const THROTTLE_REASONS = /rateLimitExceeded|userRateLimitExceeded/i;
+
 export type FetchLike = (url: string, init?: RequestInit) => Promise<Response>;
 
 /**
@@ -34,7 +45,8 @@ export type FetchLike = (url: string, init?: RequestInit) => Promise<Response>;
  * adding `part=player` doesn't change the cost). `maxHeight` makes YouTube return
  * `embedWidth`/`embedHeight` in the video's own aspect ratio.
  * IDs missing from the response (removed / private) map to { seconds: null, isShort: null }.
- * Throws QuotaExceededError on a quota 403; throws Error on other failures.
+ * Throws QuotaExceededError only for the daily quota, UpstreamThrottledError for short-term
+ * rate limits, and Error on other failures. Logs status + reason only, never IDs or the key.
  */
 export async function fetchBatch(
   ids: string[],
@@ -58,7 +70,9 @@ export async function fetchBatch(
     } catch {
       /* ignore */
     }
-    if (res.status === 403 && /quota|dailyLimit|rateLimit/i.test(reason)) throw new QuotaExceededError();
+    console.warn("youtube_api_error", res.status, reason || "-");
+    if (res.status === 403 && DAILY_QUOTA_REASONS.has(reason)) throw new QuotaExceededError();
+    if ((res.status === 403 || res.status === 429) && THROTTLE_REASONS.test(reason)) throw new UpstreamThrottledError(reason);
     throw new Error(`YouTube API ${res.status}${reason ? ` (${reason})` : ""}`);
   }
   const body = (await res.json()) as {

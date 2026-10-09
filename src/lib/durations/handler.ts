@@ -1,6 +1,6 @@
 import { DurationCache } from "./cache";
 import { QuotaBudget, RateLimiter } from "./guards";
-import { fetchBatch, mapLimit, mockBatch, QuotaExceededError, YT_BATCH_SIZE, type FetchLike } from "./youtube";
+import { fetchBatch, mapLimit, mockBatch, QuotaExceededError, UpstreamThrottledError, YT_BATCH_SIZE, type FetchLike } from "./youtube";
 
 export const MAX_IDS = 2000;
 export const MAX_BODY_BYTES = 64 * 1024;
@@ -44,6 +44,17 @@ export function clientKey(req: Request): string {
  * `isShort` is additive; clients that only read `durations` are unaffected.
  * Never logs or persists IDs; the only state is an id->metadata cache and anonymous counters.
  */
+/** One retry after a short pause when YouTube throttles; a throttle never trips the daily stop. */
+async function fetchWithRetry(batch: string[], apiKey: string, fetchImpl?: FetchLike) {
+  try {
+    return await fetchBatch(batch, apiKey, fetchImpl);
+  } catch (err) {
+    if (!(err instanceof UpstreamThrottledError)) throw err;
+    await new Promise((r) => setTimeout(r, 1000));
+    return await fetchBatch(batch, apiKey, fetchImpl);
+  }
+}
+
 export function createDurationsHandler(deps: DurationsDeps = {}) {
   const cache = deps.cache ?? new DurationCache();
   const limiter = deps.limiter ?? new RateLimiter();
@@ -96,7 +107,7 @@ export function createDurationsHandler(deps: DurationsDeps = {}) {
     await mapLimit(batches, concurrency, async (batch) => {
       if (quotaHit) return;
       try {
-        const result = deps.mock ? mockBatch(batch) : await fetchBatch(batch, deps.apiKey!, deps.fetchImpl);
+        const result = deps.mock ? mockBatch(batch) : await fetchWithRetry(batch, deps.apiKey!, deps.fetchImpl);
         for (const [id, meta] of Object.entries(result)) {
           durations[id] = meta.seconds;
           isShort[id] = meta.isShort;

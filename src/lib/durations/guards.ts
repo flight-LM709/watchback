@@ -91,14 +91,19 @@ export class QuotaBudget {
     return true;
   }
 
-  /** Mark the quota as gone until the next Pacific midnight. */
-  exhaust() {
+  /**
+   * Mark the quota as gone. Re-probe after a short pause instead of blocking until Pacific
+   * midnight, so one bad response can't switch the feature off for the rest of the day.
+   */
+  exhaust(probeAfterMs = 15 * 60_000) {
     this.roll();
-    this.exhaustedUntil = this.resetAt;
+    this.exhaustedUntil = Math.min(this.resetAt, this.now() + probeAfterMs);
   }
 
   retryAfterSeconds(): number {
-    return Math.max(1, Math.ceil((this.resetAt - this.now()) / 1000));
+    const t = this.now();
+    const until = t < this.exhaustedUntil ? this.exhaustedUntil : this.resetAt;
+    return Math.max(1, Math.ceil((until - t) / 1000));
   }
 
   get unitsUsed() {
