@@ -173,6 +173,10 @@ export const en = {
       note: "Shorts are videos opened from a Shorts link, or 3 minutes or shorter and vertical or square.",
       chip: "Estimate",
       chipExplainer: "YouTube's export doesn't say which videos were Shorts, so we work it out. A video counts as a Short if you opened it from a Shorts link, or if it's 3 minutes or shorter and vertical or square. We checked a large sample of your history and scaled it up, assuming each video was watched to the end. Deleted or private videos are left out of this split. Treat these as close, not exact. YouTube Music plays aren't included.",
+      // Link-only mode: used when the length/shape lookup fails (quota out, 429/503). Shorts = `/shorts/` links only;
+      // time shows the em dash on both sides and the plays-only subs apply. Swap in for `note` and `chipExplainer`.
+      noteLinksOnly: "Counted from Shorts links only, so some Shorts may show up as long‑form.",
+      chipExplainerLinksOnly: "YouTube's export doesn't say which videos were Shorts, and we couldn't look up video lengths this time. So here, a video counts as a Short only if you opened it from a Shorts link. Shorts you opened another way are counted as long‑form, so your real Shorts number is likely higher. Watch time needs those lengths, so it isn't shown. YouTube Music plays aren't included.",
       // Screen-reader summary. Fill each slot with the aria* strings below (never the visible "≈" ones).
       aria: "Shorts: {shortsCount}, {shortsTime}. Long‑form: {longCount}, {longTime}.",
       ariaCount: "about {n} videos",
