@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { classifyShortsPlay, estimateShortsSplit, shortsSlides, shortsVerdict, splitTimeDisplay } from "../shortsSplit";
+import { classifyShortsPlay, estimateShortsSplit, estimateShortsSplitLinksOnly, shortsSlides, shortsVerdict, splitTimeDisplay } from "../shortsSplit";
 import { computeStats } from "../stats";
 import type { TakeoutEvent } from "../types";
 import { buildDurationSample, mulberry32, type DurationSample } from "../watchTime";
@@ -224,3 +224,88 @@ describe("shortsVerdict: every sub, from DISPLAYED shares and times", () => {
   });
 });
 
+
+describe("estimateShortsSplitLinksOnly (lookup failed)", () => {
+  it("counts exactly: /shorts/ link plays are Shorts, every other YouTube play with an ID is long-form; time unknown both sides", () => {
+    const s = stats([
+      ...plays(3, id("A"), { isShort: true, ...by("Short Stack") }),
+      ...plays(2, id("A"), by("Short Stack")), // same video opened another way → long-form
+      ...plays(4, id("B"), { isShort: true, ...by("Reel Deal") }),
+      ...plays(6, id("C"), by("Music Hall")),
+      ...plays(5, id("D"), by("Long Reads")),
+      ...plays(2, undefined as never, { videoId: undefined, unavailable: true }), // no ID → left out
+    ]);
+    const r = estimateShortsSplitLinksOnly(s)!;
+    expect(r.basis).toBe("linksOnly");
+    expect(r.isEstimate).toBe(true);
+    expect(r.shorts).toMatchObject({ count: 7, seconds: null, pct: 35, showEmptyState: false });
+    expect(r.long).toMatchObject({ count: 13, seconds: null, pct: 65, showEmptyState: false });
+    expect(r.shorts.topCreators.map((c) => [c.name, c.count])).toEqual([["Reel Deal", 4], ["Short Stack", 3]]);
+    expect(r.long.topCreators.map((c) => [c.name, c.count])).toEqual([["Music Hall", 6], ["Long Reads", 5], ["Short Stack", 2]]);
+    expect(r.noShorts).toBe(false);
+    expect(r.slides).toEqual({ shortsVsLong: true, creatorsByFormat: true });
+    expect([r.playsWinner, r.timeWinner, r.timeTie, r.sub]).toEqual(["long", null, false, "longPlaysOnly"]);
+    expect(r.unknownPlays).toBe(2);
+    expect(r.coverage).toBeCloseTo(20 / 22);
+  });
+
+  it("no scaling with a big history: counts are the full history, not a sample", () => {
+    const ev: TakeoutEvent[] = [];
+    for (let i = 0; i < 3000; i++) ev.push(...plays(1, id(`v${i}`), i % 4 === 0 ? { isShort: true } : {}));
+    const r = estimateShortsSplitLinksOnly(stats(ev))!;
+    expect([r.shorts.count, r.long.count]).toEqual([750, 2250]);
+    expect(r.shorts.pct + r.long.pct).toBe(100);
+  });
+
+  it("zero /shorts/ links → noShorts, slide 17 skipped, no sub; long-form keeps its creators", () => {
+    const s = stats([...plays(4, id("A"), by("Music Hall")), ...plays(2, id("B"), by("Deep Dive"))]);
+    const r = estimateShortsSplitLinksOnly(s)!;
+    expect(r.noShorts).toBe(true);
+    expect(r.slides).toEqual({ shortsVsLong: true, creatorsByFormat: false });
+    expect(shortsSlides(r)).toEqual({ shortsVsLong: true, creatorsByFormat: false });
+    expect(r.sub).toBeNull();
+    expect(r.shorts).toMatchObject({ count: 0, pct: 0, seconds: 0, topCreators: [], showEmptyState: true });
+    expect(r.long).toMatchObject({ count: 6, pct: 100, seconds: null });
+  });
+
+  it("single Shorts creator → a lone #1 (showEmptyState); Shorts with no channel count but credit nobody", () => {
+    const s = stats([
+      ...plays(5, id("A"), { isShort: true, ...by("Tiny Bits") }),
+      ...plays(2, id("B"), { isShort: true, channelName: undefined, channelUrl: undefined }),
+      ...plays(3, id("C"), by("Deep Dive")),
+    ]);
+    const r = estimateShortsSplitLinksOnly(s)!;
+    expect(r.shorts.count).toBe(7);
+    expect(r.shorts.topCreators.map((c) => [c.name, c.count])).toEqual([["Tiny Bits", 5]]);
+    expect(r.shorts.showEmptyState).toBe(true);
+    expect(r.long.topCreators.map((c) => c.name)).toEqual(["Deep Dive"]);
+    expect(r.sameTopCreator).toBeNull();
+    expect(r.sub).toBe("shortsPlaysOnly");
+  });
+
+  it("YouTube Music and ads are left out; Music-only history → null (nothing to split)", () => {
+    const s = stats([
+      ...plays(3, id("A"), { isShort: true }),
+      ...plays(2, id("B")),
+      ...plays(9, id("M"), { product: "music" }),
+      ...plays(4, id("Z"), { isAd: true }),
+    ]);
+    const r = estimateShortsSplitLinksOnly(s)!;
+    expect([r.shorts.count, r.long.count]).toEqual([3, 2]);
+    expect(estimateShortsSplitLinksOnly(stats(plays(5, id("M"), { product: "music" })))).toBeNull();
+    expect(estimateShortsSplitLinksOnly(stats([]))).toBeNull();
+  });
+
+  it("topN caps each column (default 3); same #1 on both sides → sameTopCreator", () => {
+    const ev = ["P", "Q", "R", "T"].flatMap((n, i) => plays(10 - i, id(n), { isShort: true, ...by(n) }));
+    const r = estimateShortsSplitLinksOnly(stats([...ev, ...plays(4, id("P2"), by("P"))]))!;
+    expect(r.shorts.topCreators.map((c) => c.name)).toEqual(["P", "Q", "R"]);
+    expect(r.sameTopCreator).toBe("P");
+    expect(estimateShortsSplitLinksOnly(stats(ev), { topN: 1 })!.shorts.topCreators).toHaveLength(1);
+  });
+
+  it("the lookup path is tagged basis: lookup", () => {
+    const s = stats([...plays(2, id("A"), { isShort: true }), ...plays(3, id("B"))]);
+    expect(estimateShortsSplit(s, { [id("A")]: true, [id("B")]: false }, { [id("A")]: 30, [id("B")]: 600 }, all(s))!.basis).toBe("lookup");
+  });
+});

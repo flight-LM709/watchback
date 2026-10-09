@@ -7,7 +7,7 @@ import { makeDemoEvents } from "@/app/demo/demo-data";
 import { computeStats, type WatchStats } from "@/lib/takeout/stats";
 import { contrastViolations } from "@/test-utils/contrast";
 import type { SlideKind } from "@/components/story/slides";
-import { BadgeSticker, SlideView, itemText, shortsAria, slideHeadline, splitTimeAria, splitTimeText, type SlideContext } from "../slides";
+import { BadgeSticker, SlideView, itemText, shortsChipExplainer, shortsNote, shortsAria, slideHeadline, splitTimeAria, splitTimeText, type SlideContext } from "../slides";
 import { PEAK_HOUR_WINDOWS } from "@/lib/takeout/stats";
 import type { ShortsSplitEstimate } from "@/lib/takeout/shortsSplit";
 
@@ -350,5 +350,25 @@ describe("Shorts slides (SPEC §9)", () => {
     expect(reserve.parentElement!.firstElementChild).toBe(reserve); // floats only push lines that come after it
     expect(reserve.parentElement!.textContent).toBe("No Shorts at all. You kept it long-form.");
     expect(within(box).getByTestId("no-shorts-icon")).toBeTruthy();
+  });
+
+  it("16 links-only: noteLinksOnly, em dash on both cards, plays-only sub, chip kept; explainer swaps too", () => {
+    const linksOnly = split({
+      basis: "linksOnly",
+      shorts: { count: 46, seconds: null, pct: 34, topCreators: [], showEmptyState: true },
+      long: { count: 91, seconds: null, pct: 66, topCreators: [], showEmptyState: true },
+      playsWinner: "long", timeWinner: null, sub: "longPlaysOnly",
+    });
+    const root = show("shorts-vs-long", {}, { shortsSplit: linksOnly });
+    expect(screen.getByTestId("shorts-note").textContent).toBe(en.slides.shortsVsLong.noteLinksOnly);
+    expect(screen.getAllByTestId("time-unknown").map((e) => e.textContent)).toEqual(["—", "—"]);
+    expect(screen.getByTestId("shorts-sub").textContent).toBe(en.slides.shortsVsLong.subs.longPlaysOnly.replaceAll("\u2011", "-"));
+    expect(screen.getByRole("button", { name: /Estimate/ })).toBeTruthy();
+    expect(slideHeadline("shorts-vs-long", { stats: {} as WatchStats, shortsSplit: linksOnly } as SlideContext)).toContain(en.slides.shortsVsLong.ariaTimeUnknown);
+    expect(contrastViolations(root)).toEqual([]);
+    expect(shortsNote(linksOnly)).toBe(en.slides.shortsVsLong.noteLinksOnly);
+    expect(shortsChipExplainer(linksOnly)).toBe(en.slides.shortsVsLong.chipExplainerLinksOnly);
+    expect(shortsNote(split())).toBe(en.slides.shortsVsLong.note);
+    expect(shortsChipExplainer(split())).toBe(en.slides.shortsVsLong.chipExplainer);
   });
 });

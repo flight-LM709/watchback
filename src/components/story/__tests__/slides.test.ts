@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { computeStats } from "@/lib/takeout/stats";
 import type { TakeoutEvent } from "@/lib/takeout/types";
-import type { ShortsSplitEstimate } from "@/lib/takeout/shortsSplit";
+import { estimateShortsSplitLinksOnly, type ShortsSplitEstimate } from "@/lib/takeout/shortsSplit";
 import { ALL_SLIDES, planSlides } from "../slides";
 
 const w = (iso: string, extra: Partial<TakeoutEvent> = {}): TakeoutEvent => ({
@@ -69,5 +69,22 @@ describe("planSlides", () => {
     expect(plan).toEqual([...ALL_SLIDES]);
     expect(plan).toHaveLength(14);
     expect(full.peakHourBadge).not.toBeNull();
+  });
+
+  it("links-only split (lookup failed): keeps slides 16/17, skips watch-time; zero link Shorts skips 17", () => {
+    const s = computeStats(
+      [...base, w("2024-03-04T05:00:00Z", { videoId: "CCCCCCCCCCC", isShort: true }), w("2024-03-05T05:00:00Z", { videoId: "DDDDDDDDDDD", isShort: true })],
+      { timeZone: "UTC" },
+    );
+    const links = estimateShortsSplitLinksOnly(s)!;
+    expect(links.basis).toBe("linksOnly");
+    const plan = planSlides(s, { watchTime: null, shortsSplit: links });
+    expect(plan).toEqual(expect.arrayContaining(["shorts-vs-long", "creators-by-format"]));
+    expect(plan).not.toContain("watch-time");
+    expect(plan.slice(0, 3)).toEqual(["total-videos", "shorts-vs-long", "creators-by-format"]);
+    const none = planSlides(computeStats(base, { timeZone: "UTC" }), { watchTime: null, shortsSplit: estimateShortsSplitLinksOnly(computeStats(base, { timeZone: "UTC" })) });
+    expect(none).toContain("shorts-vs-long");
+    expect(none).not.toContain("creators-by-format");
+    expect(none).not.toContain("watch-time");
   });
 });

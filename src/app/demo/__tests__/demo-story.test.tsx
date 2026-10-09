@@ -163,6 +163,23 @@ describe("/demo: Paper Mixtape story", () => {
     expect(slide().querySelector('[data-share-card="story"]')!.textContent).toContain(en.slides.primeTime.peakLabel);
   });
 
+  it("lookup failing: watch-time skipped, slides 3–4 stay, counted from links only (13 slides)", () => {
+    render(<DemoStory />);
+    fireEvent.click(screen.getByRole("checkbox", { name: /length lookup failing/ }));
+    expect(screen.getAllByTestId("story-progress")).toHaveLength(13);
+    next();
+    expect(h2()).toBe(en.slides.shortsVsLong.headline);
+    expect(within(slide()).getByTestId("shorts-note").textContent).toBe(en.slides.shortsVsLong.noteLinksOnly);
+    expect(within(slide()).getAllByTestId("time-unknown")).toHaveLength(2);
+    expect(slide().getAttribute("aria-label")).toContain("watch time unknown");
+    fireEvent.click(within(slide()).getByRole("button", { name: /Estimate/ }));
+    expect(screen.getByRole("dialog", { name: en.slides.shortsVsLong.chip }).textContent).toContain(en.slides.shortsVsLong.chipExplainerLinksOnly);
+    fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
+    next();
+    expect(h2()).toBe(en.slides.topCreatorsSplit.headline.replaceAll("\u2011", "-"));
+    expect(within(within(slide()).getByTestId("creator-column-shorts")).getByTestId("split-top-name")).toBeTruthy();
+  });
+
   it("the contrast checker itself catches banned pairs", () => {
     const div = document.createElement("div");
     div.innerHTML = '<div class="bg-mustard"><span class="text-tomato">x</span></div><div class="bg-teal"><p class="text-ink">y</p><p class="text-paper-2">ok</p></div>';
