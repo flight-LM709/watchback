@@ -53,7 +53,7 @@ describe("planSlides", () => {
   });
 
   it("is 14 slides when everything is present, with the peak-hour badge on the prime-time slide (no separate badge slide)", () => {
-    expect(ALL_SLIDES).toHaveLength(14);
+    expect(ALL_SLIDES).toHaveLength(15); // incl. shorts-unavailable, which only stands in for 3 + 4
     expect(ALL_SLIDES).not.toContain("peak-hour-badge" as never);
     const music = (iso: string, id: string) => w(iso, { product: "music", channelName: "Queen - Topic", videoId: id, title: "Song" });
     const full = computeStats(
@@ -65,9 +65,24 @@ describe("planSlides", () => {
       ],
       { timeZone: "UTC" },
     );
-    const plan = planSlides(full, { watchTime: est, shortsSplit: split(3) });
-    expect(plan).toEqual([...ALL_SLIDES]);
+    const plan = planSlides(full, { watchTime: est, shortsSplit: split(3), shortsUnavailable: "later" });
+    expect(plan).toEqual(ALL_SLIDES.filter((k) => k !== "shorts-unavailable"));
     expect(plan).toHaveLength(14);
     expect(full.peakHourBadge).not.toBeNull();
+  });
+
+  it("lookup failed: skips 16/17 and the watch-time slide, plans one shorts-unavailable card where 16 would be", () => {
+    const s = computeStats(base, { timeZone: "UTC" });
+    const failed = planSlides(s, { watchTime: null, shortsSplit: null, shortsUnavailable: "soon" });
+    expect(failed.slice(0, 3)).toEqual(["total-videos", "shorts-unavailable", "top-creator"]);
+    expect(failed).not.toContain("shorts-vs-long");
+    expect(failed).not.toContain("creators-by-format");
+    expect(failed).not.toContain("watch-time");
+    expect(failed.filter((k) => k === "shorts-unavailable")).toHaveLength(1);
+    expect(planSlides(s, { watchTime: est, shortsSplit: null, shortsUnavailable: "later" }).slice(0, 3)).toEqual(["total-videos", "watch-time", "shorts-unavailable"]);
+    // no failure → no card (as before); a split wins over a stale failure flag
+    expect(planSlides(s, { watchTime: null, shortsSplit: null })).not.toContain("shorts-unavailable");
+    expect(planSlides(s, { watchTime: est, shortsSplit: split(2), shortsUnavailable: "later" })).not.toContain("shorts-unavailable");
+    expect(planSlides(s, { watchTime: est, shortsSplit: split(0), shortsUnavailable: "later" })).not.toContain("shorts-unavailable");
   });
 });

@@ -1,15 +1,19 @@
 /**
  * Which story slides to show for a given stats object. Pure + testable.
  * Order and count follow design/SPEC.md §3: 14 slides when everything is present.
+ * `shorts-unavailable` (the lookup-failed ("No split this time.") card) only ever stands in for slides 16 and 17,
+ * so the most a story can have is still 14.
  * The peak-hour badge lives on the prime-time slide (there's no separate badge slide).
  */
 import type { WatchStats } from "@/lib/takeout/stats";
 import { shortsSlides, type ShortsSplitEstimate } from "@/lib/takeout/shortsSplit";
+import type { ShortsUnavailable } from "@/lib/takeout/shortsUnavailable";
 import type { WatchTimeEstimate } from "@/lib/takeout/watchTime";
 
 export type SlideKind =
   | "total-videos" // 1  02-big-number
   | "watch-time" // 2  05b-watch-time
+  | "shorts-unavailable" // 3' lookup failed: one card in place of 3 and 4
   | "shorts-vs-long" // 3  16-shorts-vs-long
   | "creators-by-format" // 4  17-creators-by-format
   | "top-creator" // 5  03-top-creator
@@ -26,6 +30,7 @@ export type SlideKind =
 export const ALL_SLIDES: readonly SlideKind[] = [
   "total-videos",
   "watch-time",
+  "shorts-unavailable",
   "shorts-vs-long",
   "creators-by-format",
   "top-creator",
@@ -55,6 +60,11 @@ export interface PlanOptions {
    * Shorts slides; zero Shorts keeps shorts-vs-long (noShorts copy) and drops creators-by-format.
    */
   shortsSplit?: ShortsSplitEstimate | null;
+  /**
+   * shortsUnavailableFor() of the length lookup: set when it was attempted and failed. With no split,
+   * this plans the one lookup-failed ("No split this time.") card where slide 16 would be. Ignored when a split exists.
+   */
+  shortsUnavailable?: ShortsUnavailable | null;
   /** Restrict to (and order by) this subset. */
   only?: readonly SlideKind[];
 }
@@ -63,6 +73,7 @@ export function planSlides(stats: PlanStats, opts: PlanOptions = {}): SlideKind[
   const has: Record<SlideKind, boolean> = {
     "total-videos": stats.totalVideos > 0,
     "watch-time": opts.watchTime != null,
+    "shorts-unavailable": !shortsSlides(opts.shortsSplit).shortsVsLong && !!opts.shortsUnavailable,
     "shorts-vs-long": shortsSlides(opts.shortsSplit).shortsVsLong,
     "creators-by-format": shortsSlides(opts.shortsSplit).creatorsByFormat,
     "top-creator": stats.topCreators.length > 0,

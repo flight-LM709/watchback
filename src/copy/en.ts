@@ -114,6 +114,7 @@ export const en = {
     streakSticker: "No skips",
     shortsTape: "Singles", // Shorts side of the split slides
     longTape: "Long play", // long-form side
+    skippedTape: "Skipped", // lookup-failed card, paper/ink-2 tape
   },
 
   slides: {
@@ -173,6 +174,11 @@ export const en = {
       note: "Shorts are videos opened from a Shorts link, or 3 minutes or shorter and vertical or square.",
       chip: "Estimate",
       chipExplainer: "YouTube's export doesn't say which videos were Shorts, so we work it out. A video counts as a Short if you opened it from a Shorts link, or if it's 3 minutes or shorter and vertical or square. We checked a large sample of your history and scaled it up, assuming each video was watched to the end. Deleted or private videos are left out of this split. Treat these as close, not exact. YouTube Music plays aren't included.",
+      // Lookup-failed card: shown once in place of slides 16 and 17 when the length lookup fails.
+      // Use `unavailableSoon` for a 502 or a retry-after of 15 minutes or less, and `unavailableLater` for anything longer.
+      unavailableTitle: "No split this time.",
+      unavailableSoon: "We couldn't check your video lengths, so we left out the Shorts vs. long‑form split. Try again in a few minutes.",
+      unavailableLater: "We couldn't check your video lengths, so we left out the Shorts vs. long‑form split. Try again later.",
       // Screen-reader summary. Fill each slot with the aria* strings below (never the visible "≈" ones).
       aria: "Shorts: {shortsCount}, {shortsTime}. Long‑form: {longCount}, {longTime}.",
       ariaCount: "about {n} videos",

@@ -163,6 +163,24 @@ describe("/demo: Paper Mixtape story", () => {
     expect(slide().querySelector('[data-share-card="story"]')!.textContent).toContain(en.slides.primeTime.peakLabel);
   });
 
+  it("lookup failing (soon / later): one 'No split this time.' card replaces watch time and slides 3–4 (12 slides)", () => {
+    for (const when of ["soon", "later"] as const) {
+      render(<DemoStory />);
+      fireEvent.change(screen.getByRole("combobox", { name: /length lookup failing/ }), { target: { value: when } });
+      expect(screen.getAllByTestId("story-progress")).toHaveLength(12);
+      next();
+      expect(h2()).toBe(en.slides.shortsVsLong.headline);
+      expect(slide().getAttribute("aria-label")).toContain(en.slides.shortsVsLong.unavailableTitle);
+      const card = within(slide()).getByTestId("shorts-unavailable");
+      expect(card.dataset.when).toBe(when);
+      expect(within(slide()).queryByRole("button", { name: /Estimate/ })).toBeNull();
+      expect(contrastViolations(slide())).toEqual([]);
+      next();
+      expect(h2()).toMatch(/^Your #1 creator was/);
+      cleanup();
+    }
+  });
+
   it("the contrast checker itself catches banned pairs", () => {
     const div = document.createElement("div");
     div.innerHTML = '<div class="bg-mustard"><span class="text-tomato">x</span></div><div class="bg-teal"><p class="text-ink">y</p><p class="text-paper-2">ok</p></div>';
