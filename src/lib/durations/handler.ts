@@ -11,12 +11,16 @@ export type DurationsDeps = {
   mock?: boolean;
   cache?: DurationCache;
   limiter?: RateLimiter;
+  /** Skip the per-client limiter, for local test passes. Only honoured in mock mode
+   *  (never with a real key); defaults to DURATIONS_RATE_LIMIT=off. */
+  skipRateLimit?: boolean;
   budget?: QuotaBudget;
   fetchImpl?: FetchLike;
   concurrency?: number;
 };
 
 type Durations = Record<string, number | null>;
+type ShortFlags = Record<string, boolean | null>;
 
 function json(status: number, body: unknown, extra: Record<string, string> = {}): Response {
   return new Response(JSON.stringify(body), {
@@ -35,17 +39,21 @@ export function clientKey(req: Request): string {
 }
 
 /**
- * POST /api/durations  { ids: string[] }  ->  { durations: { [id]: seconds | null } }
- * Never logs or persists IDs; the only state is an id->duration cache and anonymous counters.
+ * POST /api/durations  { ids: string[] }
+ *   -> { durations: { [id]: seconds | null }, isShort: { [id]: true | false | null } }
+ * `isShort` is additive; clients that only read `durations` are unaffected.
+ * Never logs or persists IDs; the only state is an id->metadata cache and anonymous counters.
  */
 export function createDurationsHandler(deps: DurationsDeps = {}) {
   const cache = deps.cache ?? new DurationCache();
   const limiter = deps.limiter ?? new RateLimiter();
   const budget = deps.budget ?? new QuotaBudget();
   const concurrency = deps.concurrency ?? 8;
+  const skipRateLimit =
+    !!deps.mock && (deps.skipRateLimit ?? process.env.DURATIONS_RATE_LIMIT === "off");
 
   return async function POST(req: Request): Promise<Response> {
-    const retry = limiter.check(clientKey(req));
+    const retry = skipRateLimit ? 0 : limiter.check(clientKey(req));
     if (retry > 0) return fail(429, "rate_limited", { "retry-after": String(retry) });
 
     const raw = await req.text();
@@ -63,13 +71,17 @@ export function createDurationsHandler(deps: DurationsDeps = {}) {
     if (unique.length > MAX_IDS) return fail(400, "too_many_ids");
 
     const durations: Durations = {};
+    const isShort: ShortFlags = {};
     const misses: string[] = [];
     for (const id of unique) {
       const hit = cache.get(id);
       if (hit === undefined) misses.push(id);
-      else durations[id] = hit;
+      else {
+        durations[id] = hit.seconds;
+        isShort[id] = hit.isShort;
+      }
     }
-    if (misses.length === 0) return json(200, { durations });
+    if (misses.length === 0) return json(200, { durations, isShort });
 
     if (!deps.mock && !deps.apiKey) return fail(503, "not_configured");
 
@@ -85,9 +97,10 @@ export function createDurationsHandler(deps: DurationsDeps = {}) {
       if (quotaHit) return;
       try {
         const result = deps.mock ? mockBatch(batch) : await fetchBatch(batch, deps.apiKey!, deps.fetchImpl);
-        for (const [id, secs] of Object.entries(result)) {
-          durations[id] = secs;
-          cache.set(id, secs);
+        for (const [id, meta] of Object.entries(result)) {
+          durations[id] = meta.seconds;
+          isShort[id] = meta.isShort;
+          cache.set(id, meta);
         }
       } catch (err) {
         if (err instanceof QuotaExceededError) quotaHit = true;
@@ -101,6 +114,6 @@ export function createDurationsHandler(deps: DurationsDeps = {}) {
       return fail(429, "daily_budget_exhausted", { "retry-after": String(budget.retryAfterSeconds()) });
     }
     if (Object.keys(durations).length === 0) return fail(502, "upstream_failed");
-    return json(200, { durations });
+    return json(200, { durations, isShort });
   };
 }

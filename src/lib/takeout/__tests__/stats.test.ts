@@ -244,3 +244,31 @@ describe("ranges", () => {
     expect(s.favoriteVideo).toBeNull();
   });
 });
+
+describe("videoPlays / channels (feed the Shorts split)", () => {
+  const ch = (n: string) => ({ channelName: n, channelUrl: `https://www.youtube.com/channel/UC${n}` });
+  const s = computeStats(
+    [
+      watch("2024-03-01T01:00:00Z", { videoId: "AAAAAAAAAA1", ...ch("cat") }),
+      watch("2024-03-01T02:00:00Z", { videoId: "AAAAAAAAAA1", ...ch("cat"), isShort: true }),
+      watch("2024-03-01T03:00:00Z", { videoId: "AAAAAAAAAA1", channelName: "Cat Renamed", channelUrl: "https://www.youtube.com/channel/UCcat" }),
+      watch("2024-03-01T04:00:00Z", { videoId: "BBBBBBBBBB2" }), // private: no channel
+      watch("2024-03-01T05:00:00Z", { videoId: undefined, unavailable: true }), // removed: no ID
+      watch("2024-03-01T06:00:00Z", { videoId: "MMMMMMMMMM3", product: "music", channelName: "Band - Topic" }),
+      watch("2024-03-01T07:00:00Z", { videoId: "AAAAAAAAAA1", ...ch("cat"), isAd: true }),
+    ],
+    { timeZone: JKT, range: { type: "allTime" } },
+  );
+
+  it("one row per YouTube video × channel; Music, ads and ID-less plays left out", () => {
+    expect(s.videoPlays).toEqual([
+      { videoId: "AAAAAAAAAA1", plays: 3, shortsUrlPlays: 1, channel: "https://www.youtube.com/channel/UCcat" },
+      { videoId: "BBBBBBBBBB2", plays: 1, shortsUrlPlays: 0 },
+    ]);
+    expect(s.totalVideos).toBe(5);
+  });
+
+  it("channels carry the latest display name", () => {
+    expect(s.channels).toEqual({ "https://www.youtube.com/channel/UCcat": { name: "Cat Renamed", url: "https://www.youtube.com/channel/UCcat" } });
+  });
+});

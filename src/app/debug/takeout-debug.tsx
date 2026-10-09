@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { parseTakeoutInWorker, type WorkerParseResult } from "@/lib/takeout/client";
 import { lookupWatchTime } from "@/lib/takeout/durationsClient";
+import { estimateShortsSplit, type ShortsSplitEstimate } from "@/lib/takeout/shortsSplit";
 import type { WatchTimeEstimate } from "@/lib/takeout/watchTime";
 import { isTakeoutError, type ProgressInfo } from "@/lib/takeout/types";
 import { en } from "@/copy/en";
@@ -13,17 +14,21 @@ export function TakeoutDebug() {
   const [result, setResult] = useState<WorkerParseResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [watchTime, setWatchTime] = useState<{ estimate: WatchTimeEstimate | null; error?: string; requestedIds: number } | "loading" | null>(null);
+  const [split, setSplit] = useState<ShortsSplitEstimate | null>(null);
 
   async function onFiles(files: FileList | null) {
     if (!files?.length) return;
     setResult(null);
     setError(null);
     setWatchTime(null);
+    setSplit(null);
     try {
       const r = await parseTakeoutInWorker(Array.from(files), { onProgress: setProgress });
       setResult(r);
       setWatchTime("loading");
-      setWatchTime(await lookupWatchTime(r.stats));
+      const lookup = await lookupWatchTime(r.stats);
+      setWatchTime(lookup);
+      setSplit(estimateShortsSplit(r.stats, lookup.isShort, lookup.durations, lookup.sample));
     } catch (e) {
       setError(isTakeoutError(e) ? errorMessage(e.code) : String(e));
     }
@@ -47,10 +52,15 @@ export function TakeoutDebug() {
               : `Watch-time slide dropped (${watchTime.error ?? "no durations"})`}
         </p>
       )}
+      {watchTime && watchTime !== "loading" && (
+        <pre data-testid="shorts-split" className="overflow-auto whitespace-pre-wrap rounded border p-3">
+          {split ? JSON.stringify({ shortsSplit: split }, null, 2) : "Shorts split dropped (no isShort data)"}
+        </pre>
+      )}
       {result && (
         <pre className="overflow-auto whitespace-pre-wrap rounded border p-3">
           {JSON.stringify(
-            { stats: { ...result.stats, uniqueVideoIds: `${result.stats.uniqueVideoIds.length} ids`, playCountsById: "…" }, diagnostics: result.diagnostics },
+            { stats: { ...result.stats, uniqueVideoIds: `${result.stats.uniqueVideoIds.length} ids`, playCountsById: "…", videoPlays: `${result.stats.videoPlays.length} rows`, channels: "…" }, diagnostics: result.diagnostics },
             null,
             2,
           )}

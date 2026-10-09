@@ -1,13 +1,27 @@
 # `POST /api/durations`
 
-Looks up video lengths for the watch-time estimate. Stateless apart from an in-memory cache.
+Looks up video lengths for the watch-time estimate, plus a best guess at whether each video is a Short. Stateless apart from an in-memory cache.
 
 ```
 POST /api/durations   { "ids": ["dQw4w9WgXcQ", ...] }    // 1..2000 IDs, each /^[A-Za-z0-9_-]{11}$/
-200                   { "durations": { "dQw4w9WgXcQ": 213, "xxxxxxxxxxx": null } }
+200                   { "durations": { "dQw4w9WgXcQ": 213, "xxxxxxxxxxx": null },
+                        "isShort":   { "dQw4w9WgXcQ": false, "xxxxxxxxxxx": null } }
 ```
 
-* `null` means removed, private, still live or upcoming (YouTube reports `P0D`), or unparseable.
+* `null` in `durations` means removed, private, still live or upcoming (YouTube reports `P0D`), or unparseable.
+* `isShort` was added later and is optional for clients; anything that reads only `durations` keeps working. Error responses don't include it.
+
+### How `isShort` is decided
+
+Only official API data is used (no youtube.com scraping), and it costs nothing extra: `part=player` with `maxHeight` rides in the same 1-unit `videos.list` call and returns `embedWidth`/`embedHeight` in the video's own aspect ratio.
+
+| `isShort` | Rule |
+| --- | --- |
+| `true` | 3 minutes (180 s) or shorter **and** the player is vertical or square (`embedHeight >= embedWidth`) |
+| `false` | Longer than 3 minutes, or landscape |
+| `null` | Video unavailable, or the player shape wasn't returned |
+
+The client should also treat any play whose history link is `/shorts/…` as a Short regardless of `isShort`, and leave `null` out of the Shorts/long-form split. A vertical clip of 3 minutes or less that was uploaded as a normal video will be counted as a Short; that's the known limit of an estimate built only from official data.
 * An ID missing from `durations` (one batch failed upstream) should be treated as `null`.
 * Every error response still has `"durations": {}`, so the client's "no durations → drop slide 5" path covers them all.
 
@@ -22,14 +36,14 @@ POST /api/durations   { "ids": ["dQw4w9WgXcQ", ...] }    // 1..2000 IDs, each /^
 
 ## Cost and guards
 
-* One `videos.list` call (`part=contentDetails`, `fields` trimmed) per 50 uncached IDs, costing 1 quota unit. A full 2,000-ID request makes 40 calls, run 8 at a time.
+* One `videos.list` call (`part=contentDetails,player`, `fields` trimmed) per 50 uncached IDs, costing 1 quota unit. A full 2,000-ID request makes 40 calls, run 8 at a time.
 * The free quota is 10,000 units a day. `YOUTUBE_DAILY_UNIT_BUDGET` (default 9,000) is a per-instance soft cap. YouTube's own `quotaExceeded` is the hard stop and shuts off lookups until the reset.
-* The cache is an LRU of up to 50k `id → seconds` entries. Durations are cached for 7 days and `null` results for 1 day. It is per instance and in memory only.
+* The cache is an LRU of up to 50k `id → { seconds, isShort }` entries. Durations are cached for 7 days and `null` results for 1 day. It is per instance and in memory only.
 
 ## Privacy
 
 * IDs are never logged or written anywhere. A test checks that `console` stays silent.
-* The cache holds only `videoId → seconds`, with no link to a user or request.
+* The cache holds only `videoId → { seconds, isShort }`, with no link to a user or request.
 * The rate limiter keys on a salted SHA-256 of the client IP (with a random salt per process), so it never stores the raw IP, and entries expire with the window.
 * Responses are `Cache-Control: no-store`.
 
@@ -38,7 +52,8 @@ POST /api/durations   { "ids": ["dQw4w9WgXcQ", ...] }    // 1..2000 IDs, each /^
 | Var | Default | Notes |
 | --- | --- | --- |
 | `YOUTUBE_API_KEY` | (none) | YouTube Data API v3 key, server-side only. Restrict it to that API. |
-| `YOUTUBE_API_MOCK` | off | `1` returns deterministic fake durations so you can work locally or run QA without a key |
+| `YOUTUBE_API_MOCK` | off | `1` returns deterministic fake durations and `isShort` flags (a mix of true/false/null) so you can work locally or run QA without a key or spending quota |
+| `DURATIONS_RATE_LIMIT` | on | `off` skips the per-client 10-per-10-minutes limit, **only when `YOUTUBE_API_MOCK=1`**, so repeated local QA passes don't hit 429. Ignored with a real key. |
 | `YOUTUBE_DAILY_UNIT_BUDGET` | `9000` | |
 | `DURATIONS_RATE_LIMIT` / `DURATIONS_RATE_WINDOW_SEC` | `10` / `600` | |
 

@@ -12,6 +12,7 @@ export {
   type DateRange,
   type StatsOptions,
   type WatchStats,
+  type VideoPlayRow,
   type PeakHourBadge,
   type PeakHourBadgeResult,
 } from "./stats";
@@ -26,4 +27,16 @@ export {
   type DurationsResponse,
   type WatchTimeEstimate,
 } from "./watchTime";
-export { fetchDurations, lookupWatchTime, MAX_DURATION_IDS, type FetchDurationsResult } from "./durationsClient";
+export { fetchDurations, lookupWatchTime, parseIsShort, MAX_DURATION_IDS, type FetchDurationsResult, type IsShortResponse } from "./durationsClient";
+export {
+  estimateShortsSplit,
+  shortsVerdict,
+  splitTimeDisplay,
+  type ShortsVerdict,
+  type SplitTimeDisplay,
+  type ShortsSplitEstimate,
+  type ShortsSplitSide,
+  type ShortsSplitOptions,
+  type ShortsVsLongSub,
+  type SplitSideKey,
+} from "./shortsSplit";

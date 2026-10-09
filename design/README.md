@@ -17,7 +17,7 @@ Re-render: `npm i && (cd B && python3 gen_b.py) && node render.js B` (needs Chro
 - Video titles clamp to 2 lines. Creator, artist, song and search strings clamp to 1 line.
 - The period pill sits at the top of every stat slide. It shows "{Mon YYYY} – {Mon YYYY}", "{year}" or "All time", and opens a bottom sheet.
 - One time-of-day badge per person, shown on the prime-time slide as `{badge}, {pct}% of plays`.
-- Watch time unavailable: drop the watch-time slide, and on the share card the watch-time tile becomes "Your peak hour". No Music data: skip the music total and top songs slides.
+- Watch time unavailable: drop the watch-time slide, and on the share card the watch-time tile becomes "Your peak hour". No Music data: skip the music total and top songs slides. No Shorts detected (or no long‑form): skip both Shorts slides (16, 17).
 - No YouTube logo or red play button. "Not affiliated with YouTube or Google." goes on landing, upload and the share cards.
 - Text meets WCAG AA contrast (pairs listed in `tokens.css`), and `prefers-reduced-motion` is respected.
 - All strings come from `src/copy/en.ts`.

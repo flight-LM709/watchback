@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { computeStats } from "@/lib/takeout/stats";
 import type { TakeoutEvent } from "@/lib/takeout/types";
+import type { ShortsSplitEstimate } from "@/lib/takeout/shortsSplit";
 import { ALL_SLIDES, planSlides } from "../slides";
 
 const w = (iso: string, extra: Partial<TakeoutEvent> = {}): TakeoutEvent => ({
@@ -8,6 +9,12 @@ const w = (iso: string, extra: Partial<TakeoutEvent> = {}): TakeoutEvent => ({
   timestamp: new Date(iso), isAd: false, ...extra,
 });
 const est = { seconds: 3600, isEstimate: true as const, coverage: 1, exactSeconds: 3600 };
+const side = (count: number) => ({ count, seconds: count * 60, pct: 50, topCreators: [], showEmptyState: true });
+const split = (shorts: number): ShortsSplitEstimate => ({
+  isEstimate: true, shorts: side(shorts), long: side(10), noShorts: shorts === 0,
+  slides: { shortsVsLong: true, creatorsByFormat: shorts > 0 },
+  playsWinner: "long", playsTie: false, timeWinner: "long", timeTie: false, sub: shorts ? "longBoth" : null, sameTopCreator: null, unknownPlays: 0, coverage: 1,
+});
 
 describe("planSlides", () => {
   const base = [w("2024-03-01T05:00:00Z"), w("2024-03-02T05:00:00Z"), w("2024-03-03T05:00:00Z", { channelName: "Other", channelUrl: "u2", videoId: "BBBBBBBBBBB" })];
@@ -35,8 +42,18 @@ describe("planSlides", () => {
     expect(planSlides(s, { only: ["prime-time", "top-songs", "total-videos"] })).toEqual(["prime-time", "total-videos"]);
   });
 
-  it("is 12 slides when everything is present, with the peak-hour badge on the prime-time slide (no separate badge slide)", () => {
-    expect(ALL_SLIDES).toHaveLength(12);
+  it("Shorts slides: after watch time, before #1 creator; null split drops both; zero Shorts keeps slide 3 only", () => {
+    const s = computeStats(base, { timeZone: "UTC" });
+    expect(planSlides(s, { watchTime: est, shortsSplit: split(5) }).slice(0, 5)).toEqual(["total-videos", "watch-time", "shorts-vs-long", "creators-by-format", "top-creator"]);
+    expect(planSlides(s, { watchTime: est, shortsSplit: null })).not.toEqual(expect.arrayContaining(["shorts-vs-long"]));
+    expect(planSlides(s, { watchTime: est })).not.toContain("creators-by-format");
+    const zero = planSlides(s, { watchTime: est, shortsSplit: split(0) });
+    expect(zero).toContain("shorts-vs-long");
+    expect(zero).not.toContain("creators-by-format");
+  });
+
+  it("is 14 slides when everything is present, with the peak-hour badge on the prime-time slide (no separate badge slide)", () => {
+    expect(ALL_SLIDES).toHaveLength(14);
     expect(ALL_SLIDES).not.toContain("peak-hour-badge" as never);
     const music = (iso: string, id: string) => w(iso, { product: "music", channelName: "Queen - Topic", videoId: id, title: "Song" });
     const full = computeStats(
@@ -48,9 +65,9 @@ describe("planSlides", () => {
       ],
       { timeZone: "UTC" },
     );
-    const plan = planSlides(full, { watchTime: est });
+    const plan = planSlides(full, { watchTime: est, shortsSplit: split(3) });
     expect(plan).toEqual([...ALL_SLIDES]);
-    expect(plan).toHaveLength(12);
+    expect(plan).toHaveLength(14);
     expect(full.peakHourBadge).not.toBeNull();
   });
 });
