@@ -121,6 +121,16 @@ describe("guards", () => {
     b2.exhaust();
     expect(b2.tryReserve(1)).toBe(false);
   });
+
+  it("re-probes 15 minutes after exhaustion instead of blocking until Pacific midnight", () => {
+    let t = Date.UTC(2026, 9, 9, 8, 0, 0); // 01:00 PDT, ~23h before reset
+    const b = new QuotaBudget(100, () => t);
+    b.exhaust();
+    expect(b.tryReserve(1)).toBe(false);
+    expect(b.retryAfterSeconds()).toBe(900);
+    t += 15 * 60_000;
+    expect(b.tryReserve(1)).toBe(true);
+  });
 });
 
 describe("POST /api/durations", () => {
@@ -254,6 +264,28 @@ describe("POST /api/durations", () => {
     expect(budget.tryReserve(1)).toBe(false);
   });
 
+  it("treats a YouTube rate-limit 403 as a throttle: retries once and never trips the daily stop", async () => {
+    vi.useFakeTimers();
+    let calls = 0;
+    const ok = ytFetch(() => "PT2M");
+    const f = vi.fn(async (url: string) => {
+      calls++;
+      if (calls === 1)
+        return new Response(JSON.stringify({ error: { errors: [{ reason: "rateLimitExceeded" }] } }), { status: 403 });
+      return ok(url);
+    });
+    const budget = new QuotaBudget(9000);
+    const POST = createDurationsHandler({ apiKey: "k", fetchImpl: f, budget });
+    const pending = POST(post({ ids: [id(1)] }));
+    await vi.advanceTimersByTimeAsync(1500);
+    const res = await pending;
+    vi.useRealTimers();
+    expect(res.status).toBe(200);
+    expect((await res.json()).durations[id(1)]).toBe(120);
+    expect(calls).toBe(2);
+    expect(budget.tryReserve(1)).toBe(true);
+  });
+
   it("returns 503 with empty durations when no API key is configured", async () => {
     const res = await createDurationsHandler({})(post({ ids: [id(1)] }));
     expect(res.status).toBe(503);
@@ -275,14 +307,20 @@ describe("POST /api/durations", () => {
     expect(flags).toContain(null);
   });
 
-  it("never logs IDs", async () => {
-    const spies = (["log", "info", "warn", "error", "debug"] as const).map((m) => vi.spyOn(console, m));
+  it("never logs IDs or the key (only status + reason on upstream errors)", async () => {
+    const spies = (["log", "info", "warn", "error", "debug"] as const).map((m) =>
+      vi.spyOn(console, m).mockImplementation(() => {}),
+    );
     const f = vi
       .fn()
       .mockResolvedValueOnce(new Response("boom", { status: 500 }))
       .mockImplementation(ytFetch(() => "PT1S"));
     const POST = createDurationsHandler({ apiKey: "k", fetchImpl: f });
-    await POST(post({ ids: Array.from({ length: 60 }, (_, i) => id(i)) }));
-    for (const s of spies) expect(s).not.toHaveBeenCalled();
+    const ids = Array.from({ length: 60 }, (_, i) => id(i));
+    await POST(post({ ids }));
+    const logged = spies.flatMap((s) => s.mock.calls.flat().map(String)).join(" ");
+    for (const v of ids) expect(logged).not.toContain(v);
+    expect(logged).not.toMatch(/\bk\b|key=/);
+    for (const s of spies) s.mockRestore();
   });
 });
